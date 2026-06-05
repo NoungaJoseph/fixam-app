@@ -1,0 +1,32 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "unread": "Unread",
+    "all": "All",
+    "archive": "Archive",
+    "recent": "Recent Activity",
+    "empty": "No notifications yet",
+    "emptyYet": "No notifications yet",
+    "emptyTitle": "No notifications",
+    "emptySubtitle": "We'll notify you when something important happens.",
+    "emptyUnread": "You've read all your notifications!",
+    "unreadCount": "{{count}} unread",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "actions": {
+      "openChat": "Open Chat",
+      "viewTask": "View Task",
+      "viewJob": "View Job",
+      "leaveReview": "Leave Review",
+      "viewBooking": "View Booking",
+      "viewWallet": "View Wallet",
+      "viewProfile": "View Profile"
+    },
+    "filters": {
+      "all": "All",
+      "unread": "Unread",
+      "archive": "Archive"
+    }
+  }
+}

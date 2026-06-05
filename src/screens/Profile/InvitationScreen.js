@@ -1,0 +1,143 @@
+import React from 'react';
+import {
+  StyleSheet, View, Text, TouchableOpacity, ScrollView,
+  StatusBar, Share, Alert
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomHeader } from '../../navigation/NavigationComponents';
+import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+
+const InvitationScreen = ({ navigation }) => {
+  const { colors, isDarkMode } = useTheme();
+  const { user } = useAuth();
+  const { t } = useLanguage();
+  const referralCode = user?.referralCode || 'NO-CODE-YET';
+  const invitedCount = user?.referralStats?.invited || 0;
+  const earnedCoins = user?.referralStats?.coinsEarned || 0;
+
+  const onShare = async () => {
+    try {
+      const result = await Share.share({
+        message: t('invite.shareMessage', { code: referralCode }),
+      });
+    } catch (error) {
+      Alert.alert(error.message);
+    }
+  };
+
+  return (
+    <View style={[styles.background, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      <CustomHeader navigation={navigation} title={t('drawer.inviteFriends')} colors={colors} />
+      
+      {/* Internal Header Removed - Relying on Global Menu Bar Header */}
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        
+        {/* Illustration */}
+        <View style={styles.imageContainer}>
+          <View style={[styles.imageCircle, { borderColor: colors.border }]}>
+            <MaterialCommunityIcons name="account-group" size={80} color="#FFF" />
+          </View>
+        </View>
+
+        <Text style={[styles.title, { color: colors.text }]}>{t('invite.title')}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {t('invite.subtitle')}
+        </Text>
+
+        {/* Code Box */}
+        <View style={[styles.codeBox, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.codeLabel, { color: colors.textSecondary }]}>{t('invite.codeLabel')}</Text>
+          <View style={styles.codeRow}>
+            <Text style={[styles.codeText, { color: colors.text }]}>{referralCode}</Text>
+            <TouchableOpacity 
+              style={styles.copyBtn}
+              onPress={() => Alert.alert(t('invite.copied'), t('invite.copiedBody'))}
+            >
+              <MaterialCommunityIcons name="content-copy" size={20} color={colors.accent} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.statVal, { color: colors.text }]}>{invitedCount}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('invite.friendsInvited')}</Text>
+          </View>
+          <View style={[styles.statCard, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.statVal, { color: '#22C55E' }]}>{earnedCoins}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('invite.coinsEarned')}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.shareBtn, { backgroundColor: colors.accent }]}
+          onPress={onShare}
+        >
+          <MaterialCommunityIcons name="share-variant" size={22} color="#FFF" />
+          <Text style={styles.shareBtnText}>{t('invite.inviteNow')}</Text>
+        </TouchableOpacity>
+
+        {/* How it works */}
+        <View style={styles.howItWorks}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('invite.howItWorks')}</Text>
+          
+          <View style={styles.step}>
+            <View style={[styles.stepNum, { backgroundColor: colors.accent }]}>
+              <Text style={styles.stepNumText}>1</Text>
+            </View>
+            <Text style={[styles.stepText, { color: colors.textSecondary }]}>{t('invite.step1')}</Text>
+          </View>
+
+          <View style={styles.step}>
+            <View style={[styles.stepNum, { backgroundColor: colors.accent }]}>
+              <Text style={styles.stepNumText}>2</Text>
+            </View>
+            <Text style={[styles.stepText, { color: colors.textSecondary }]}>{t('invite.step2')}</Text>
+          </View>
+
+          <View style={styles.step}>
+            <View style={[styles.stepNum, { backgroundColor: colors.accent }]}>
+              <Text style={styles.stepNumText}>3</Text>
+            </View>
+            <Text style={[styles.stepText, { color: colors.textSecondary }]}>{t('invite.step3')}</Text>
+          </View>
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  background: { flex: 1 },
+  content: { padding: 24, alignItems: 'center' },
+  imageContainer: { marginTop: 20, marginBottom: 30 },
+  imageCircle: { width: 140, height: 140, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F97316', borderWidth: 1 },
+  title: { fontSize: 24, fontWeight: '900', textAlign: 'center', marginBottom: 12 },
+  subtitle: { fontSize: 14, textAlign: 'center', marginBottom: 35, lineHeight: 22, paddingHorizontal: 10 },
+  codeBox: { width: '100%', paddingVertical: 24, borderBottomWidth: 1, marginBottom: 25 },
+  codeLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5, marginBottom: 12, textAlign: 'center' },
+  codeRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 15 },
+  codeText: { fontSize: 32, fontWeight: '900', letterSpacing: 2 },
+  copyBtn: { width: 44, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  statsRow: { flexDirection: 'row', gap: 15, marginBottom: 30, width: '100%' },
+  statCard: { flex: 1, padding: 20, alignItems: 'center', borderBottomWidth: 1 },
+  statVal: { fontSize: 24, fontWeight: '900', marginBottom: 4 },
+  statLabel: { fontSize: 12, fontWeight: '700' },
+  shareBtn: { width: '100%', height: 60, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 40 },
+  shareBtnText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
+  howItWorks: { width: '100%', paddingHorizontal: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', marginBottom: 20 },
+  step: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 15 },
+  stepNum: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  stepNumText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
+  stepText: { fontSize: 14, fontWeight: '600' },
+});
+
+export default InvitationScreen;

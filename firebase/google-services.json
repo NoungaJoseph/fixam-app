@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1022842332839",
+    "project_id": "fixam-17560",
+    "storage_bucket": "fixam-17560.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1022842332839:android:58389d903e718508c61d82",
+        "android_client_info": {
+          "package_name": "com.fixam.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUakJ_yQFvm0ywFu0pOI2xv0QIHqGYMR8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

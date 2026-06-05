@@ -1,0 +1,19 @@
+{
+  "bookings": {
+    "title": "Book Service",
+    "date": "Date",
+    "time": "Time",
+    "location": "Location",
+    "locationPlaceholder": "Service location",
+    "budget": "Budget (FCFA)",
+    "details": "Task details",
+    "detailsPlaceholder": "Describe what you need",
+    "confirm": "Confirm Booking",
+    "scheduling": "Scheduling...",
+    "sent": "Booking sent",
+    "sentBody": "The provider will see this under My Jobs > Bookings.",
+    "failed": "Booking failed",
+    "status": "Booking status",
+    "bookNow": "Book Now"
+  }
+}

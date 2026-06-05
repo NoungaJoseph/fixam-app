@@ -1,0 +1,19 @@
+{
+  "bookings": {
+    "title": "Réserver un service",
+    "date": "Date",
+    "time": "Heure",
+    "location": "Lieu d'intervention",
+    "locationPlaceholder": "Adresse du service",
+    "budget": "Budget (FCFA)",
+    "details": "Détails de la mission",
+    "detailsPlaceholder": "Décrivez ce dont vous avez besoin",
+    "confirm": "Confirmer la réservation",
+    "scheduling": "Planification...",
+    "sent": "Réservation envoyée",
+    "sentBody": "Le prestataire la verra dans Mes missions > Réservations.",
+    "failed": "Réservation échouée",
+    "status": "Statut de la réservation",
+    "bookNow": "Réserver"
+  }
+}

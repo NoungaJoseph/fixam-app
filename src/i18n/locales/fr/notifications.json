@@ -1,0 +1,32 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "unread": "Non lues",
+    "all": "Toutes",
+    "archive": "Archiver",
+    "recent": "Activité récente",
+    "empty": "Aucune notification pour le moment",
+    "emptyYet": "Aucune notification pour le moment",
+    "emptyTitle": "Aucune notification",
+    "emptySubtitle": "Nous vous préviendrons lorsqu'une information importante arrivera.",
+    "emptyUnread": "Vous avez lu toutes vos notifications !",
+    "unreadCount": "{{count}} non lue(s)",
+    "justNow": "À l'instant",
+    "minutesAgo": "il y a {{count}} min",
+    "hoursAgo": "il y a {{count}} h",
+    "actions": {
+      "openChat": "Ouvrir le chat",
+      "viewTask": "Voir la mission",
+      "viewJob": "Voir le travail",
+      "leaveReview": "Laisser un avis",
+      "viewBooking": "Voir la réservation",
+      "viewWallet": "Voir le portefeuille",
+      "viewProfile": "Voir le profil"
+    },
+    "filters": {
+      "all": "Toutes",
+      "unread": "Non lues",
+      "archive": "Archives"
+    }
+  }
+}

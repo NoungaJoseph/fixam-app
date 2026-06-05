@@ -1,0 +1,88 @@
+{
+  "expo": {
+    "name": "Fixam",
+    "slug": "Fixam",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/fixam.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#14B8A6"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.fixam.app",
+      "googleServicesFile": "./firebase/google-services.json",
+      "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#14B8A6"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "fixam"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.NOTIFICATIONS",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-localization",
+      "expo-local-authentication",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your provider/client and for profile verification.",
+          "cameraPermission": "The app accesses your camera to take profile photos and document proofs."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#14B8A6"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-secure-store",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      "./plugins/withAndroidFirebaseStabilization",
+      "@sentry/react-native"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4d46468f-0fb1-40b9-85b2-7c61004d77b9"
+      }
+    }
+  }
+}

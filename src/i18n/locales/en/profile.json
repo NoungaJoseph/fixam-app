@@ -279,5 +279,24 @@
     "thankYou": "Thank you",
     "sent": "Your feedback has been sent to Fixam.",
     "failed": "Could not send feedback"
+  },
+  "deleteAccountDetails": {
+    "title": "Delete Account",
+    "subtitle": "This action is permanent and cannot be undone. Please read the warnings below carefully before proceeding.",
+    "warningHeader": "⚠️ What will be permanently deleted:",
+    "warning1": "All your personal data and profile information will be permanently deleted.",
+    "warning2": "Your active bookings will be cancelled.",
+    "warning3": "Your wallet balance will be lost.",
+    "warning4": "You will not be able to recover your account.",
+    "understand": "I understand that this is permanent and cannot be reversed.",
+    "checkConfirm": "You must check the confirmation box before proceeding.",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "confirmTitle": "Confirm Your Identity",
+    "confirmSubtitle": "Enter your password to confirm account deletion",
+    "passwordPlaceholder": "Enter your password",
+    "deleteBtn": "Delete My Account",
+    "incorrectPassword": "Incorrect password. Please try again.",
+    "success": "Your account has been deleted"
   }
 }

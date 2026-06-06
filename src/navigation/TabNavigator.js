@@ -41,8 +41,7 @@ import HiddenProfileScreen from '../screens/Profile/HiddenProfileScreen';
 import ChangePasswordScreen from '../screens/Profile/ChangePasswordScreen';
 import HelpCenterScreen from '../screens/Profile/HelpCenterScreen';
 import InvitationScreen from '../screens/Profile/InvitationScreen';
-import DeleteAccountScreen from '../screens/Profile/DeleteAccountScreen';
-import ConfirmDeleteScreen from '../screens/Profile/ConfirmDeleteScreen';
+
 import TopUpScreen from '../screens/Wallet/TopUpScreen';
 import TopUpAmountScreen from '../screens/Wallet/TopUpAmountScreen';
 import TopUpPaymentScreen from '../screens/Wallet/TopUpPaymentScreen';
@@ -98,8 +97,7 @@ const ProfileStack = () => (
     <Stack.Screen name="HiddenProfile" component={HiddenProfileScreen} />
     <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
     <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
-    <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
-    <Stack.Screen name="ConfirmDelete" component={ConfirmDeleteScreen} />
+
   </Stack.Navigator>
 );
 
@@ -172,8 +170,7 @@ const HIDE_TAB_ROUTES = [
   'Verification',
   'HiddenProfile',
   'ChangePassword',
-  'DeleteAccount',
-  'ConfirmDelete',
+
   'LiveTaskMap',
   'JobStatus',
   'TaskSuccess',

@@ -6,7 +6,6 @@ import TabNavigator from './TabNavigator';
 import ProviderTabNavigator from './ProviderTabNavigator';
 import AnimatedSplashScreen from '../screens/Auth/AnimatedSplashScreen';
 import { useNavigationStateContext } from '../context/NavigationStateContext';
-import FirstRunGuide from '../components/Common/FirstRunGuide';
 
 const getActiveRouteName = (state) => {
   if (!state?.routes?.length) return null;
@@ -30,16 +29,13 @@ const AppNavigator = () => {
       onReady={() => setCurrentRouteName(navigationRef.current?.getCurrentRoute?.()?.name || null)}
       onStateChange={(state) => setCurrentRouteName(getActiveRouteName(state))}
     >
-      <>
-        {!user ? (
-          <AuthNavigator />
-        ) : (user.role?.toUpperCase() === 'PROVIDER' && user.providerProfile?.profileMode !== 'PERSONAL') ? (
-          <ProviderTabNavigator />
-        ) : (
-          <TabNavigator />
-        )}
-        {user ? <FirstRunGuide user={user} /> : null}
-      </>
+      {!user ? (
+        <AuthNavigator />
+      ) : (user.role?.toUpperCase() === 'PROVIDER' && user.providerProfile?.profileMode !== 'PERSONAL') ? (
+        <ProviderTabNavigator />
+      ) : (
+        <TabNavigator />
+      )}
     </NavigationContainer>
   );
 };

@@ -269,21 +269,7 @@ const PrivacySecurityScreen = ({ navigation }) => {
             />
           </View>
 
-          <View style={[styles.section, { marginTop: 10 }]}>
-            <Text style={[styles.sectionLabel, { color: colors.error }]}>DANGER ZONE</Text>
-            <TouchableOpacity 
-              style={[styles.dangerBtn, { backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2', borderColor: 'rgba(239, 68, 68, 0.3)' }]} 
-              onPress={() => navigation.navigate('DeleteAccount')}
-            >
-              <View style={styles.dangerBtnRow}>
-                <MaterialCommunityIcons name="delete-outline" size={22} color={colors.error} />
-                <Text style={[styles.dangerText, { color: colors.error }]}>{t('profile.deleteAccount')}</Text>
-              </View>
-              <Text style={[styles.dangerDesc, { color: colors.error, opacity: 0.8 }]}>
-                Permanently remove your account and all associated data. This action cannot be undone.
-              </Text>
-            </TouchableOpacity>
-          </View>
+
         </ScrollView>
       </SafeAreaView>
 

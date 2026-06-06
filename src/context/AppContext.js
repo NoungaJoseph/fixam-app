@@ -61,8 +61,11 @@ export const AppProvider = ({ children }) => {
   const [appliedJobIds, setAppliedJobIds] = useState([]);
   const [isProviderOnline, setIsProviderOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const markingNotificationsRef = React.useRef(new Set());
+  const lastFetchRef = React.useRef(null);
 
   useEffect(() => {
     if (user?.role?.toUpperCase() === 'PROVIDER') {
@@ -70,8 +73,29 @@ export const AppProvider = ({ children }) => {
     }
 
     if (token) {
-      fetchAppData();
-      fetchNotifications();
+      // First try to load cached data for instant UI
+      const loadCached = async () => {
+        try {
+          const cached = await AsyncStorage.getItem(`fixam:dashboard:${user?.id}`);
+          if (cached) {
+            const data = JSON.parse(cached);
+            setProviders(data.providers || []);
+            setJobs(data.jobs || []);
+            setWalletBalance(data.walletBalance || 0);
+            setWalletDetails(data.walletDetails || null);
+            setConversations(data.conversations || []);
+            setTransactions(data.transactions || []);
+            setHasLoadedData(true);
+            setIsInitialLoad(false);
+          }
+        } catch (e) {
+          console.log('Error loading cache', e);
+        }
+      };
+      loadCached().then(() => {
+        fetchAppData(true);
+        fetchNotifications();
+      });
     } else {
       fetchProviders();
     }
@@ -192,24 +216,26 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const fetchAppData = async () => {
-    setIsLoading(true);
-    try {
-      // These routes require authentication
-      const jobsEndpoint = user?.role === 'PROVIDER' ? '/jobs/available?limit=10&sortBy=newest' : '/jobs/client';
-      const [providersRes, jobsRes, walletRes, chatRes, transRes, bookingsRes] = await Promise.all([
-        api.get('/providers').catch(() => ({ data: { data: [] } })),
-        api.get(jobsEndpoint).catch(() => ({ data: { data: [] } })),
-        api.get('/wallet/balance').catch(() => ({ data: { data: { balance: 0 } } })),
-        api.get('/chat/conversations').catch(() => ({ data: { data: [] } })),
-        api.get('/wallet/transactions').catch(() => ({ data: { data: [] } })),
-        user?.role?.toUpperCase() === 'CLIENT'
-          ? api.get('/bookings/mine?role=CLIENT').catch(() => ({ data: { data: [] } }))
-          : Promise.resolve({ data: { data: [] } }),
-      ]);
+  const fetchAppData = async (force = false) => {
+    // Add debounce check (30 seconds)
+    const now = Date.now();
+    if (!force && lastFetchRef.current && (now - lastFetchRef.current < 30000)) {
+      return;
+    }
 
-      setProviders((providersRes.data.data || []).map(normalizeProvider));
-      const bookingJobs = (bookingsRes.data.data || []).map((booking) => normalizeJob({
+    if (!hasLoadedData) {
+      setIsInitialLoad(true);
+    }
+    setIsLoading(true);
+    
+    try {
+      const res = await api.get('/dashboard');
+      const data = res.data.data;
+      
+      const normalizedProviders = (data.providers || []).map(normalizeProvider);
+      setProviders(normalizedProviders);
+      
+      const bookingJobs = (data.bookings || []).map((booking) => normalizeJob({
         id: booking.id,
         clientId: booking.clientId,
         title: booking.notes || 'Scheduled service booking',
@@ -225,18 +251,38 @@ export const AppProvider = ({ children }) => {
         isBooking: true,
         booking,
       }));
-      setJobs([...(jobsRes.data.data || []).map(normalizeJob), ...bookingJobs]);
-      setWalletBalance(walletRes.data.data?.balance || 0);
-      setWalletDetails(walletRes.data.data || null);
-      setConversations((chatRes.data.data || []).map(normalizeConversation));
-      setTransactions(transRes.data.data || []);
+      const normalizedJobs = [...(data.jobs || []).map(normalizeJob), ...bookingJobs];
+      setJobs(normalizedJobs);
+      
+      setWalletBalance(data.wallet?.balance || 0);
+      setWalletDetails(data.wallet || null);
+      
+      const normalizedConv = (data.conversations || []).map(normalizeConversation);
+      setConversations(normalizedConv);
+      
+      setTransactions(data.transactions || []);
+
       if (user?.role?.toUpperCase() === 'CLIENT') {
         fetchFavoriteProviders();
       }
+
+      // Cache data
+      await AsyncStorage.setItem(`fixam:dashboard:${user?.id}`, JSON.stringify({
+        providers: normalizedProviders,
+        jobs: normalizedJobs,
+        walletBalance: data.wallet?.balance || 0,
+        walletDetails: data.wallet || null,
+        conversations: normalizedConv,
+        transactions: data.transactions || []
+      }));
+
+      lastFetchRef.current = now;
+      setHasLoadedData(true);
     } catch (error) {
-      console.log('[AppData Partial Error]:', error.message);
+      console.log('[AppData Fetch Error]:', error.message);
     } finally {
       setIsLoading(false);
+      setIsInitialLoad(false);
     }
   };
 
@@ -429,6 +475,7 @@ export const AppProvider = ({ children }) => {
       transactions,
       isProviderOnline,
       isLoading,
+      isInitialLoad,
       fetchAppData,
       fetchNotifications,
       fetchConversations,

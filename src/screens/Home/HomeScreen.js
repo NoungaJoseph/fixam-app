@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  TextInput, Image, StatusBar, Dimensions, Platform, RefreshControl
+  TextInput, Image, StatusBar, Dimensions, Platform, RefreshControl, ActivityIndicator
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,8 +13,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
 import { POPULAR_SERVICE_CATALOG, POPULAR_SERVICE_IMAGES } from '../../data/popularServices';
-import WelcomeModal from '../../components/Common/WelcomeModal';
-import ProviderTour from '../../components/Common/ProviderTour';
 
 const { width } = Dimensions.get('window');
 
@@ -56,23 +54,14 @@ const LEARN_CARDS = [
 ];
 
 const HomeScreen = ({ navigation }) => {
-  const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds } = useAppContext();
-  const { user, isNewUser, clearNewUser } = useAuth();
+  const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad } = useAppContext();
+  const { user } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const learnScrollRef = useRef(null);
-
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [showTour, setShowTour] = useState(false);
-  const postTaskRef = useRef(null);
-  const topUpRef = useRef(null);
-  const viewAllRef = useRef(null);
-  const myTasksRef = useRef(null);
-  const messagesRef = useRef(null);
-  const favoritesRef = useRef(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -141,59 +130,6 @@ const HomeScreen = ({ navigation }) => {
   const tasksNeededForNextLevel = walletDetails?.nextLevelTasks ?? (nextThreshold - currentThreshold);
   const progressPercent = walletDetails?.progressPercent ?? Math.min(100, Math.round((completedTaskCount / tasksNeededForNextLevel) * 100));
   const nextRewardCoins = Math.min(currentLevel, 200);
-
-  useEffect(() => {
-    if (isNewUser) {
-      const timer = setTimeout(() => setShowWelcome(true), 600);
-      return () => clearTimeout(timer);
-    }
-  }, [isNewUser]);
-
-  const clientTourSteps = useMemo(() => [
-    {
-      ref: postTaskRef,
-      icon: 'clipboard-plus-outline',
-      title: t('tour.clientPostTitle'),
-      text: t('tour.clientPostText'),
-    },
-    {
-      ref: topUpRef,
-      icon: 'wallet-plus-outline',
-      title: t('tour.clientTopUpTitle'),
-      text: t('tour.clientTopUpText'),
-    },
-    {
-      ref: viewAllRef,
-      icon: 'account-search-outline',
-      title: t('tour.clientBrowseTitle'),
-      text: t('tour.clientBrowseText'),
-    },
-    {
-      ref: null,
-      icon: 'calendar-check-outline',
-      title: t('tour.clientBookTitle'),
-      text: t('tour.clientBookText'),
-    },
-    {
-      ref: messagesRef,
-      icon: 'chat-processing-outline',
-      title: t('tour.clientChatTitle'),
-      text: t('tour.clientChatText'),
-    },
-    {
-      ref: myTasksRef,
-      icon: 'clipboard-check-outline',
-      title: t('tour.clientTrackTitle'),
-      text: t('tour.clientTrackText'),
-    },
-    {
-      ref: null,
-      icon: 'account-edit-outline',
-      title: t('tour.clientProfileTitle'),
-      text: t('tour.clientProfileText'),
-    },
-  ], [t]);
-
   const localizedLearnCards = LEARN_CARDS.map((card) => {
     const copy = {
       '1': [t('home.learn.step1'), t('home.clientLearn.bookTitle'), t('home.clientLearn.bookDesc')],
@@ -203,6 +139,16 @@ const HomeScreen = ({ navigation }) => {
     }[card.id];
     return { ...card, step: copy[0], title: copy[1], desc: copy[2] };
   });
+
+  if (isInitialLoad) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <ActivityIndicator size="large" color="#0D9488" />
+        <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -334,7 +280,6 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.walletAmount} numberOfLines={1}>{(walletBalance || 0).toLocaleString()} {t('payments.coins')}</Text>
             
             <TouchableOpacity
-              ref={topUpRef}
               style={styles.topUpBtn}
               onPress={() => navigation.navigate('TopUp')}
             >
@@ -386,7 +331,6 @@ const HomeScreen = ({ navigation }) => {
 
         {/* ═══ 4. CTA - "What do you need done?" ═══ */}
         <TouchableOpacity
-          ref={postTaskRef}
           style={[styles.ctaCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
           onPress={() => navigation.navigate('Create Task', { screen: 'PostTask', params: { startOnPost: true } })}
           activeOpacity={0.85}
@@ -458,7 +402,7 @@ const HomeScreen = ({ navigation }) => {
 
         {/* ═══ 5. QUICK ACTIONS ═══ */}
         <View style={styles.quickActions}>
-          <TouchableOpacity ref={myTasksRef} style={styles.quickItem} onPress={() => navigation.navigate('My Tasks')}>
+          <TouchableOpacity style={styles.quickItem} onPress={() => navigation.navigate('My Tasks')}>
             <View style={[styles.quickIcon, { backgroundColor: isDarkMode ? '#134E4A' : '#E6F7F5' }]}>
               <MaterialCommunityIcons name="clipboard-check-outline" size={24} color="#0D9488" />
               {activeTaskCount > 0 && (
@@ -471,7 +415,7 @@ const HomeScreen = ({ navigation }) => {
             <Text style={[styles.quickSub, { color: colors.textSecondary }]}>{t('home.activeCount', { count: activeTaskCount })}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity ref={messagesRef} style={styles.quickItem} onPress={() => navigation.navigate('Messages')}>
+          <TouchableOpacity style={styles.quickItem} onPress={() => navigation.navigate('Messages')}>
             <View style={[styles.quickIcon, { backgroundColor: isDarkMode ? '#134E4A' : '#E6F7F5' }]}>
               <MaterialCommunityIcons name="chat-processing-outline" size={24} color="#0D9488" />
               {unreadCount > 0 && (
@@ -484,7 +428,7 @@ const HomeScreen = ({ navigation }) => {
             <Text style={[styles.quickSub, { color: colors.textSecondary }]}>{t('home.unreadCount', { count: unreadCount })}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity ref={favoritesRef} style={styles.quickItem} onPress={() => navigation.navigate('FavoriteProviders')}>
+          <TouchableOpacity style={styles.quickItem} onPress={() => navigation.navigate('FavoriteProviders')}>
             <View style={[styles.quickIcon, { backgroundColor: isDarkMode ? '#422006' : '#FFF7ED' }]}>
               <MaterialCommunityIcons name="star" size={24} color="#F59E0B" />
             </View>
@@ -506,7 +450,7 @@ const HomeScreen = ({ navigation }) => {
           <>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.recommendedProfessionals')}</Text>
-              <TouchableOpacity ref={viewAllRef} onPress={() => navigation.navigate('ProviderList')}>
+              <TouchableOpacity onPress={() => navigation.navigate('ProviderList')}>
                 <Text style={styles.viewAll}>{t('home.viewAll')}</Text>
               </TouchableOpacity>
             </View>
@@ -563,24 +507,6 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
 
       </ScrollView>
-
-      <WelcomeModal
-        visible={showWelcome}
-        name={firstName}
-        onDone={() => {
-          setShowWelcome(false);
-          clearNewUser();
-          setTimeout(() => setShowTour(true), 400);
-        }}
-      />
-
-      <ProviderTour
-        steps={clientTourSteps}
-        userId={user?.id}
-        visible={showTour}
-        onDone={() => setShowTour(false)}
-      />
-
     </View>
   );
 };

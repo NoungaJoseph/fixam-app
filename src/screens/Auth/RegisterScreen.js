@@ -33,6 +33,20 @@ const RegisterScreen = ({ navigation, route }) => {
   const phoneDigits = formData.phone.replace(/\D/g, '').slice(0, 9);
   const authInputStyle = { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)', color: '#FFF' };
   
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidPhone = (phone) => /^6\d{8}$/.test(phone);
+  const isValidPassword = (pwd) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(pwd);
+
+  const isFormValid = 
+    formData.firstName.trim().length > 0 &&
+    formData.lastName.trim().length > 0 &&
+    isValidEmail(formData.email.trim()) &&
+    isValidPhone(phoneDigits) &&
+    formData.location.trim().length > 0 &&
+    isValidPassword(formData.password) &&
+    formData.password === formData.repeatPassword &&
+    agree;
+  
   const handleRegister = async () => {
     // Normalize phone: remove spaces and non-digits
     const normalizedPhone = phoneDigits;
@@ -42,11 +56,11 @@ const RegisterScreen = ({ navigation, route }) => {
       alert(t('validation.nameRequired'));
       return;
     }
-    if (!formData.email.trim() || !/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
+    if (!isValidEmail(formData.email.trim())) {
       alert(t('validation.emailRequired'));
       return;
     }
-    if (normalizedPhone.length !== 9) {
+    if (!isValidPhone(normalizedPhone)) {
       alert(t('validation.phoneRequired'));
       return;
     }
@@ -54,8 +68,8 @@ const RegisterScreen = ({ navigation, route }) => {
       alert(t('validation.locationRequired'));
       return;
     }
-    if (!formData.password || formData.password.length < 6) {
-      alert(t('validation.passwordLength'));
+    if (!isValidPassword(formData.password)) {
+      alert(t('validation.passwordFormat'));
       return;
     }
     if (!agree) {
@@ -162,6 +176,7 @@ const RegisterScreen = ({ navigation, route }) => {
                   <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={20} color="rgba(255,255,255,0.74)" />
                 </TouchableOpacity>
               </View>
+              <Text style={styles.passwordHint}>{t('register.passwordHint')}</Text>
 
               <Text style={styles.label}>{t('register.repeatPassword')}</Text>
               <View style={[styles.inputWrapper, inputStyle]}>
@@ -189,9 +204,8 @@ const RegisterScreen = ({ navigation, route }) => {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.registerBtn, { opacity: submitting ? 0.65 : 1 }]} onPress={handleRegister} activeOpacity={0.85} disabled={submitting}>
+              <TouchableOpacity style={[styles.registerBtn, { opacity: submitting || !isFormValid ? 0.5 : 1 }]} onPress={handleRegister} activeOpacity={0.85} disabled={submitting || !isFormValid}>
                 <Text style={styles.registerBtnText}>{submitting ? t('register.creating') : t('register.submit')}</Text>
-                <MaterialCommunityIcons name="arrow-right" size={20} color="#0F766E" style={styles.buttonArrow} />
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -229,9 +243,10 @@ const styles = StyleSheet.create({
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
   termsText: { flex: 1, color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 19 },
   linkText: { color: '#FFF', fontWeight: '900', textDecorationLine: 'underline' },
-  registerBtn: { alignSelf: 'center', width: '72%', maxWidth: 260, minWidth: 190, height: 56, borderRadius: 999, marginTop: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF', position: 'relative' },
-  registerBtnText: { color: '#0F766E', fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  registerBtn: { alignSelf: 'center', width: '72%', maxWidth: 260, minWidth: 190, height: 56, borderRadius: 999, marginTop: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D9488', position: 'relative' },
+  registerBtnText: { color: '#FFF', fontSize: 17, fontWeight: '900', textAlign: 'center' },
   buttonArrow: { position: 'absolute', right: 20 },
+  passwordHint: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 4, marginLeft: 4 },
 });
 
 export default RegisterScreen;

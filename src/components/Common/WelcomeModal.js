@@ -5,12 +5,14 @@ import { useLanguage } from '../../context/LanguageContext';
 
 const EMOJIS = ['🎉', '🥳', '✨', '🎊', '💪'];
 
-const WelcomeModal = ({ visible, name, onDone }) => {
+const WelcomeModal = ({ visible, name, role, onDone }) => {
   const { colors } = useTheme();
   const { t } = useLanguage();
   const scaleAnim = useRef(new Animated.Value(0.7)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const emojiAnims = useRef(EMOJIS.map(() => new Animated.Value(0))).current;
+
+  const isProvider = role === 'PROVIDER';
 
   useEffect(() => {
     if (visible) {
@@ -19,7 +21,6 @@ const WelcomeModal = ({ visible, name, onDone }) => {
         Animated.timing(opacityAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
 
-      // Staggered emoji bounce
       Animated.stagger(
         120,
         emojiAnims.map((anim) =>
@@ -36,16 +37,20 @@ const WelcomeModal = ({ visible, name, onDone }) => {
     }
   }, [visible]);
 
+  const title = isProvider
+    ? t('tour.welcomeProviderTitle', { name })
+    : t('tour.welcomeClientTitle', { name });
+
+  const body = isProvider
+    ? t('tour.welcomeProviderBody')
+    : t('tour.welcomeClientBody');
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onDone}>
       <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
         <Animated.View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, transform: [{ scale: scaleAnim }] },
-          ]}
+          style={[styles.card, { backgroundColor: colors.card, transform: [{ scale: scaleAnim }] }]}
         >
-          {/* Emoji row */}
           <View style={styles.emojiRow}>
             {EMOJIS.map((emoji, i) => (
               <Animated.Text
@@ -53,14 +58,9 @@ const WelcomeModal = ({ visible, name, onDone }) => {
                 style={[
                   styles.emoji,
                   {
-                    transform: [
-                      {
-                        scale: emojiAnims[i].interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.3, 1.3],
-                        }),
-                      },
-                    ],
+                    transform: [{
+                      scale: emojiAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1.3] }),
+                    }],
                     opacity: emojiAnims[i],
                   },
                 ]}
@@ -70,12 +70,8 @@ const WelcomeModal = ({ visible, name, onDone }) => {
             ))}
           </View>
 
-          <Text style={[styles.title, { color: colors.text }]}>
-            {t('tour.welcomeTitle', { name })}
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {t('tour.welcomeText')}
-          </Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.body, { color: colors.textSecondary }]}>{body}</Text>
 
           <TouchableOpacity style={styles.btn} onPress={onDone}>
             <Text style={styles.btnText}>{t('tour.takeTour')}</Text>
@@ -123,7 +119,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 28,
   },
-  subtitle: {
+  body: {
     fontSize: 14,
     lineHeight: 22,
     textAlign: 'center',

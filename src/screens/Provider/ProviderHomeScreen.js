@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  TextInput, StatusBar, Platform, Image, Dimensions, Switch, Modal
+  TextInput, StatusBar, Platform, Image, Dimensions, Switch, Modal, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -64,7 +64,7 @@ const LEARN_CARDS = [
 const ProviderHomeScreen = ({ navigation }) => {
   const {
     isProviderOnline, updateProviderStatus,
-    walletBalance, visibleJobs, notificationCount, unreadCount,
+    walletBalance, visibleJobs, notificationCount, unreadCount, isInitialLoad
   } = useAppContext();
   const { user, isNewUser, clearNewUser } = useAuth();
   const { colors, isDarkMode } = useTheme();
@@ -88,6 +88,7 @@ const ProviderHomeScreen = ({ navigation }) => {
   const onlineToggleRef = useRef(null);
   const findJobsRef = useRef(null);
   const myJobsRef = useRef(null);
+  const providerMainScrollRef = useRef(null);
 
   const [myJobs, setMyJobs] = useState([]);
 
@@ -97,12 +98,6 @@ const ProviderHomeScreen = ({ navigation }) => {
       icon: 'wallet-plus-outline',
       title: t('tour.providerTopUpTitle'),
       text: t('tour.providerTopUpText'),
-    },
-    {
-      ref: viewAllJobsRef,
-      icon: 'briefcase-search-outline',
-      title: t('tour.providerViewAllTitle'),
-      text: t('tour.providerViewAllText'),
     },
     {
       ref: onlineToggleRef,
@@ -117,22 +112,10 @@ const ProviderHomeScreen = ({ navigation }) => {
       text: t('tour.providerFindJobsText'),
     },
     {
-      ref: myJobsRef,
-      icon: 'clipboard-list-outline',
-      title: t('tour.providerMyJobsTitle'),
-      text: t('tour.providerMyJobsText'),
-    },
-    {
-      ref: null,
-      icon: 'check-decagram-outline',
-      title: t('tour.providerVerifyTitle'),
-      text: t('tour.providerVerifyText'),
-    },
-    {
-      ref: null,
-      icon: 'account-edit-outline',
-      title: t('tour.providerProfileTitle'),
-      text: t('tour.providerProfileText'),
+      ref: viewAllJobsRef,
+      icon: 'fire',
+      title: t('tour.providerViewAllTitle'),
+      text: t('tour.providerViewAllText'),
     },
   ], [t]);
 
@@ -357,12 +340,22 @@ const ProviderHomeScreen = ({ navigation }) => {
     );
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+  if (isInitialLoad) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+        <ActivityIndicator size="large" color="#0D9488" />
+        <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
+      </View>
+    );
+  }
 
-      {/* Scrollable Dashboard */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]}>
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+
+      {/* FIXED FLOATING SEARCH/FILTER AT TOP */}
+      <ScrollView ref={providerMainScrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]}>
 
         {/* ÔöÇÔöÇ 1. PREMIUM HEADER SECTION ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
         <View style={styles.headerTop}>
@@ -682,6 +675,7 @@ const ProviderHomeScreen = ({ navigation }) => {
       <WelcomeModal
         visible={showWelcome}
         name={firstName}
+        role={user?.role}
         onDone={() => {
           setShowWelcome(false);
           clearNewUser();
@@ -695,6 +689,7 @@ const ProviderHomeScreen = ({ navigation }) => {
         userId={user?.id}
         visible={showTour}
         onDone={() => setShowTour(false)}
+        scrollViewRef={providerMainScrollRef}
       />
     </SafeAreaView>
   );

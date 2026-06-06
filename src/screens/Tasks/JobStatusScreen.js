@@ -214,7 +214,7 @@ const JobStatusScreen = ({ route, navigation }) => {
           <View style={styles.actions}>
             {canViewLocation && (
               <TouchableOpacity style={[styles.secondaryActionBtn, { borderColor: colors.border, backgroundColor: colors.card }]} onPress={() => navigation.navigate('LiveTaskMap', { task: job })}>
-                <MaterialCommunityIcons name="map-marker" size={22} color={colors.accent} />
+                <MaterialCommunityIcons name="crosshairs-gps" size={22} color={colors.accent} />
                 <Text style={[styles.secondaryActionText, { color: colors.text }]}>{t('jobs.viewLocation')}</Text>
               </TouchableOpacity>
             )}

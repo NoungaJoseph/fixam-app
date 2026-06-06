@@ -36,7 +36,7 @@ const SLIDES = [
     id: '3',
     titleKey: 'onboarding.slide3Title',
     descKey: 'onboarding.slide3Desc',
-    accent: '#2563EB',
+    accent: '#0D9488',
     image: require('../../../assets/onboarding/learn_step3.png'),
   },
 ];

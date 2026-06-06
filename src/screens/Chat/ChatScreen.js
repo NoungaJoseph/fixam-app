@@ -392,7 +392,7 @@ const ChatScreen = ({ route, navigation }) => {
             accessibilityRole="button"
             accessibilityLabel={user?.role === 'PROVIDER' ? 'Track client on map' : 'Track provider on map'}
           >
-            <MaterialCommunityIcons name="map-outline" size={22} color={colors.text} />
+            <MaterialCommunityIcons name="crosshairs-gps" size={20} color={colors.text} />
             <Text style={[styles.trackCompactCaption, { color: colors.textSecondary }]} numberOfLines={1}>
               {user?.role === 'PROVIDER' ? 'Track client' : 'Track provider'}
             </Text>

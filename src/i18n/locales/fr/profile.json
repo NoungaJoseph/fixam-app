@@ -279,5 +279,24 @@
     "thankYou": "Merci",
     "sent": "Votre retour a bien été envoyé à Fixam.",
     "failed": "Impossible d'envoyer le retour"
+  },
+  "deleteAccountDetails": {
+    "title": "Supprimer le compte",
+    "subtitle": "Cette action est permanente et irréversible. Veuillez lire attentivement les avertissements ci-dessous avant de continuer.",
+    "warningHeader": "⚠️ Ce qui sera définitivement supprimé :",
+    "warning1": "Toutes vos données personnelles et les informations de votre profil seront définitivement supprimées.",
+    "warning2": "Vos réservations et missions en cours seront annulées.",
+    "warning3": "Le solde de votre portefeuille et vos pièces seront perdus à jamais.",
+    "warning4": "Vous ne pourrez pas récupérer ou réactiver votre compte.",
+    "understand": "Je comprends que cela est permanent et ne peut pas être annulé.",
+    "checkConfirm": "Vous devez cocher la case de confirmation avant de continuer.",
+    "cancel": "Annuler",
+    "continue": "Continuer",
+    "confirmTitle": "Confirmez votre identité",
+    "confirmSubtitle": "Saisissez votre mot de passe pour confirmer la suppression",
+    "passwordPlaceholder": "Entrez votre mot de passe",
+    "deleteBtn": "Supprimer mon compte",
+    "incorrectPassword": "Mot de passe incorrect. Veuillez réessayer.",
+    "success": "Votre compte a été supprimé"
   }
 }

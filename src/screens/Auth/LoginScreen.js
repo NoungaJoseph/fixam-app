@@ -24,6 +24,12 @@ const LoginScreen = ({ navigation }) => {
   const authInputStyle = { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)' };
   const authInputTextStyle = { color: '#FFF' };
 
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidPhone = (phone) => /^6\d{8}$/.test(phone);
+  const isFormValid = loginMethod === 'phone' 
+    ? isValidPhone(phoneDigits) && password.length > 0
+    : isValidEmail(contact.trim()) && password.length > 0;
+
   const handleContactChange = (value) => {
     if (loginMethod === 'phone') {
       setContact(value.replace(/\D/g, '').slice(0, 9));
@@ -96,13 +102,25 @@ const LoginScreen = ({ navigation }) => {
               style={[styles.methodBtn, loginMethod === 'phone' && styles.methodBtnActive]}
               onPress={() => { setLoginMethod('phone'); setContact(''); }}
             >
-              <Text style={[styles.methodText, loginMethod === 'phone' && styles.methodTextActive]}>{t('login.mobileNumber')}</Text>
+              <Text 
+                style={[styles.methodText, loginMethod === 'phone' && styles.methodTextActive]}
+                numberOfLines={1} 
+                adjustsFontSizeToFit
+              >
+                {t('login.mobileNumber')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.methodBtn, loginMethod === 'email' && styles.methodBtnActive]}
               onPress={() => { setLoginMethod('email'); setContact(''); }}
             >
-              <Text style={[styles.methodText, loginMethod === 'email' && styles.methodTextActive]}>{t('register.email')}</Text>
+              <Text 
+                style={[styles.methodText, loginMethod === 'email' && styles.methodTextActive]}
+                numberOfLines={1} 
+                adjustsFontSizeToFit
+              >
+                {t('register.email')}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -151,16 +169,13 @@ const LoginScreen = ({ navigation }) => {
             <TouchableOpacity 
               onPress={handleLogin} 
               activeOpacity={0.8} 
-              disabled={loading}
-              style={[styles.loginButton, { opacity: loading ? 0.72 : 1 }]}
+              disabled={loading || !isFormValid}
+              style={[styles.loginButton, { opacity: loading || !isFormValid ? 0.5 : 1 }]}
             >
               {loading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <>
-                  <Text style={styles.loginButtonText}>{t('roleSelection.login')}</Text>
-                  <MaterialIcons name="arrow-forward" size={18} color="#0F766E" style={styles.buttonArrow} />
-                </>
+                <Text style={styles.loginButtonText}>{t('roleSelection.login')}</Text>
               )}
             </TouchableOpacity>
 
@@ -183,15 +198,15 @@ const styles = StyleSheet.create({
   mainContainer: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 76, paddingBottom: 34, justifyContent: 'center' },
   brandHeader: { alignItems: 'center', marginBottom: 26 },
-  logoImage: { width: 170, height: 92, marginBottom: 14 },
+  logoImage: { width: 340, height: 184, marginBottom: 14 },
   welcomeTo: { color: '#FFF', fontSize: 28, fontWeight: '900', textAlign: 'center' },
   headerSub: { color: 'rgba(255,255,255,0.88)', fontSize: 14, fontWeight: '700', marginTop: 8, textAlign: 'center', lineHeight: 20 },
   formArea: { paddingHorizontal: 0 },
   methodToggle: { flexDirection: 'row', borderRadius: 999, padding: 4, marginBottom: 22, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
-  methodBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 9 },
-  methodBtnActive: { backgroundColor: '#FFF' },
+  methodBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 999 },
+  methodBtnActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
   methodText: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.78)' },
-  methodTextActive: { color: '#0F766E', fontWeight: '900' },
+  methodTextActive: { color: '#FFF', fontWeight: '900' },
   formContainer: { gap: 18 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 18, paddingHorizontal: 15, height: 58, borderWidth: 1 },
   inputIcon: { marginRight: 12 },
@@ -199,12 +214,12 @@ const styles = StyleSheet.create({
   countryPrefix: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 12, paddingRight: 12, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.28)' },
   flagText: { fontSize: 20 },
   prefixText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
-  loginButton: { alignSelf: 'center', width: '58%', maxWidth: 220, minWidth: 154, height: 52, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginTop: 6, flexDirection: 'row', backgroundColor: '#FFF', position: 'relative' },
-  loginButtonText: { color: '#0F766E', fontSize: 15, fontWeight: '900', textAlign: 'center' },
+  loginButton: { alignSelf: 'center', width: '58%', maxWidth: 220, minWidth: 154, height: 52, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginTop: 6, flexDirection: 'row', backgroundColor: '#0D9488', position: 'relative' },
+  loginButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900', textAlign: 'center' },
   buttonArrow: { position: 'absolute', right: 18 },
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, marginTop: 10 },
-  registerLink: { color: '#FFF', fontSize: 14, fontWeight: '800' },
-  forgotText: { color: 'rgba(255,255,255,0.82)', fontSize: 14, fontWeight: '700' },
+  registerLink: { color: '#FFF', fontSize: 14, fontWeight: '800', textDecorationLine: 'underline' },
+  forgotText: { color: 'rgba(255,255,255,0.82)', fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
 });
 
 export default LoginScreen;

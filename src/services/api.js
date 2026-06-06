@@ -6,7 +6,7 @@ export const API_ORIGIN = BASE_URL.replace(/\/api\/?$/, '');
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000, // Increased from 10s to 30s for slow networks
+  timeout: 15000, // Reduced from 30s to 15s for snappier failure handling
 });
 
 api.interceptors.request.use(config => {

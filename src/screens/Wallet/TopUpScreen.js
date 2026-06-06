@@ -57,10 +57,10 @@ const TopUpScreen = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity 
-            onPress={() => navigation.openDrawer()} 
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.openDrawer?.()} 
             style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#F1F5F9' }]}
           >
-            <MaterialCommunityIcons name="menu" size={22} color={isDarkMode ? '#FFF' : '#0F172A'} />
+            <MaterialCommunityIcons name={navigation.canGoBack() ? "arrow-left" : "menu"} size={22} color={isDarkMode ? '#FFF' : '#0F172A'} />
           </TouchableOpacity>
           
           <Text style={[styles.headerTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('wallet.topUpCoins')}</Text>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Animated,
   Dimensions,
@@ -7,6 +7,8 @@ import {
   Text,
   TouchableOpacity,
   View,
+  findNodeHandle,
+  UIManager,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,56 +18,128 @@ import { useLanguage } from '../../context/LanguageContext';
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const TOUR_KEY = (uid) => `fixam:provider-tour:${uid || 'guest'}`;
 
+const TOOLTIP_EST_HEIGHT = 145;
+const ARROW_SIZE = 10;
+const GAP = 12;
+const TOOLTIP_PADDING_H = 16;
+
 /**
- * steps: array of { ref, title, text, icon, position: 'top'|'bottom' }
- * position is where the tooltip appears relative to the highlighted element
+ * steps: array of { ref, title, text, icon }
+ * scrollViewRef: ref to the parent ScrollView so we can auto-scroll
+ * scrollOffset: current scroll Y offset (tracked by the parent)
  */
-const ProviderTour = ({ steps, userId, visible, onDone }) => {
+const ProviderTour = ({ steps, userId, visible, onDone, scrollViewRef }) => {
   const { colors } = useTheme();
   const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [spotlight, setSpotlight] = useState(null); // { x, y, w, h }
+  const [ready, setReady] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const tooltipAnim = useRef(new Animated.Value(0)).current;
+  const retryCount = useRef(0);
 
-  const measureStep = (index) => {
+  /**
+   * Scroll the target element into view, then measure its position.
+   * Uses measureInWindow so we get screen-absolute coordinates.
+   */
+  const scrollAndMeasure = useCallback((index) => {
     const current = steps[index];
     if (!current?.ref?.current) {
       setSpotlight(null);
+      setReady(true);
       return;
     }
-    current.ref.current.measureInWindow((x, y, w, h) => {
-      setSpotlight({ x, y, w, h });
-    });
-  };
+
+    const doMeasure = () => {
+      // Small delay after scroll to let layout settle
+      setTimeout(() => {
+        if (!current?.ref?.current) {
+          setSpotlight(null);
+          setReady(true);
+          return;
+        }
+        current.ref.current.measureInWindow((x, y, w, h) => {
+          // If measurement returns 0s or element is still off-screen, retry a few times
+          if ((w === 0 && h === 0) || y > SCREEN_H || y + h < 0) {
+            if (retryCount.current < 5) {
+              retryCount.current += 1;
+              setTimeout(() => doMeasure(), 200);
+              return;
+            }
+          }
+          retryCount.current = 0;
+          setSpotlight({ x, y, w, h });
+          setReady(true);
+        });
+      }, 150);
+    };
+
+    // First try to scroll the element into view using scrollTo
+    if (scrollViewRef?.current) {
+      const node = findNodeHandle(current.ref.current);
+      const scrollNode = findNodeHandle(scrollViewRef.current);
+      if (node && scrollNode) {
+        UIManager.measureLayout(
+          node,
+          scrollNode,
+          () => {
+            // measureLayout failed, just measure in window directly
+            doMeasure();
+          },
+          (_x, relY, _w, relH) => {
+            // Scroll so the element is roughly centered vertically
+            const targetScrollY = Math.max(0, relY - SCREEN_H / 3);
+            scrollViewRef.current.scrollTo({ y: targetScrollY, animated: true });
+            // Give the scroll animation time to finish
+            setTimeout(doMeasure, 450);
+          }
+        );
+        return;
+      }
+    }
+
+    // No scrollViewRef, just measure directly
+    doMeasure();
+  }, [steps, scrollViewRef]);
 
   useEffect(() => {
     if (visible) {
       setStep(0);
+      setReady(false);
+      setSpotlight(null);
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     } else {
       fadeAnim.setValue(0);
       tooltipAnim.setValue(0);
       setSpotlight(null);
+      setReady(false);
     }
   }, [visible]);
 
   useEffect(() => {
     if (visible && steps.length > 0) {
       tooltipAnim.setValue(0);
-      // Small delay to let screen settle before measuring
-      const t = setTimeout(() => {
-        measureStep(step);
-        Animated.spring(tooltipAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-          tension: 100,
-          friction: 8,
-        }).start();
-      }, 120);
-      return () => clearTimeout(t);
+      setReady(false);
+      retryCount.current = 0;
+      // Small delay to let screen settle before scrolling + measuring
+      const timer = setTimeout(() => {
+        scrollAndMeasure(step);
+      }, 200);
+      return () => clearTimeout(timer);
     }
-  }, [visible, step]);
+  }, [visible, step, scrollAndMeasure]);
+
+  // Animate tooltip in once ready
+  useEffect(() => {
+    if (ready) {
+      Animated.spring(tooltipAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }).start();
+    }
+  }, [ready]);
 
   const finish = async () => {
     onDone();
@@ -87,32 +161,51 @@ const ProviderTour = ({ steps, userId, visible, onDone }) => {
   const currentStep = steps[step];
   const isLast = step === steps.length - 1;
 
-  // Tooltip positioning: place beside the highlighted element
-  const getTooltipStyle = () => {
-    if (!spotlight) return { top: SCREEN_H / 2 - 70, left: 16, right: 16 };
-
-    const { x, y, w, h } = spotlight;
+  // Tooltip positioning
+  const getTooltipLayout = () => {
     const tooltipW = Math.min(SCREEN_W - 32, 280);
-    const gap = 12;
 
-    // Prefer below the element
-    const spaceBelow = SCREEN_H - (y + h);
-    const spaceAbove = y;
-
-    let top, left;
-
-    if (spaceBelow >= 140 || spaceBelow >= spaceAbove) {
-      top = y + h + gap;
-    } else {
-      top = y - 130 - gap;
+    if (!spotlight) {
+      return {
+        top: SCREEN_H / 2 - 70,
+        left: 16,
+        width: tooltipW,
+        tooltipBelow: true,
+        arrowLeft: tooltipW / 2 - ARROW_SIZE,
+      };
     }
 
-    // Horizontally: center on element, clamp to screen
-    left = x + w / 2 - tooltipW / 2;
-    left = Math.max(16, Math.min(left, SCREEN_W - tooltipW - 16));
+    const { x, y, w, h } = spotlight;
 
-    return { top, left, width: tooltipW };
+    // Decide above vs. below
+    const spaceBelow = SCREEN_H - (y + h);
+    const spaceAbove = y;
+    const tooltipBelow = spaceBelow >= TOOLTIP_EST_HEIGHT + GAP || spaceBelow >= spaceAbove;
+
+    let top;
+    if (tooltipBelow) {
+      top = y + h + GAP;
+    } else {
+      top = Math.max(8, y - TOOLTIP_EST_HEIGHT - GAP);
+    }
+
+    // Clamp top to screen
+    top = Math.max(8, Math.min(top, SCREEN_H - TOOLTIP_EST_HEIGHT - 8));
+
+    // Horizontal: try to center tooltip on the spotlight element
+    let left = x + w / 2 - tooltipW / 2;
+    left = Math.max(TOOLTIP_PADDING_H, Math.min(left, SCREEN_W - tooltipW - TOOLTIP_PADDING_H));
+
+    // Arrow should point at the center of the spotlight element
+    const elementCenterX = x + w / 2;
+    let arrowLeft = elementCenterX - left - ARROW_SIZE;
+    // Clamp arrow within tooltip bounds (with some padding)
+    arrowLeft = Math.max(14, Math.min(arrowLeft, tooltipW - 28));
+
+    return { top, left, width: tooltipW, tooltipBelow, arrowLeft };
   };
+
+  const layout = getTooltipLayout();
 
   // Highlight border around the element
   const highlightStyle = spotlight
@@ -132,7 +225,7 @@ const ProviderTour = ({ steps, userId, visible, onDone }) => {
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={finish}>
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-        {/* Dark overlay with hole effect via highlight border */}
+        {/* Dark overlay */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none" />
 
         {/* Spotlight highlight ring */}
@@ -143,23 +236,41 @@ const ProviderTour = ({ steps, userId, visible, onDone }) => {
           style={[
             styles.tooltip,
             { backgroundColor: colors.card },
-            getTooltipStyle(),
+            {
+              top: layout.top,
+              left: layout.left,
+              width: layout.width,
+            },
             {
               opacity: tooltipAnim,
               transform: [
                 {
                   translateY: tooltipAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [8, 0],
+                    outputRange: [layout.tooltipBelow ? 12 : -12, 0],
                   }),
                 },
               ],
             },
           ]}
         >
-          {/* Arrow pointing up to element if tooltip is below */}
-          {spotlight && spotlight.y + spotlight.h < SCREEN_H / 2 + 50 && (
-            <View style={[styles.arrowUp, { borderBottomColor: colors.card }]} />
+          {/* Arrow pointing UP toward element (tooltip is below element) */}
+          {spotlight && layout.tooltipBelow && (
+            <View
+              style={[
+                styles.arrowUp,
+                { borderBottomColor: colors.card, left: layout.arrowLeft },
+              ]}
+            />
+          )}
+          {/* Arrow pointing DOWN toward element (tooltip is above element) */}
+          {spotlight && !layout.tooltipBelow && (
+            <View
+              style={[
+                styles.arrowDown,
+                { borderTopColor: colors.card, left: layout.arrowLeft },
+              ]}
+            />
           )}
 
           <View style={styles.tooltipHeader}>
@@ -222,15 +333,26 @@ const styles = StyleSheet.create({
   },
   arrowUp: {
     position: 'absolute',
-    top: -8,
-    left: 20,
+    top: -ARROW_SIZE,
     width: 0,
     height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 8,
+    borderLeftWidth: ARROW_SIZE,
+    borderRightWidth: ARROW_SIZE,
+    borderBottomWidth: ARROW_SIZE,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
+  },
+  arrowDown: {
+    position: 'absolute',
+    bottom: -ARROW_SIZE,
+    width: 0,
+    height: 0,
+    borderLeftWidth: ARROW_SIZE,
+    borderRightWidth: ARROW_SIZE,
+    borderTopWidth: ARROW_SIZE,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'transparent',
   },
   tooltipHeader: {
     flexDirection: 'row',

@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, StatusBar, Dimensions, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const { isDarkMode, colors } = useTheme();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
 
   const handleReset = () => {
     if (email) {
-      alert("Password reset link sent to your email!");
-      navigation.goBack();
+      Alert.alert(
+        t('forgotPassword.alertTitle'), 
+        t('forgotPassword.alertBody'),
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
     } else {
-      alert("Please enter your email address.");
+      Alert.alert(t('common.error'), t('forgotPassword.alertError'));
     }
   };
 
@@ -34,16 +39,16 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <MaterialCommunityIcons name="lock-reset" size={50} color={colors.accent} />
           </View>
 
-          <Text style={[styles.title, { color: colors.text }]}>Forgot Password?</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('forgotPassword.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Enter your email address and we'll send you a link to reset your password.
+            {t('forgotPassword.subtitle')}
           </Text>
 
           <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <MaterialCommunityIcons name="email-outline" size={22} color={colors.primary} style={styles.inputIcon} />
             <TextInput
               style={[styles.input, { color: colors.text }]}
-              placeholder="Email Address"
+              placeholder={t('forgotPassword.emailPlaceholder')}
               placeholderTextColor={colors.placeholder}
               value={email}
               onChangeText={setEmail}
@@ -54,7 +59,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
           </View>
 
           <TouchableOpacity style={[styles.resetBtn, { backgroundColor: colors.accent }]} onPress={handleReset}>
-            <Text style={styles.resetBtnText}>Send Reset Link</Text>
+            <Text style={styles.resetBtnText}>{t('forgotPassword.sendLink')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -78,4 +83,3 @@ const styles = StyleSheet.create({
 });
 
 export default ForgotPasswordScreen;
-

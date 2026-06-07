@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -54,7 +55,7 @@ const LEARN_CARDS = [
 ];
 
 const HomeScreen = ({ navigation }) => {
-  const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad } = useAppContext();
+  const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad, hasLoadedData } = useAppContext();
   const { user } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
@@ -65,8 +66,11 @@ const HomeScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
+      // If we have data already (from cache or previous fetch), do a silent
+      // background refresh without showing the full-screen spinner.
+      // The 5-minute debounce in AppContext prevents unnecessary API calls.
       fetchAppData();
-    }, [])
+    }, [hasLoadedData])
   );
 
   useEffect(() => {
@@ -142,16 +146,16 @@ const HomeScreen = ({ navigation }) => {
 
   if (isInitialLoad) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <ActivityIndicator size="large" color="#0D9488" />
         <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* ═══ 1. HEADER with gradient ═══ */}
@@ -507,7 +511,7 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
 
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

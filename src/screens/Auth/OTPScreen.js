@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, StatusBar, TextInput, Keyboard, ActivityIndicator, Alert, Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useAuth } from '../../context/AuthContext';
@@ -65,7 +66,7 @@ const OTPScreen = ({ route, navigation }) => {
     : contact.replace(/(.{3})(.*)(@.*)/, "$1••••$3");
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
 
       <View style={styles.header}>
@@ -140,13 +141,13 @@ const OTPScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
-  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 15 },
+  header: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 15 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logo: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
   body: { flex: 1, paddingHorizontal: 30, paddingTop: 40, alignItems: 'center' },

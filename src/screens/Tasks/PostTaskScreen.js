@@ -490,15 +490,7 @@ const PostTaskScreen = ({ route, navigation }) => {
             <Text style={styles.secondaryActionText}>{t('jobs.details')}</Text>
           </TouchableOpacity>
           
-          {canEdit && (
-            <TouchableOpacity 
-              style={styles.secondaryActionBtn}
-              onPress={() => startEditTask(job)}
-            >
-              <MaterialCommunityIcons name="pencil-outline" size={18} color="#071936" />
-              <Text style={styles.secondaryActionText}>{t('jobs.edit')}</Text>
-            </TouchableOpacity>
-          )}
+
 
           {isComplete ? (
             <TouchableOpacity style={[styles.secondaryActionBtn, styles.bookAgainBtn]} onPress={navigateToCreateTask}>

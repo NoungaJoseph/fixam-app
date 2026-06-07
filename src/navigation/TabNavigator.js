@@ -97,6 +97,7 @@ const ProfileStack = () => (
     <Stack.Screen name="HiddenProfile" component={HiddenProfileScreen} />
     <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
     <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+    <Stack.Screen name="Chat" component={ChatScreen} />
 
   </Stack.Navigator>
 );

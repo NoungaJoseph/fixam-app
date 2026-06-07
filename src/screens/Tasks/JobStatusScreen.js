@@ -142,7 +142,7 @@ const JobStatusScreen = ({ route, navigation }) => {
                       style={styles.applicationInfoRow}
                       onPress={() => navigation.navigate('ProviderProfile', { provider })}
                     >
-                      <UserAvatar uri={providerUser.avatar} name={providerUser.fullName || t('common.provider')} size={56} radius={18} style={styles.applicationAvatar} />
+                      <UserAvatar uri={providerUser.avatar} name={providerUser.fullName || t('common.provider')} size={56} radius={8} style={styles.applicationAvatar} />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.applicationName, { color: colors.text }]}>{providerUser.fullName || 'Provider'}</Text>
                         <View style={styles.ratingRow}>
@@ -279,10 +279,10 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '800' },
   scrollContent: { paddingBottom: 60 },
   jobHero: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 25 },
-  idBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginBottom: 15 },
+  idBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 4, marginBottom: 15 },
   idText: { fontSize: 12, textTransform: 'uppercase' },
   jobTitle: { fontSize: 28, fontWeight: '900', marginBottom: 20, textAlign: 'center', lineHeight: 36 },
-  statusChip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 25 },
+  statusChip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusChipText: { fontSize: 13, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase' },
   trackerContainer: { paddingHorizontal: 25, marginBottom: 40 },
@@ -295,31 +295,31 @@ const styles = StyleSheet.create({
   stepText: { fontSize: 11, marginTop: 10, textAlign: 'center' },
   detailsList: { paddingHorizontal: 25, marginBottom: 35 },
   applicationsSection: { paddingHorizontal: 25, marginBottom: 35 },
-  applicationCard: { padding: 20, borderRadius: 24, borderWidth: 1.5, marginBottom: 15 },
+  applicationCard: { padding: 20, borderRadius: 8, borderWidth: 1.5, marginBottom: 15 },
   applicationInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 20 },
-  applicationAvatar: { width: 56, height: 56, borderRadius: 18 },
+  applicationAvatar: { width: 56, height: 56, borderRadius: 8 },
   applicationName: { fontSize: 17, fontWeight: '900' },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
   applicationMeta: { fontSize: 13, fontWeight: '700' },
   applicationActionRow: { flexDirection: 'row', gap: 12 },
-  outlineBtn: { height: 48, borderRadius: 14, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
+  outlineBtn: { height: 48, borderRadius: 8, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
   outlineBtnText: { fontSize: 14, fontWeight: '800' },
-  solidBtn: { height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  solidBtn: { height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   solidBtnText: { color: '#FFF', fontSize: 14, fontWeight: '800' },
-  detailItem: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20, marginBottom: 15, gap: 18, borderWidth: 1, borderColor: 'rgba(0,0,0,0)' },
-  detailIconWrap: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  detailItem: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 8, marginBottom: 15, gap: 18, borderWidth: 1, borderColor: 'rgba(0,0,0,0)' },
+  detailIconWrap: { width: 50, height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   detailLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   detailValue: { fontSize: 15, fontWeight: '700', marginTop: 4, lineHeight: 22 },
-  chatBtn: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', elevation: 4 },
-  costCard: { marginHorizontal: 25, padding: 30, borderRadius: 25, alignItems: 'center', marginBottom: 40, elevation: 8, shadowOpacity: 0.3, shadowRadius: 15 },
+  chatBtn: { width: 50, height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center', elevation: 4 },
+  costCard: { marginHorizontal: 25, padding: 30, borderRadius: 8, alignItems: 'center', marginBottom: 40, elevation: 8, shadowOpacity: 0.3, shadowRadius: 15 },
   costLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '700', marginBottom: 10, textTransform: 'uppercase' },
   costValue: { fontSize: 32, fontWeight: '900', color: '#FFF' },
   actions: { paddingHorizontal: 25, gap: 15 },
-  mainActionBtn: { height: 60, borderRadius: 18, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 12, elevation: 4 },
+  mainActionBtn: { height: 60, borderRadius: 8, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 12, elevation: 4 },
   mainActionText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
-  secondaryActionBtn: { height: 60, borderRadius: 18, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 12, borderWidth: 1 },
+  secondaryActionBtn: { height: 60, borderRadius: 8, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 12, borderWidth: 1 },
   secondaryActionText: { fontSize: 16, fontWeight: '800' },
-  cancelBtn: { height: 60, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
+  cancelBtn: { height: 60, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
   cancelBtnText: { fontSize: 16, fontWeight: '800' },
 });
 

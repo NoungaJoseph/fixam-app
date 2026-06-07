@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -85,6 +86,7 @@ const LoginScreen = ({ navigation }) => {
       style={styles.mainContainer}
     >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
@@ -190,13 +192,14 @@ const LoginScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+      </SafeAreaView>
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 76, paddingBottom: 34, justifyContent: 'center' },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 24, paddingBottom: 34, justifyContent: 'center' },
   brandHeader: { alignItems: 'center', marginBottom: 26 },
   logoImage: { width: 340, height: 184, marginBottom: 14 },
   welcomeTo: { color: '#FFF', fontSize: 28, fontWeight: '900', textAlign: 'center' },

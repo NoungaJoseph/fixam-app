@@ -3,6 +3,7 @@ import {
   StyleSheet, View, Text, TouchableOpacity,
   StatusBar, ImageBackground, Dimensions, ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -23,7 +24,7 @@ const RoleSelectionScreen = ({ navigation }) => {
     >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
-      <View style={styles.overlay}>
+      <SafeAreaView style={styles.overlay} edges={['top']}>
         <View style={styles.topSpacer} />
 
         <ScrollView 
@@ -73,7 +74,7 @@ const RoleSelectionScreen = ({ navigation }) => {
             <Text style={styles.loginText}>{t('roleSelection.already')} <Text style={styles.loginTextStrong}>{t('roleSelection.login')}</Text></Text>
           </TouchableOpacity>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </ImageBackground>
   );
 };

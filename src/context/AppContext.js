@@ -217,9 +217,9 @@ export const AppProvider = ({ children }) => {
   };
 
   const fetchAppData = async (force = false) => {
-    // Add debounce check (30 seconds)
+    // Debounce: skip if fetched within the last 5 minutes
     const now = Date.now();
-    if (!force && lastFetchRef.current && (now - lastFetchRef.current < 30000)) {
+    if (!force && lastFetchRef.current && (now - lastFetchRef.current < 300000)) {
       return;
     }
 
@@ -476,6 +476,7 @@ export const AppProvider = ({ children }) => {
       isProviderOnline,
       isLoading,
       isInitialLoad,
+      hasLoadedData,
       fetchAppData,
       fetchNotifications,
       fetchConversations,

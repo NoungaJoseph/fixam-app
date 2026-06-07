@@ -342,11 +342,11 @@ const ProviderHomeScreen = ({ navigation }) => {
 
   if (isInitialLoad) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]} edges={['top']}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
         <ActivityIndicator size="large" color="#0D9488" />
         <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 

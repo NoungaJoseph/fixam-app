@@ -297,7 +297,6 @@
     "skipNow": "Skip for now",
     "done": "Done",
     "next": "Next",
-
     "providerTopUpTitle": "Top Up Your Wallet 💰",
     "providerTopUpText": "You need coins to apply for tasks. Tap Top Up to add coins via MTN MoMo or Orange Money.",
     "providerOnlineTitle": "Go Online to Get Work 🟢",
@@ -306,7 +305,6 @@
     "providerFindJobsText": "Tap Find Jobs here to browse all open tasks near you and apply with one tap.",
     "providerViewAllTitle": "Live Tasks Below 🔥",
     "providerViewAllText": "Scroll down to see real tasks posted by clients near you right now. Tap Apply to send your offer.",
-
     "clientPostTitle": "Post a Task Here 📋",
     "clientPostText": "Tap this button to describe what you need, set your budget and location. Providers near you will respond fast.",
     "clientTopUpTitle": "Top Up Your Wallet 💰",
@@ -367,5 +365,26 @@
     "providerSelectedBody": "You have successfully hired {{name}}.",
     "trackProvider": "Track Provider",
     "couldNotChooseProvider": "Could Not Hire Provider"
+  },
+  "services": {
+    "Cleaning": "Cleaning",
+    "Plumbing": "Plumbing",
+    "Electrical": "Electrical",
+    "Handyman": "Handyman",
+    "Graphic Designer": "Graphic Designer",
+    "Website Designer": "Website Designer",
+    "SEO": "SEO",
+    "House Maid": "House Maid",
+    "Painting": "Painting",
+    "Beauty": "Beauty",
+    "Carpentry": "Carpentry",
+    "Landscaping": "Landscaping",
+    "Moving service": "Moving service",
+    "Delivery service": "Delivery service",
+    "Security guard": "Security guard",
+    "Private driver": "Private driver",
+    "Child care": "Child care",
+    "Elder care": "Elder care",
+    "Home nursing": "Home nursing"
   }
 }

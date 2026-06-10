@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../context/ThemeContext';
@@ -88,7 +88,7 @@ const FindJobsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
+      
 
       {/* Header & Search */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
@@ -104,15 +104,6 @@ const FindJobsScreen = ({ navigation }) => {
             <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('jobs.discoverOpportunities')}</Text>
           </View>
 
-          {/* Bell Icon */}
-          <TouchableOpacity style={[styles.bellBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('Notifications')}>
-            <MaterialCommunityIcons name="bell-outline" size={22} color={colors.text} />
-            {notificationCount > 0 && (
-              <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>{notificationCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
         </View>
 
         <View style={[styles.searchBar, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9', borderColor: colors.border }]}>
@@ -262,36 +253,6 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '600',
     marginTop: 2,
-  },
-  bellBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#EF4444',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bellBadgeText: {
-    color: '#FFF',
-    fontSize: 9,
-    fontWeight: '900',
   },
   searchBar: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, StatusBar, ScrollView, TextInput, Platform, Modal, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -102,7 +102,7 @@ const ProviderSkillsScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('providerSetup.title')}</Text>

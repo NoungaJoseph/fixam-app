@@ -168,7 +168,7 @@ const AppChrome = () => {
 
   return (
     <>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={isDarkMode ? '#0B1120' : '#F8FAFC'} />
+      <StatusBar style="light" backgroundColor="#14B8A6" />
       <AppNavigator />
       <SupportChatButton />
       <CallModal />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -90,7 +90,7 @@ const JobStatusScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      
 
       <SafeAreaView style={{ flex: 1 }}>
         <View style={[styles.header, { borderBottomColor: colors.border, borderBottomWidth: 1 }]}>

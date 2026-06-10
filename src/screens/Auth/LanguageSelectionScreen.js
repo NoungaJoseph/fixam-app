@@ -20,7 +20,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
       style={styles.container}
       resizeMode="cover"
     >
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
       
       <View style={styles.shade}>
         <View style={styles.logoSpace} />

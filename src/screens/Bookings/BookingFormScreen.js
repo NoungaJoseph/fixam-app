@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -17,6 +17,8 @@ const BookingFormScreen = ({ route, navigation }) => {
     bookingDate: '',
     bookingTime: '',
     location: task?.location || '',
+    latitude: task?.latitude || null,
+    longitude: task?.longitude || null,
     budget: String(task?.budgetMax || task?.budget || providerRate || 0),
     notes: task?.description || '',
   });
@@ -72,14 +74,14 @@ const BookingFormScreen = ({ route, navigation }) => {
           const region = addr.region || '';
           const addressParts = [name, street, city, region].filter(Boolean);
           const formattedAddress = addressParts.join(', ') || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-          setForm(prev => ({ ...prev, location: formattedAddress }));
+          setForm(prev => ({ ...prev, location: formattedAddress, latitude, longitude }));
           return;
         }
       } catch (err) {
         console.log("Reverse geocode failed, using coordinates instead");
       }
       
-      setForm(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }));
+      setForm(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, latitude, longitude }));
     } catch (error) {
       Alert.alert(t('common.error') || 'Error', t('jobs.locationFailed') || 'Could not fetch your location.');
     } finally {
@@ -102,6 +104,8 @@ const BookingFormScreen = ({ route, navigation }) => {
         bookingTime: form.bookingTime,
         budget: bookingBudget,
         location: form.location || '',
+        latitude: form.latitude,
+        longitude: form.longitude,
         notes: form.notes || '',
       });
       Alert.alert(t('bookings.sent'), t('bookings.sentBody'));
@@ -117,7 +121,7 @@ const BookingFormScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} translucent backgroundColor="transparent" />
+      
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}

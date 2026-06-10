@@ -1,9 +1,9 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity,
   StatusBar, ImageBackground, Dimensions, ScrollView
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -22,7 +22,7 @@ const RoleSelectionScreen = ({ navigation }) => {
       style={styles.background}
       resizeMode="cover"
     >
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
       
       <SafeAreaView style={styles.overlay} edges={['top']}>
         <View style={styles.topSpacer} />

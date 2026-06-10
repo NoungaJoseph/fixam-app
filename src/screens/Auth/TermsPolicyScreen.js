@@ -1,5 +1,5 @@
-import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -11,7 +11,7 @@ const TermsPolicyScreen = ({ navigation }) => {
     <View 
       style={[styles.background, { backgroundColor: colors.background }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <SafeAreaView style={styles.container}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => navigation.goBack()}>

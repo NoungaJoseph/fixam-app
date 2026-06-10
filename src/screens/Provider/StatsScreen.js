@@ -3,7 +3,7 @@ import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
   StatusBar, Dimensions
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { CustomHeader } from '../../navigation/NavigationComponents';
@@ -48,8 +48,8 @@ const StatsScreen = ({ navigation }) => {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['left', 'right']}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+      
       <CustomHeader navigation={navigation} title={t('drawer.myStats')} colors={colors} />
       
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

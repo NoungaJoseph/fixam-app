@@ -133,7 +133,7 @@ const AnimatedSplashScreen = ({ navigation, onFinish }) => {
       end={{ x: 1, y: 1 }}
       style={styles.main}
     >
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
       <Animated.View
         style={[
           styles.container,

@@ -297,7 +297,6 @@
     "skipNow": "Passer pour l'instant",
     "done": "Terminé",
     "next": "Suivant",
-
     "providerTopUpTitle": "Rechargez votre portefeuille 💰",
     "providerTopUpText": "Vous avez besoin de coins pour postuler aux missions. Appuyez sur Recharger pour ajouter des coins via MTN MoMo ou Orange Money.",
     "providerOnlineTitle": "Passez en ligne pour travailler 🟢",
@@ -306,7 +305,6 @@
     "providerFindJobsText": "Appuyez ici sur Trouver des missions pour parcourir toutes les tâches ouvertes près de vous et postuler en un tap.",
     "providerViewAllTitle": "Missions en direct ci-dessous 🔥",
     "providerViewAllText": "Faites défiler vers le bas pour voir les vraies missions publiées par les clients proches de vous. Appuyez sur Postuler pour envoyer votre offre.",
-
     "clientPostTitle": "Publiez une mission ici 📋",
     "clientPostText": "Appuyez sur ce bouton pour décrire ce dont vous avez besoin, fixer votre budget et votre lieu. Les prestataires proches répondront rapidement.",
     "clientTopUpTitle": "Rechargez votre portefeuille 💰",
@@ -367,5 +365,26 @@
     "providerSelectedBody": "Vous avez embauché {{name}} avec succès.",
     "trackProvider": "Suivre le Prestataire",
     "couldNotChooseProvider": "Impossible d'Embaucher le Prestataire"
+  },
+  "services": {
+    "Cleaning": "Nettoyage",
+    "Plumbing": "Plomberie",
+    "Electrical": "Électricité",
+    "Handyman": "Bricoleur",
+    "Graphic Designer": "Infographiste",
+    "Website Designer": "Créateur de site web",
+    "SEO": "Expert SEO",
+    "House Maid": "Femme de ménage",
+    "Painting": "Peinture",
+    "Beauty": "Beauté",
+    "Carpentry": "Menuiserie",
+    "Landscaping": "Paysagisme",
+    "Moving service": "Déménagement",
+    "Delivery service": "Livraison",
+    "Security guard": "Agent de sécurité",
+    "Private driver": "Chauffeur privé",
+    "Child care": "Garde denfants",
+    "Elder care": "Garde de personnes âgées",
+    "Home nursing": "Soins à domicile"
   }
 }

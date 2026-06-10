@@ -77,7 +77,7 @@ const MaintenanceScreen = ({ message }) => {
         },
       ]}
     >
-      <StatusBar style="light" backgroundColor={COLORS.primary} />
+      
 
       {/* Icon */}
       <Animated.View

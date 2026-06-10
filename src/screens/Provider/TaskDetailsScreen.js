@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  Image, StatusBar, Modal, Alert
+  Image, StatusBar, Modal, Alert, Share
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -45,7 +45,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [applicationCount, setApplicationCount] = useState(task.assignments?.length || task.proposals || 0);
   const [applied, setApplied] = useState(false);
-  const coinCost = task.coinCost || 1;
+  const coinCost = 1;
   const isFavorite = favoriteJobIds?.includes(task.id);
   const clientName = typeof task.client === 'object' ? (task.client?.fullName || t('common.client')) : (task.client || t('common.client'));
   const clientId = typeof task.client === 'object' ? task.client?.id : task.clientId;
@@ -148,6 +148,21 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     });
   };
 
+  const handleShare = async () => {
+    try {
+      const shareUrl = `https://fixam.app/job/${task.id}`;
+      const message = `${task.title || t('jobs.taskDetails')}\n\n${task.description ? task.description.slice(0, 100) + '...' : ''}\n\n${t('jobs.checkOutThisJob', 'Check out this job on Fixam:')} ${shareUrl}`;
+      
+      await Share.share({
+        message: message,
+        url: shareUrl,
+        title: task.title || t('jobs.taskDetails')
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -158,7 +173,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('jobs.taskDetails')}</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerIcon}>
+          <TouchableOpacity style={styles.headerIcon} onPress={handleShare}>
             <MaterialCommunityIcons name="share-variant-outline" size={21} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
@@ -227,8 +242,17 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             <>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.description')}</Text>
               <Text style={[styles.longText, { color: colors.textSecondary }]}>{task.description}</Text>
+              <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3' }]} onPress={handleShare}>
+                <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
+                <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>
+              </TouchableOpacity>
             </>
-          ) : null}
+          ) : (
+            <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3', marginTop: 16 }]} onPress={handleShare}>
+              <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
+              <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>
+            </TouchableOpacity>
+          )}
 
           {task.whatNeedsDone ? (
             <>
@@ -388,6 +412,8 @@ const styles = StyleSheet.create({
   detailValue: { color: '#334155', fontSize: 14, fontWeight: '800', flex: 1, textAlign: 'right' },
   viewLocationBtn: { minHeight: 54, borderRadius: 8, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, marginBottom: 18 },
   viewLocationText: { fontSize: 15, fontWeight: '900' },
+  shareJobBtn: { minHeight: 50, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8 },
+  shareJobText: { fontSize: 15, fontWeight: '800' },
   prefRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   prefChip: { backgroundColor: '#F8FAFC', borderRadius: 8, paddingHorizontal: 12, height: 42, flexDirection: 'row', alignItems: 'center', gap: 7 },
   prefText: { color: '#334155', fontSize: 12, fontWeight: '900' },

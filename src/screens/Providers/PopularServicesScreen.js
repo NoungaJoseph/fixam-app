@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { FlatList, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -24,7 +24,7 @@ const PopularServicesScreen = ({ navigation }) => {
   };
 
   const renderTopService = (service) => (
-    <TouchableOpacity key={service.imageName} style={[styles.topServiceCard, { backgroundColor: isDarkMode ? '#18181B' : '#FFF' }]} onPress={() => openService(service)} activeOpacity={0.86}>
+    <TouchableOpacity key={service.name} style={[styles.topServiceCard, { backgroundColor: isDarkMode ? '#18181B' : '#FFF' }]} onPress={() => openService(service)} activeOpacity={0.86}>
       <View style={styles.topImageSlot}>
         <Image source={POPULAR_SERVICE_IMAGES[service.imageName]} style={styles.serviceImage} resizeMode="cover" />
       </View>
@@ -51,7 +51,7 @@ const PopularServicesScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#18181B' : '#FFF', borderColor: colors.border }]} onPress={() => navigation.goBack()}>
@@ -65,7 +65,7 @@ const PopularServicesScreen = ({ navigation }) => {
         <FlatList
           data={visibleServices}
           numColumns={2}
-          keyExtractor={(item) => item.imageName}
+          keyExtractor={(item) => item.name}
           renderItem={renderExploreService}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, StatusBar, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  StyleSheet, View, Text, TextInput, TouchableOpacity,
+  StatusBar, KeyboardAvoidingView, Platform, ScrollView
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -13,7 +16,9 @@ const RegisterScreen = ({ navigation, route }) => {
   const { isDarkMode, colors } = useTheme();
   const { t } = useLanguage();
   const { loginDirect } = useAuth();
+  const insets = useSafeAreaInsets();
   const { role } = route.params || { role: 'client' };
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -27,58 +32,64 @@ const RegisterScreen = ({ navigation, route }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const setField = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
   const setPhoneField = (value) => setField('phone', value.replace(/\D/g, '').slice(0, 9));
   const phoneDigits = formData.phone.replace(/\D/g, '').slice(0, 9);
   const authInputStyle = { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)', color: '#FFF' };
-  
+
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isValidPhone = (phone) => /^6\d{8}$/.test(phone);
-  const isValidPassword = (pwd) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(pwd);
 
-  const isFormValid = 
+  // ── Password requirements ────────────────────────────────────────────────────
+  const requirements = [
+    { label: 'At least 8 characters',                   met: formData.password.length >= 8 },
+    { label: 'Contains a number',                        met: /\d/.test(formData.password) },
+    { label: 'Contains a special character (!@#$...)',   met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password) },
+    { label: 'Contains uppercase letter',                met: /[A-Z]/.test(formData.password) },
+  ];
+  const metCount = requirements.filter(r => r.met).length;
+  const strength = metCount <= 1 ? 'weak' : metCount <= 2 ? 'fair' : metCount <= 3 ? 'good' : 'strong';
+  const strengthColor = { weak: '#EF4444', fair: '#F97316', good: '#EAB308', strong: '#22C55E' };
+  const strengthLabel = { weak: 'Weak', fair: 'Fair', good: 'Good', strong: 'Strong' };
+  const strengthWidth = ['0%', '25%', '50%', '75%', '100%'][metCount];
+
+  // ── Form validity ────────────────────────────────────────────────────────────
+  const isFormValid =
     formData.firstName.trim().length > 0 &&
     formData.lastName.trim().length > 0 &&
     isValidEmail(formData.email.trim()) &&
     isValidPhone(phoneDigits) &&
     formData.location.trim().length > 0 &&
-    isValidPassword(formData.password) &&
+    metCount >= 3 &&
     formData.password === formData.repeatPassword &&
     agree;
-  
+
   const handleRegister = async () => {
-    // Normalize phone: remove spaces and non-digits
     const normalizedPhone = phoneDigits;
     const userData = { ...formData, phone: normalizedPhone, fullName: `${formData.firstName} ${formData.lastName}`.trim() };
 
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      alert(t('validation.nameRequired'));
-      return;
+      alert(t('validation.nameRequired')); return;
     }
     if (!isValidEmail(formData.email.trim())) {
-      alert(t('validation.emailRequired'));
-      return;
+      alert(t('validation.emailRequired')); return;
     }
     if (!isValidPhone(normalizedPhone)) {
-      alert(t('validation.phoneRequired'));
-      return;
+      alert(t('validation.phoneRequired')); return;
     }
     if (!formData.location.trim()) {
-      alert(t('validation.locationRequired'));
-      return;
+      alert(t('validation.locationRequired')); return;
     }
-    if (!isValidPassword(formData.password)) {
-      alert(t('validation.passwordFormat'));
-      return;
+    if (metCount < 3) {
+      alert(t('validation.passwordFormat')); return;
     }
     if (!agree) {
-      alert(t('register.termsRequired'));
-      return;
+      alert(t('register.termsRequired')); return;
     }
     if (formData.password !== formData.repeatPassword) {
-      alert(t('validation.passwordMismatch'));
-      return;
+      alert(t('validation.passwordMismatch')); return;
     }
     try {
       setSubmitting(true);
@@ -86,12 +97,9 @@ const RegisterScreen = ({ navigation, route }) => {
         ...userData,
         role: role.toUpperCase(),
         providerProfile: role === 'provider' ? {
-          skills: [],
-          bio: '',
-          rate: 0,
+          skills: [], bio: '', rate: 0,
           serviceArea: formData.location,
-          experienceLevel: '',
-          availability: {}
+          experienceLevel: '', availability: {}
         } : undefined
       });
       loginDirect(res.data.user, res.data.token, true);
@@ -103,6 +111,7 @@ const RegisterScreen = ({ navigation, route }) => {
   };
 
   const inputStyle = authInputStyle;
+  const showRequirements = passwordFocused || formData.password.length > 0;
 
   return (
     <LinearGradient
@@ -111,120 +120,236 @@ const RegisterScreen = ({ navigation, route }) => {
       end={{ x: 1, y: 1 }}
       style={styles.background}
     >
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <SafeAreaView style={styles.safe}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.safe}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.title}>{role === 'client' ? t('register.clientTitle') : t('register.providerTitle')}</Text>
-                <Text style={styles.subtitle}>{t('register.subtitle')}</Text>
+      
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 40 }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>
+                {role === 'client' ? t('register.clientTitle') : t('register.providerTitle')}
+              </Text>
+              <Text style={styles.subtitle}>{t('register.subtitle')}</Text>
+            </View>
+          </View>
+
+          <View style={styles.formArea}>
+            {/* First / Last name */}
+            <View style={styles.row}>
+              <View style={styles.half}>
+                <Text style={styles.label}>{t('register.firstName')}</Text>
+                <TextInput
+                  style={[styles.input, inputStyle]}
+                  placeholder={t('register.firstName')}
+                  placeholderTextColor="rgba(255,255,255,0.66)"
+                  value={formData.firstName}
+                  onChangeText={(v) => setField('firstName', v)}
+                  selectionColor="#FFF"
+                />
+              </View>
+              <View style={styles.half}>
+                <Text style={styles.label}>{t('register.lastName')}</Text>
+                <TextInput
+                  style={[styles.input, inputStyle]}
+                  placeholder={t('register.lastName')}
+                  placeholderTextColor="rgba(255,255,255,0.66)"
+                  value={formData.lastName}
+                  onChangeText={(v) => setField('lastName', v)}
+                  selectionColor="#FFF"
+                />
               </View>
             </View>
 
-            <View style={styles.formArea}>
-              <View style={styles.row}>
-                <View style={styles.half}>
-                  <Text style={styles.label}>{t('register.firstName')}</Text>
-                  <TextInput style={[styles.input, inputStyle]} placeholder={t('register.firstName')} placeholderTextColor="rgba(255,255,255,0.66)" value={formData.firstName} onChangeText={(value) => setField('firstName', value)} selectionColor="#FFF" />
-                </View>
-                <View style={styles.half}>
-                  <Text style={styles.label}>{t('register.lastName')}</Text>
-                  <TextInput style={[styles.input, inputStyle]} placeholder={t('register.lastName')} placeholderTextColor="rgba(255,255,255,0.66)" value={formData.lastName} onChangeText={(value) => setField('lastName', value)} selectionColor="#FFF" />
-                </View>
+            {/* Email */}
+            <Text style={styles.label}>{t('register.email')}</Text>
+            <TextInput
+              style={[styles.input, inputStyle]}
+              placeholder={t('register.emailPlaceholder')}
+              placeholderTextColor="rgba(255,255,255,0.66)"
+              keyboardType="email-address"
+              value={formData.email}
+              onChangeText={(v) => setField('email', v)}
+              selectionColor="#FFF"
+            />
+
+            {/* Phone */}
+            <Text style={styles.label}>{t('register.phone')}</Text>
+            <View style={[styles.phoneInputWrapper, inputStyle]}>
+              <View style={styles.countryPrefix}>
+                <Text style={styles.flagText}>🇨🇲</Text>
+                <Text style={styles.prefixText}>+237</Text>
               </View>
+              <TextInput
+                style={styles.flexInput}
+                placeholder="6XX XXX XXX"
+                placeholderTextColor="rgba(255,255,255,0.66)"
+                keyboardType="phone-pad"
+                value={phoneDigits}
+                onChangeText={setPhoneField}
+                maxLength={9}
+                selectionColor="#FFF"
+              />
+            </View>
 
-              <Text style={styles.label}>{t('register.email')}</Text>
-              <TextInput style={[styles.input, inputStyle]} placeholder={t('register.emailPlaceholder')} placeholderTextColor="rgba(255,255,255,0.66)" keyboardType="email-address" value={formData.email} onChangeText={(value) => setField('email', value)} selectionColor="#FFF" />
+            {/* Referral */}
+            <Text style={styles.label}>{t('register.referral')}</Text>
+            <TextInput
+              style={[styles.input, inputStyle]}
+              placeholder={t('register.referralPlaceholder')}
+              placeholderTextColor="rgba(255,255,255,0.66)"
+              value={formData.referral}
+              onChangeText={(v) => setField('referral', v)}
+              selectionColor="#FFF"
+            />
 
-              <Text style={styles.label}>{t('register.phone')}</Text>
-              <View style={[styles.phoneInputWrapper, inputStyle]}>
-                <View style={styles.countryPrefix}>
-                  <Text style={styles.flagText}>🇨🇲</Text>
-                  <Text style={styles.prefixText}>+237</Text>
-                </View>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder="6XX XXX XXX"
-                  placeholderTextColor="rgba(255,255,255,0.66)"
-                  keyboardType="phone-pad"
-                  value={phoneDigits}
-                  onChangeText={setPhoneField}
-                  maxLength={9}
-                  selectionColor="#FFF"
+            {/* Location */}
+            <Text style={styles.label}>{t('register.location')}</Text>
+            <TextInput
+              style={[styles.input, inputStyle]}
+              placeholder="e.g. Akwa, Douala"
+              placeholderTextColor="rgba(255,255,255,0.66)"
+              value={formData.location}
+              onChangeText={(v) => setField('location', v)}
+              selectionColor="#FFF"
+            />
+
+            {/* Password */}
+            <Text style={styles.label}>{t('register.password')}</Text>
+            <View style={[styles.inputWrapper, inputStyle]}>
+              <TextInput
+                style={styles.flexInput}
+                placeholder="Password"
+                placeholderTextColor="rgba(255,255,255,0.66)"
+                secureTextEntry={!showPassword}
+                value={formData.password}
+                onChangeText={(v) => setField('password', v)}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                selectionColor="#FFF"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <MaterialCommunityIcons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color="rgba(255,255,255,0.74)"
                 />
+              </TouchableOpacity>
+            </View>
+
+            {/* Password strength + requirements */}
+            {showRequirements && (
+              <View style={styles.requirementsBox}>
+                {/* Strength bar */}
+                <View style={styles.strengthRow}>
+                  <View style={styles.strengthTrack}>
+                    <View style={[
+                      styles.strengthFill,
+                      {
+                        backgroundColor: strengthColor[strength],
+                        width: strengthWidth,
+                      }
+                    ]} />
+                  </View>
+                  <Text style={[styles.strengthLabel, { color: strengthColor[strength] }]}>
+                    {formData.password.length > 0 ? strengthLabel[strength] : ''}
+                  </Text>
+                </View>
+
+                {/* Per-requirement rows */}
+                {requirements.map((req, idx) => (
+                  <View key={idx} style={styles.reqRow}>
+                    <View style={[styles.reqDot, { backgroundColor: req.met ? '#22C55E' : 'rgba(255,255,255,0.25)' }]}>
+                      {req.met && <Text style={styles.reqCheck}>✓</Text>}
+                    </View>
+                    <Text style={[styles.reqText, { color: req.met ? '#22C55E' : 'rgba(255,255,255,0.72)' }]}>
+                      {req.label}
+                    </Text>
+                  </View>
+                ))}
               </View>
+            )}
 
-              <Text style={styles.label}>{t('register.referral')}</Text>
-              <TextInput style={[styles.input, inputStyle]} placeholder={t('register.referralPlaceholder')} placeholderTextColor="rgba(255,255,255,0.66)" value={formData.referral} onChangeText={(value) => setField('referral', value)} selectionColor="#FFF" />
-
-              <Text style={styles.label}>{t('register.location')}</Text>
-              <TextInput style={[styles.input, inputStyle]} placeholder="e.g. Akwa, Douala" placeholderTextColor="rgba(255,255,255,0.66)" value={formData.location} onChangeText={(value) => setField('location', value)} selectionColor="#FFF" />
-
-              <Text style={styles.label}>{t('register.password')}</Text>
-              <View style={[styles.inputWrapper, inputStyle]}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder="Password"
-                  placeholderTextColor="rgba(255,255,255,0.66)"
-                  secureTextEntry={!showPassword}
-                  value={formData.password}
-                  onChangeText={(value) => setField('password', value)}
-                  selectionColor="#FFF"
+            {/* Repeat password */}
+            <Text style={styles.label}>{t('register.repeatPassword')}</Text>
+            <View style={[styles.inputWrapper, inputStyle]}>
+              <TextInput
+                style={styles.flexInput}
+                placeholder="Repeat Password"
+                placeholderTextColor="rgba(255,255,255,0.66)"
+                secureTextEntry={!showPassword}
+                value={formData.repeatPassword}
+                onChangeText={(v) => setField('repeatPassword', v)}
+                selectionColor="#FFF"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <MaterialCommunityIcons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color="rgba(255,255,255,0.74)"
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={20} color="rgba(255,255,255,0.74)" />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.passwordHint}>{t('register.passwordHint')}</Text>
+              </TouchableOpacity>
+            </View>
 
-              <Text style={styles.label}>{t('register.repeatPassword')}</Text>
-              <View style={[styles.inputWrapper, inputStyle]}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder="Repeat Password"
-                  placeholderTextColor="rgba(255,255,255,0.66)"
-                  secureTextEntry={!showPassword}
-                  value={formData.repeatPassword}
-                  onChangeText={(value) => setField('repeatPassword', value)}
-                  selectionColor="#FFF"
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={20} color="rgba(255,255,255,0.74)" />
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity style={styles.termsRow} onPress={() => setAgree(!agree)}>
-                <MaterialCommunityIcons name={agree ? 'checkbox-marked' : 'checkbox-blank-outline'} size={22} color="#FFF" />
-                <Text style={styles.termsText}>
-                  {t('register.agreePrefix')}{' '}
-                  <Text style={styles.linkText} onPress={() => navigation.navigate('TermsPolicy', { type: 'terms' })}>{t('register.terms')}</Text>
-                  {' '}{t('register.and')}{' '}
-                  <Text style={styles.linkText} onPress={() => navigation.navigate('TermsPolicy', { type: 'privacy' })}>{t('register.privacy')}</Text>
+            {/* Terms */}
+            <TouchableOpacity style={styles.termsRow} onPress={() => setAgree(!agree)}>
+              <MaterialCommunityIcons
+                name={agree ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                size={22}
+                color="#FFF"
+              />
+              <Text style={styles.termsText}>
+                {t('register.agreePrefix')}{' '}
+                <Text style={styles.linkText} onPress={() => navigation.navigate('TermsPolicy', { type: 'terms' })}>
+                  {t('register.terms')}
                 </Text>
-              </TouchableOpacity>
+                {' '}{t('register.and')}{' '}
+                <Text style={styles.linkText} onPress={() => navigation.navigate('TermsPolicy', { type: 'privacy' })}>
+                  {t('register.privacy')}
+                </Text>
+              </Text>
+            </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.registerBtn, { opacity: submitting || !isFormValid ? 0.5 : 1 }]} onPress={handleRegister} activeOpacity={0.85} disabled={submitting || !isFormValid}>
-                <Text style={styles.registerBtnText}>{submitting ? t('register.creating') : t('register.submit')}</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+            {/* Register button */}
+            <TouchableOpacity
+              style={[styles.registerBtn, { opacity: submitting || !isFormValid ? 0.5 : 1 }]}
+              onPress={handleRegister}
+              activeOpacity={0.85}
+              disabled={submitting || !isFormValid}
+            >
+              <Text style={styles.registerBtnText}>
+                {submitting ? t('register.creating') : t('register.submit')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  safe: { flex: 1 },
-  scrollContent: { padding: 22, paddingBottom: 42 },
-  header: { 
-    flexDirection: 'row', 
-    gap: 14, 
-    alignItems: 'center', 
+  flex: { flex: 1 },
+  scrollContent: {
+    padding: 22,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 20) + 10 : 22,
+  },
+  header: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
     marginBottom: 18,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 20) + 10 : 0
   },
   backBtn: { width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   title: { color: '#FFF', fontSize: 24, fontWeight: '900' },
@@ -240,6 +365,17 @@ const styles = StyleSheet.create({
   flagText: { fontSize: 20 },
   prefixText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   flexInput: { flex: 1, height: '100%', color: '#FFF', fontSize: 15, fontWeight: '600' },
+  // Password requirements
+  requirementsBox: { marginTop: 10, marginBottom: 2, paddingHorizontal: 4 },
+  strengthRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  strengthTrack: { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginRight: 10 },
+  strengthFill: { height: 4, borderRadius: 2 },
+  strengthLabel: { fontSize: 12, fontWeight: '700', width: 48 },
+  reqRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  reqDot: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  reqCheck: { color: '#FFF', fontSize: 10, fontWeight: '900' },
+  reqText: { fontSize: 12 },
+  // Terms & button
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
   termsText: { flex: 1, color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 19 },
   linkText: { color: '#FFF', fontWeight: '900', textDecorationLine: 'underline' },

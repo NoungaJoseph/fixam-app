@@ -1,17 +1,20 @@
 export const POPULAR_SERVICE_IMAGES_FOLDER = 'app/assets/popular-services';
 
 export const POPULAR_SERVICE_CATALOG = [
-  { name: 'Cleaning', group: 'Home', icon: 'broom', imageName: 'cleaning.jpg', colors: ['#0D9488', '#34D399'] },
   { name: 'Plumbing', group: 'Home', icon: 'pipe-wrench', imageName: 'plumbing.jpg', colors: ['#2563EB', '#38BDF8'] },
   { name: 'Electrical', group: 'Home', icon: 'lightning-bolt', imageName: 'electrical.jpg', colors: ['#F59E0B', '#FCD34D'] },
+  { name: 'Handyman', group: 'Home', icon: 'hammer-screwdriver', imageName: 'carpentry.jpg', colors: ['#92400E', '#F59E0B'] },
+  { name: 'Cleaning', group: 'Home', icon: 'broom', imageName: 'cleaning.jpg', colors: ['#0D9488', '#34D399'] },
+  { name: 'Graphic Designer', group: 'Professional', icon: 'palette', imageName: 'graphic designer.png', colors: ['#DB2777', '#FB7185'] },
+  { name: 'Website Designer', group: 'Professional', icon: 'web', imageName: 'website designer.png', colors: ['#3B82F6', '#93C5FD'] },
+  { name: 'SEO', group: 'Professional', icon: 'chart-line', imageName: 'seo.png', colors: ['#16A34A', '#86EFAC'] },
+  { name: 'House Maid', group: 'Care', icon: 'home-heart', imageName: 'deep-cleaning.jpg', colors: ['#059669', '#6EE7B7'] },
   { name: 'Painting', group: 'Home', icon: 'format-paint', imageName: 'painting.jpg', colors: ['#7C3AED', '#C084FC'] },
   { name: 'Beauty', group: 'Lifestyle', icon: 'content-cut', imageName: 'beauty.jpg', colors: ['#DB2777', '#FB7185'] },
   { name: 'Carpentry', group: 'Home', icon: 'saw-blade', imageName: 'carpentry.jpg', colors: ['#92400E', '#F59E0B'] },
   { name: 'Landscaping', group: 'Outdoor', icon: 'flower-outline', imageName: 'landscaping.jpg', colors: ['#16A34A', '#86EFAC'] },
   { name: 'Moving service', group: 'Logistics', icon: 'truck', imageName: 'moving-service.jpg', colors: ['#334155', '#64748B'] },
   { name: 'Delivery service', group: 'Logistics', icon: 'bike-fast', imageName: 'delivery-service.jpg', colors: ['#0891B2', '#67E8F9'] },
-  { name: 'Security guard', group: 'Professional', icon: 'shield-account', imageName: 'security-guard.jpg', colors: ['#111827', '#475569'] },
-  { name: 'Private driver', group: 'Logistics', icon: 'car', imageName: 'private-driver.jpg', colors: ['#1D4ED8', '#60A5FA'] },
   { name: 'Child care', group: 'Care', icon: 'baby-face-outline', imageName: 'child-care.jpg', colors: ['#8B5CF6', '#DDD6FE'] },
   { name: 'Elder care', group: 'Care', icon: 'account-heart-outline', imageName: 'elder-care.jpg', colors: ['#BE123C', '#FDA4AF'] },
   { name: 'Home nursing', group: 'Care', icon: 'medical-bag', imageName: 'home-nursing.jpg', colors: ['#059669', '#6EE7B7'] },
@@ -70,6 +73,9 @@ export const POPULAR_SERVICE_CATALOG = [
 ];
 
 export const POPULAR_SERVICE_IMAGES = {
+  'graphic designer.png': require('../../assets/promo image/graphic designer.png'),
+  'website designer.png': require('../../assets/promo image/website designer.png'),
+  'seo.png': require('../../assets/promo image/seo.png'),
   'cleaning.jpg': require('../../assets/popular-services/cleaning.jpg'),
   'plumbing.jpg': require('../../assets/popular-services/plumbing.jpg'),
   'electrical.jpg': require('../../assets/popular-services/electrical.jpg'),

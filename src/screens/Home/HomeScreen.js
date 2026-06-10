@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  TextInput, Image, StatusBar, Dimensions, Platform, RefreshControl, ActivityIndicator
+  TextInput, Image, Dimensions, Platform, RefreshControl, ActivityIndicator
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -146,20 +147,25 @@ const HomeScreen = ({ navigation }) => {
 
   if (isInitialLoad) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <ActivityIndicator size="large" color="#0D9488" />
-        <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
-      </SafeAreaView>
+      <>
+        <StatusBar style="light" backgroundColor="#14B8A6" />
+        <SafeAreaView style={[styles.container, { backgroundColor: '#14B8A6' }]} edges={['top']}>
+          <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#0D9488" />
+            <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
+          </View>
+        </SafeAreaView>
+      </>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-
-      {/* ═══ 1. HEADER with gradient ═══ */}
-      <LinearGradient
+    <>
+      <StatusBar style="light" backgroundColor="#14B8A6" />
+      <SafeAreaView style={[styles.container, { backgroundColor: '#14B8A6' }]} edges={['top']}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          {/* ═══ 1. HEADER with gradient ═══ */}
+          <LinearGradient
         colors={isDarkMode ? ['#0F4C4A', '#1E3A5F'] : ['#0D9488', '#2563EB']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -202,27 +208,16 @@ const HomeScreen = ({ navigation }) => {
           style={styles.searchBand}
         >
           <View style={styles.searchRow}>
-            <View style={[styles.searchBar, { backgroundColor: isDarkMode ? '#0F172A' : '#FFF', borderColor: isDarkMode ? '#1E3A5F' : '#BDEBE5' }]}>
+            <TouchableOpacity 
+              style={[styles.searchBar, { backgroundColor: isDarkMode ? '#0F172A' : '#FFF', borderColor: isDarkMode ? '#1E3A5F' : '#BDEBE5' }]}
+              onPress={() => navigation.navigate('ProviderList')}
+              activeOpacity={0.7}
+            >
               <MaterialCommunityIcons name="magnify" size={22} color={isDarkMode ? '#94A3B8' : '#0D9488'} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.text }]}
-                placeholder={t('home.searchProfessionals')}
-                placeholderTextColor={isDarkMode ? '#64748B' : '#5B7C8A'}
-                value={search}
-                onChangeText={setSearch}
-                onSubmitEditing={() => {
-                  if (search.trim()) {
-                    navigation.navigate('ProviderList', { search: search.trim() });
-                    setSearch('');
-                  }
-                }}
-              />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <MaterialCommunityIcons name="close-circle" size={18} color={isDarkMode ? '#64748B' : '#0D9488'} />
-                </TouchableOpacity>
-              )}
-            </View>
+              <Text style={[styles.searchInput, { color: isDarkMode ? '#64748B' : '#5B7C8A', paddingTop: Platform.OS === 'ios' ? 0 : 2 }]}>
+                {t('home.searchProfessionals')}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterBtn, { backgroundColor: isDarkMode ? '#0F172A' : '#FFF', borderColor: isDarkMode ? '#1E3A5F' : '#BDEBE5' }]}
               onPress={() => {
@@ -243,7 +238,7 @@ const HomeScreen = ({ navigation }) => {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
             {POPULAR_SERVICES.map(service => (
               <TouchableOpacity
-                key={service.imageName}
+                key={service.name}
                 style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}
                 onPress={() => navigation.navigate('ProviderList', { category: service.name })}
                 activeOpacity={0.84}
@@ -496,22 +491,40 @@ const HomeScreen = ({ navigation }) => {
 
         {/* ═══ 8. INVITE & EARN BANNER ═══ */}
         <TouchableOpacity
-          style={[styles.inviteCard, { backgroundColor: isDarkMode ? '#134E4A' : '#ECFDF5', borderColor: isDarkMode ? '#0D9488' : '#A7F3D0' }]}
+          style={styles.promoFlyer}
           onPress={() => navigation.navigate('Invitation')}
-          activeOpacity={0.85}
+          activeOpacity={0.9}
         >
-          <MaterialCommunityIcons name="gift" size={36} color="#0D9488" />
-          <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={[styles.inviteTitle, { color: colors.text }]}>{t('drawer.inviteTitle')}</Text>
-            <Text style={[styles.inviteSub, { color: colors.textSecondary }]}>{t('payments.inviteEarn')}</Text>
-          </View>
-          <LinearGradient colors={['#0D9488', '#14B8A6']} style={styles.inviteBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-            <Text style={styles.inviteBtnText}>{t('home.inviteNow')}</Text>
+          <LinearGradient 
+            colors={isDarkMode ? ['#134E4A', '#064E3B'] : ['#FFF5F0', '#FFEDD5']} 
+            style={styles.promoGradient}
+            start={{ x: 0, y: 0 }} 
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.promoTextContainer}>
+              <Text style={[styles.promoTitle, { color: isDarkMode ? '#FFF' : '#F97316' }]}>
+                {t('drawer.inviteTitle')}
+              </Text>
+              <Text style={[styles.promoSub, { color: isDarkMode ? '#A7F3D0' : '#EA580C' }]}>
+                {t('payments.inviteEarn')}
+              </Text>
+              <View style={[styles.promoBtn, { backgroundColor: '#F97316' }]}>
+                <Text style={styles.promoBtnText}>{t('home.inviteNow')}</Text>
+              </View>
+            </View>
+            <Image 
+              source={require('../../../assets/promo image/promo.png')} 
+              style={styles.promoFlyerImage} 
+            />
           </LinearGradient>
         </TouchableOpacity>
 
+        {/* Space at the bottom to avoid tabbar overlap */}
+        <View style={{ height: 120 }} />
       </ScrollView>
+      </View>
     </SafeAreaView>
+    </>
   );
 };
 
@@ -852,14 +865,20 @@ const styles = StyleSheet.create({
   viewProfileText: { fontSize: 12, fontWeight: '700', color: '#0D9488' },
 
   // 8. INVITE BANNER
-  inviteCard: {
-    marginHorizontal: 16, marginTop: 20, marginBottom: 10, borderRadius: 16, padding: 16,
-    flexDirection: 'row', alignItems: 'center', borderWidth: 1,
+  promoFlyer: {
+    marginHorizontal: 16, marginTop: 20, marginBottom: 10,
+    borderRadius: 16, overflow: 'hidden', elevation: 5,
+    shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8,
   },
-  inviteTitle: { fontSize: 15, fontWeight: '800' },
-  inviteSub: { fontSize: 12, marginTop: 2, lineHeight: 16 },
-  inviteBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
-  inviteBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+  promoGradient: {
+    flexDirection: 'row', alignItems: 'center', padding: 20, justifyContent: 'space-between'
+  },
+  promoTextContainer: { flex: 1, paddingRight: 10 },
+  promoTitle: { fontSize: 18, fontWeight: '900', marginBottom: 4 },
+  promoSub: { fontSize: 12, marginBottom: 12, fontWeight: '600', lineHeight: 16 },
+  promoBtn: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  promoBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+  promoFlyerImage: { width: 100, height: 100, resizeMode: 'contain' },
 });
 
 export default HomeScreen;

@@ -3,8 +3,77 @@ import { Platform } from 'react-native';
 import api from './api';
 
 class NotificationService {
+  constructor() {
+    this._navigationRef = null;
+    this._unsubscribeOpened = null;
+  }
+
   /**
-   * Request permission for notifications (iOS requires explicit permission, 
+   * Pass in the NavigationContainer ref so the service can navigate.
+   * Call this from AppNavigator after the ref is created.
+   */
+  setNavigationRef(ref) {
+    this._navigationRef = ref;
+  }
+
+  /**
+   * Navigate based on notification data payload.
+   * Called from both quit-state and background-state tap handlers.
+   */
+  handleNotificationNavigation(data) {
+    const nav = this._navigationRef;
+    if (!nav || !nav.isReady || !nav.isReady()) return;
+
+    const type = data?.type;
+
+    switch (type) {
+      case 'NEW_MESSAGE':
+        if (data.conversationId) {
+          nav.navigate('Messages');
+          setTimeout(() => {
+            nav.navigate('Chat', { conversationId: data.conversationId });
+          }, 150);
+        }
+        break;
+
+      case 'NEW_APPLICATION':
+      case 'APPLICATION_ACCEPTED':
+      case 'JOB_COMPLETED':
+      case 'JOB_APPROVED':
+      case 'JOB_REJECTED':
+        if (data.jobId) {
+          nav.navigate('My Tasks');
+          setTimeout(() => {
+            nav.navigate('JobStatus', { jobId: data.jobId });
+          }, 150);
+        } else {
+          nav.navigate('My Tasks');
+        }
+        break;
+
+      case 'NEW_BOOKING':
+      case 'BOOKING_SENT':
+        nav.navigate('My Tasks');
+        break;
+
+      case 'COINS_ADDED':
+      case 'TRANSACTION':
+        nav.navigate('Wallet');
+        break;
+
+      case 'NEW_REVIEW':
+        nav.navigate('Settings');
+        break;
+
+      default:
+        // Fall back to the Notifications screen inside the current tab
+        nav.navigate('Notifications');
+        break;
+    }
+  }
+
+  /**
+   * Request permission for notifications (iOS requires explicit permission,
    * Android 13+ requires it too).
    */
   async requestUserPermission() {
@@ -59,7 +128,8 @@ class NotificationService {
   }
 
   /**
-   * Setup foreground and background notification listeners
+   * Setup foreground, background, and quit-state notification listeners.
+   * Must be called AFTER setNavigationRef so navigation works for taps.
    */
   setupListeners() {
     // Listen to token refresh
@@ -68,16 +138,41 @@ class NotificationService {
       await this.syncTokenWithBackend(token);
     });
 
-    // Foreground message handler
+    // Foreground message handler — show in-app toast or update badge
     messaging().onMessage(async (remoteMessage) => {
-      console.log('[FCM] A new FCM message arrived in foreground!', JSON.stringify(remoteMessage));
-      // You can trigger local notifications or show in-app toasts here
+      console.log('[FCM] Foreground message arrived:', JSON.stringify(remoteMessage));
+      // Foreground taps are handled by in-app UI; no navigation here.
     });
+
+    // App was in BACKGROUND and user tapped the notification
+    if (this._unsubscribeOpened) {
+      this._unsubscribeOpened();
+    }
+    this._unsubscribeOpened = messaging().onNotificationOpenedApp((remoteMessage) => {
+      console.log('[FCM] onNotificationOpenedApp:', JSON.stringify(remoteMessage?.data));
+      if (remoteMessage?.data) {
+        this.handleNotificationNavigation(remoteMessage.data);
+      }
+    });
+
+    // App was QUIT and user tapped the notification to open it
+    messaging()
+      .getInitialNotification()
+      .then((remoteMessage) => {
+        if (remoteMessage?.data) {
+          console.log('[FCM] getInitialNotification:', JSON.stringify(remoteMessage.data));
+          // Delay to let the navigation tree mount fully
+          setTimeout(() => {
+            this.handleNotificationNavigation(remoteMessage.data);
+          }, 1200);
+        }
+      })
+      .catch((err) => console.error('[FCM] getInitialNotification error:', err));
   }
 
   /**
-   * Initialize notification services
-   * Should be called right after successful login or app startup if authenticated
+   * Initialize notification services.
+   * Should be called right after successful login or app startup if authenticated.
    */
   async initialize() {
     const hasPermission = await this.requestUserPermission();

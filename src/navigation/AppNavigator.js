@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import AuthNavigator from './AuthNavigator';
@@ -6,6 +6,7 @@ import TabNavigator from './TabNavigator';
 import ProviderTabNavigator from './ProviderTabNavigator';
 import AnimatedSplashScreen from '../screens/Auth/AnimatedSplashScreen';
 import { useNavigationStateContext } from '../context/NavigationStateContext';
+import notificationService from '../services/notificationService';
 
 const getActiveRouteName = (state) => {
   if (!state?.routes?.length) return null;
@@ -19,6 +20,13 @@ const AppNavigator = () => {
   const { setCurrentRouteName } = useNavigationStateContext();
   const navigationRef = useRef(null);
 
+  // Provide the navigation ref to the notification service so it can
+  // navigate when the user taps a push notification (background / quit state).
+  const onNavigationReady = useCallback(() => {
+    notificationService.setNavigationRef(navigationRef.current);
+    setCurrentRouteName(navigationRef.current?.getCurrentRoute?.()?.name || null);
+  }, [setCurrentRouteName]);
+
   if (isLoading || isRestoring) {
     return <AnimatedSplashScreen onFinish={() => {}} navigation={{ replace: () => {} }} />;
   }
@@ -26,7 +34,7 @@ const AppNavigator = () => {
   return (
     <NavigationContainer
       ref={navigationRef}
-      onReady={() => setCurrentRouteName(navigationRef.current?.getCurrentRoute?.()?.name || null)}
+      onReady={onNavigationReady}
       onStateChange={(state) => setCurrentRouteName(getActiveRouteName(state))}
     >
       {!user ? (

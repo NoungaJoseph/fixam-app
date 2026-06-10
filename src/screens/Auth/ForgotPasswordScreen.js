@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, StatusBar, Dimensions, Alert } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -28,8 +29,9 @@ const ForgotPasswordScreen = ({ navigation }) => {
     <View 
       style={[styles.background, { backgroundColor: colors.background }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" backgroundColor="#FFFFFF" />
+      <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]} edges={['top']}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <MaterialCommunityIcons name="chevron-left" size={30} color={colors.primary} />
         </TouchableOpacity>
@@ -61,6 +63,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
           <TouchableOpacity style={[styles.resetBtn, { backgroundColor: colors.accent }]} onPress={handleReset}>
             <Text style={styles.resetBtnText}>{t('forgotPassword.sendLink')}</Text>
           </TouchableOpacity>
+        </View>
         </View>
       </SafeAreaView>
     </View>

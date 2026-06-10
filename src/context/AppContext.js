@@ -137,6 +137,9 @@ export const AppProvider = ({ children }) => {
       });
 
       const offNewNotification = on('notification:new', (notif) => {
+        const type = notif.data?.type || notif.type;
+        if (type === 'NEW_MESSAGE' || type === 'MESSAGE') return;
+
         setNotifications(prev => {
           // Prevent duplicates by checking if notification with same ID already exists
           const exists = prev.some(n => n.id === notif.id);
@@ -291,6 +294,9 @@ export const AppProvider = ({ children }) => {
       const res = await api.get('/notifications');
       const seen = new Set();
       const unique = (res.data.data || []).filter((notif) => {
+        const type = notif.data?.type || notif.type;
+        if (type === 'NEW_MESSAGE' || type === 'MESSAGE') return false;
+
         const key = notif.data?.transactionId && notif.data?.status
           ? `${notif.data.type}-${notif.data.transactionId}-${notif.data.status}`
           : notif.id;
@@ -304,6 +310,10 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  const fetchUnreadMessageCount = useCallback(async () => {
+    // No-op — unreadCount is derived from conversations (see below).
+  }, []);
+
   const fetchConversations = useCallback(async () => {
     try {
       const res = await api.get('/chat/conversations');
@@ -313,7 +323,8 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  // Calculate unique unread conversations
+  // unreadCount = number of distinct conversations that have ≥1 unread message.
+  // If 3 different people each text you 10 messages → badge shows 3, not 30.
   const unreadCount = useMemo(() => {
     return conversations.filter(c => c.unreadCount > 0).length;
   }, [conversations]);
@@ -480,6 +491,7 @@ export const AppProvider = ({ children }) => {
       fetchAppData,
       fetchNotifications,
       fetchConversations,
+      fetchUnreadMessageCount,
       markNotificationAsRead,
       archiveNotification,
       postJob, 

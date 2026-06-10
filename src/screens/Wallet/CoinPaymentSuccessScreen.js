@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Animated, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -43,11 +43,7 @@ const CoinPaymentSuccessScreen = ({ navigation, route }) => {
     <View 
       style={[styles.background, { backgroundColor: colors.background }]}
     >
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor="transparent"
-        translucent
-      />
+      
       <SafeAreaView style={styles.container}>
         <ScrollView
           showsVerticalScrollIndicator={false}

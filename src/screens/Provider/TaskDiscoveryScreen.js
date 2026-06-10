@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, StatusBar, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -133,11 +133,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor="transparent"
-        translucent
-      />
+      
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>

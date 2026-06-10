@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  StatusBar, Share, Alert
+  StatusBar, Share, Alert, Image
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CustomHeader } from '../../navigation/NavigationComponents';
@@ -38,8 +38,8 @@ const InvitationScreen = ({ navigation }) => {
         
         {/* Illustration */}
         <View style={styles.imageContainer}>
-          <View style={[styles.imageCircle, { borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="account-group" size={80} color="#FFF" />
+          <View style={[styles.promoCard, { backgroundColor: isDarkMode ? '#2D3748' : '#FFF5F0', borderColor: isDarkMode ? '#4A5568' : '#FED7AA' }]}>
+            <Image source={require('../../../assets/promo image/promo.png')} style={styles.promoImage} />
           </View>
         </View>
 
@@ -117,8 +117,9 @@ const InvitationScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   background: { flex: 1 },
   content: { padding: 24, alignItems: 'center' },
-  imageContainer: { marginTop: 20, marginBottom: 30 },
-  imageCircle: { width: 140, height: 140, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F97316', borderWidth: 1 },
+  imageContainer: { marginTop: 20, marginBottom: 30, width: '100%', alignItems: 'center' },
+  promoCard: { width: '95%', height: 200, borderRadius: 20, overflow: 'hidden', elevation: 8, shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  promoImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   title: { fontSize: 24, fontWeight: '900', textAlign: 'center', marginBottom: 12 },
   subtitle: { fontSize: 14, textAlign: 'center', marginBottom: 35, lineHeight: 22, paddingHorizontal: 10 },
   codeBox: { width: '100%', paddingVertical: 24, borderBottomWidth: 1, marginBottom: 25 },

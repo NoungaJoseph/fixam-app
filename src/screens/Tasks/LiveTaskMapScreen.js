@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, Linking, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -46,8 +46,8 @@ const LiveTaskMapScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top']}>
+      
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <TouchableOpacity style={[styles.circleBtn, { backgroundColor: colors.card }]} onPress={() => navigation.goBack()}>
           <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />

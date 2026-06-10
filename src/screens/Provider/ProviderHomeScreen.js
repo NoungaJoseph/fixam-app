@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  TextInput, StatusBar, Platform, Image, Dimensions, Switch, Modal, ActivityIndicator
+  TextInput, Platform, Image, Dimensions, Switch, Modal, ActivityIndicator
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -342,20 +343,25 @@ const ProviderHomeScreen = ({ navigation }) => {
 
   if (isInitialLoad) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]} edges={['top']}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-        <ActivityIndicator size="large" color="#0D9488" />
-        <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
-      </SafeAreaView>
+      <>
+        <StatusBar style="light" backgroundColor="#14B8A6" />
+        <SafeAreaView style={[styles.container, { backgroundColor: '#14B8A6' }]} edges={['top']}>
+          <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#0D9488" />
+            <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
+          </View>
+        </SafeAreaView>
+      </>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-
-      {/* FIXED FLOATING SEARCH/FILTER AT TOP */}
-      <ScrollView ref={providerMainScrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]}>
+    <>
+      <StatusBar style="light" backgroundColor="#14B8A6" />
+      <SafeAreaView style={[styles.container, { backgroundColor: '#14B8A6' }]} edges={['top']}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          {/* FIXED FLOATING SEARCH/FILTER AT TOP */}
+          <ScrollView ref={providerMainScrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]}>
 
         {/* ÔöÇÔöÇ 1. PREMIUM HEADER SECTION ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
         <View style={styles.headerTop}>
@@ -600,6 +606,9 @@ const ProviderHomeScreen = ({ navigation }) => {
               placeholderTextColor={colors.placeholder}
               value={search}
               onChangeText={setSearch}
+              autoFocus={false}
+              blurOnSubmit={true}
+              returnKeyType="search"
             />
           </View>
           <TouchableOpacity style={[styles.filterBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -691,7 +700,9 @@ const ProviderHomeScreen = ({ navigation }) => {
         onDone={() => setShowTour(false)}
         scrollViewRef={providerMainScrollRef}
       />
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </>
   );
 };
 

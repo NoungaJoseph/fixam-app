@@ -19,8 +19,8 @@ const VerificationSuccessScreen = ({ navigation }) => {
 
   // Navigate back to the main app Settings tab (shows navbar at bottom)
   const goBackToSettings = () => {
-    // Navigate to the SettingsMain in the Settings tab - this keeps the tab bar visible
-    navigation.navigate('SettingsMain');
+    // Just pop the stack to avoid flickering
+    navigation.goBack();
   };
 
   return (

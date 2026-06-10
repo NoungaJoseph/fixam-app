@@ -4,6 +4,7 @@ import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   ScrollView, StatusBar, Modal, Alert, Image
 } from 'react-native';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -418,7 +419,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     return (
       <TouchableOpacity
         key={job.id}
-        style={[styles.taskCard, { backgroundColor: colors.card }]}
+        style={[styles.taskCard, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
         onPress={() => navigation.navigate('JobStatus', { job })}
         activeOpacity={0.85}
       >
@@ -430,15 +431,15 @@ const PostTaskScreen = ({ route, navigation }) => {
             <MaterialCommunityIcons name="calendar-blank-outline" size={20} color="#64748B" />
             <Text style={styles.cardDate}>{formatCardDate(job)}</Text>
             <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <MaterialCommunityIcons name="dots-vertical" size={24} color="#071936" />
+              <MaterialCommunityIcons name="dots-vertical" size={24} color={isDarkMode ? '#F8FAFC' : '#071936'} />
             </TouchableOpacity>
           </View>
         </View>
         
         <View style={styles.taskBodyRow}>
           <View style={styles.taskCopy}>
-            <Text style={styles.taskTitle} numberOfLines={2} ellipsizeMode="tail">{titleText}</Text>
-            <Text style={styles.taskDescriptionText} numberOfLines={2} ellipsizeMode="tail">{description}</Text>
+            <Text style={[styles.taskTitle, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">{titleText}</Text>
+            <Text style={[styles.taskDescriptionText, { color: colors.textSecondary }]} numberOfLines={2} ellipsizeMode="tail">{description}</Text>
           </View>
           <View style={[styles.statusPill, { backgroundColor: statusStyle.bg }]}>
             <MaterialCommunityIcons name={statusStyle.icon} size={18} color={statusStyle.text} />
@@ -449,7 +450,7 @@ const PostTaskScreen = ({ route, navigation }) => {
         <View style={styles.taskMetaGrid}>
           <View style={[styles.taskMetaItem, { flex: 1, minWidth: 0 }]}>
             <MaterialCommunityIcons name="map-marker" size={22} color="#0D9488" />
-            <Text style={[styles.taskMetaValue, { flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">{locationText}</Text>
+            <Text style={[styles.taskMetaValue, { color: colors.text, flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">{locationText}</Text>
           </View>
           <View style={styles.metaDivider} />
           <View style={[styles.taskMetaItem, { flex: 1, minWidth: 0 }]}>
@@ -483,19 +484,19 @@ const PostTaskScreen = ({ route, navigation }) => {
 
         <View style={styles.taskActionGroup}>
           <TouchableOpacity 
-            style={styles.secondaryActionBtn}
+            style={[styles.secondaryActionBtn, { backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC', borderColor: colors.border }]}
             onPress={() => navigation.navigate('JobStatus', { job })}
           >
-            <MaterialCommunityIcons name="eye" size={18} color="#071936" />
-            <Text style={styles.secondaryActionText}>{t('jobs.details')}</Text>
+            <MaterialCommunityIcons name="eye" size={18} color={isDarkMode ? '#F8FAFC' : '#071936'} />
+            <Text style={[styles.secondaryActionText, { color: colors.text }]}>{t('jobs.details')}</Text>
           </TouchableOpacity>
           
 
 
           {isComplete ? (
-            <TouchableOpacity style={[styles.secondaryActionBtn, styles.bookAgainBtn]} onPress={navigateToCreateTask}>
-              <MaterialCommunityIcons name="sync" size={18} color="#071936" />
-              <Text style={styles.secondaryActionText}>{t('jobs.bookAgain')}</Text>
+            <TouchableOpacity style={[styles.secondaryActionBtn, styles.bookAgainBtn, { backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC', borderColor: colors.border }]} onPress={navigateToCreateTask}>
+              <MaterialCommunityIcons name="sync" size={18} color={isDarkMode ? '#F8FAFC' : '#071936'} />
+              <Text style={[styles.secondaryActionText, { color: colors.text }]}>{t('jobs.bookAgain')}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -551,8 +552,8 @@ const PostTaskScreen = ({ route, navigation }) => {
         : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+      
 
       {taskMode === 'tasks' && (
         <>
@@ -580,7 +581,7 @@ const PostTaskScreen = ({ route, navigation }) => {
               <Image source={tasksHeroImage} style={styles.tasksHeroImage} />
             </LinearGradient>
 
-            <View style={styles.filterBar}>
+            <View style={[styles.filterBar, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
@@ -592,7 +593,7 @@ const PostTaskScreen = ({ route, navigation }) => {
                   return (
                     <TouchableOpacity key={filter.value} style={styles.filterItem} onPress={() => setActiveFilter(filter.value)}>
                       <View style={styles.filterLabelRow}>
-                        <Text style={[styles.filterText, active && { color: filter.color }]}>
+                        <Text style={[styles.filterText, active && { color: filter.color }, !active && { color: colors.textSecondary }]}>
                           {filter.value === 'ALL' ? t('jobs.allTasks') : translateStatus(filter.value)}
                         </Text>
                         {filter.value !== 'ALL' && <View style={[styles.filterDot, { backgroundColor: filter.color }]} />}
@@ -669,10 +670,10 @@ const PostTaskScreen = ({ route, navigation }) => {
                   <Text style={styles.viewAllText}>{t('jobs.viewAll')}</Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.categorySearchWrap}>
+              <View style={[styles.categorySearchWrap, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}>
                 <MaterialCommunityIcons name="shape-outline" size={21} color="#0D9488" />
                 <TextInput
-                  style={styles.categorySearchInput}
+                  style={[styles.categorySearchInput, { color: colors.text }]}
                   placeholder={t('jobs.selectCategory')}
                   placeholderTextColor="#94A3B8"
                   value={showCategoryPicker ? categorySearch : getCategoryLabel(selectedCat)}
@@ -688,15 +689,15 @@ const PostTaskScreen = ({ route, navigation }) => {
                 <MaterialCommunityIcons name={showCategoryPicker ? 'chevron-up' : 'chevron-right'} size={24} color="#64748B" />
               </View>
               {showCategoryPicker && (
-                <View style={styles.categoryResults}>
+                <View style={[styles.categoryResults, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}>
                   {(filteredCategories.length ? filteredCategories : TASK_CATS).map((cat) => {
                     const active = selectedCat === cat.name;
                     return (
-                      <TouchableOpacity key={cat.id} style={styles.categoryResultItem} onPress={() => selectCategory(cat)}>
+                      <TouchableOpacity key={cat.id} style={[styles.categoryResultItem, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderBottomColor: colors.border }]} onPress={() => selectCategory(cat)}>
                         <View style={[styles.categoryResultIcon, active && styles.categoryResultIconActive]}>
                           <MaterialCommunityIcons name={cat.icon} size={18} color={active ? '#FFF' : '#0D9488'} />
                         </View>
-                        <Text style={styles.categoryResultText}>{getCategoryLabel(cat.name)}</Text>
+                        <Text style={[styles.categoryResultText, { color: colors.text }]}>{getCategoryLabel(cat.name)}</Text>
                         {active && <MaterialCommunityIcons name="check-circle" size={20} color="#0D9488" />}
                       </TouchableOpacity>
                     );
@@ -738,13 +739,13 @@ const PostTaskScreen = ({ route, navigation }) => {
               <View style={styles.createFieldGroup}>
                 <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.budget')}</Text>
                 <View style={styles.budgetModeRow}>
-                  <TouchableOpacity style={[styles.budgetModeBtn, budgetMode === 'fixed' && styles.budgetModeBtnActive]} onPress={() => setBudgetMode('fixed')}>
-                    <Text style={[styles.budgetModeTitle, budgetMode === 'fixed' && styles.budgetModeTitleActive]}>{t('jobs.fixedPrice')}</Text>
-                    <Text style={styles.budgetModeSub}>{t('jobs.setBudget')}</Text>
+                  <TouchableOpacity style={[styles.budgetModeBtn, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }, budgetMode === 'fixed' && [styles.budgetModeBtnActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F8FFFD', borderColor: '#0D9488' }]]} onPress={() => setBudgetMode('fixed')}>
+                    <Text style={[styles.budgetModeTitle, { color: colors.textSecondary }, budgetMode === 'fixed' && [styles.budgetModeTitleActive, { color: colors.text }]]}>{t('jobs.fixedPrice')}</Text>
+                    <Text style={[styles.budgetModeSub, { color: colors.textSecondary }]}>{t('jobs.setBudget')}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.budgetModeBtn, budgetMode === 'range' && styles.budgetModeBtnActive]} onPress={() => setBudgetMode('range')}>
-                    <Text style={[styles.budgetModeTitle, budgetMode === 'range' && styles.budgetModeTitleActive]}>{t('jobs.priceRange')}</Text>
-                    <Text style={styles.budgetModeSub}>{t('jobs.setRange')}</Text>
+                  <TouchableOpacity style={[styles.budgetModeBtn, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }, budgetMode === 'range' && [styles.budgetModeBtnActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F8FFFD', borderColor: '#0D9488' }]]} onPress={() => setBudgetMode('range')}>
+                    <Text style={[styles.budgetModeTitle, { color: colors.textSecondary }, budgetMode === 'range' && [styles.budgetModeTitleActive, { color: colors.text }]]}>{t('jobs.priceRange')}</Text>
+                    <Text style={[styles.budgetModeSub, { color: colors.textSecondary }]}>{t('jobs.setRange')}</Text>
                   </TouchableOpacity>
                 </View>
                 {budgetMode === 'range' ? (
@@ -816,9 +817,9 @@ const PostTaskScreen = ({ route, navigation }) => {
                   {PREFERENCES.map((pref) => {
                     const active = selectedPreferences.includes(pref.id);
                     return (
-                      <TouchableOpacity key={pref.id} style={[styles.preferenceChip, active && styles.preferenceChipActive]} onPress={() => togglePreference(pref.id)}>
+                      <TouchableOpacity key={pref.id} style={[styles.preferenceChip, { backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC' }, active && [styles.preferenceChipActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F0FDFA' }]]} onPress={() => togglePreference(pref.id)}>
                         <MaterialCommunityIcons name={pref.icon} size={18} color={active ? '#0D9488' : '#64748B'} />
-                        <Text style={[styles.preferenceText, active && styles.preferenceTextActive]}>{t(`jobs.preferences.${pref.labelKey}`)}</Text>
+                        <Text style={[styles.preferenceText, { color: colors.textSecondary }, active && [styles.preferenceTextActive, { color: colors.text }]]}>{t(`jobs.preferences.${pref.labelKey}`)}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -890,7 +891,7 @@ const PostTaskScreen = ({ route, navigation }) => {
             <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('what')}>
               <View>
                 <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.whatNeedsDone')}</Text>
-                <Text style={styles.promptText} numberOfLines={2}>
+                <Text style={[styles.promptText, { color: colors.textSecondary }]} numberOfLines={2}>
                   {whatNeedsDone || t('jobs.whatNeedsDoneExample')}
                 </Text>
               </View>
@@ -900,7 +901,7 @@ const PostTaskScreen = ({ route, navigation }) => {
             <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('important')}>
               <View>
                 <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.importantDetails')}</Text>
-                <Text style={styles.promptText} numberOfLines={2}>
+                <Text style={[styles.promptText, { color: colors.textSecondary }]} numberOfLines={2}>
                   {importantDetails || t('jobs.importantDetailsExample')}
                 </Text>
               </View>
@@ -910,34 +911,34 @@ const PostTaskScreen = ({ route, navigation }) => {
             <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('scope')}>
               <View>
                 <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.taskScope')}</Text>
-                <Text style={styles.promptText}>{taskScope || t('jobs.selectScope')}</Text>
+                <Text style={[styles.promptText, { color: colors.textSecondary }]}>{taskScope || t('jobs.selectScope')}</Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={24} color="#64748B" />
             </TouchableOpacity>
 
             <View style={styles.materialsCard}>
-              <Text style={styles.promptTitle}>{t('jobs.materials')}</Text>
-              <Text style={styles.promptText}>{t('jobs.materialsQuestion')}</Text>
+              <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.materials')}</Text>
+              <Text style={[styles.promptText, { color: colors.textSecondary }]}>{t('jobs.materialsQuestion')}</Text>
               <View style={styles.materialsRow}>
-                <TouchableOpacity style={[styles.materialOption, materialsProvider === 'professional' && styles.materialOptionActive]} onPress={() => setMaterialsProvider('professional')}>
+                <TouchableOpacity style={[styles.materialOption, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }, materialsProvider === 'professional' && [styles.materialOptionActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F8FFFD', borderColor: '#0D9488' }]]} onPress={() => setMaterialsProvider('professional')}>
                   {materialsProvider === 'professional' && (
                     <View style={styles.materialCheck}>
                       <MaterialCommunityIcons name="check" size={14} color="#FFF" />
                     </View>
                   )}
                   <MaterialCommunityIcons name="briefcase-variant" size={28} color="#0D9488" />
-                  <Text style={styles.materialTitle}>{t('common.provider')}</Text>
-                  <Text style={styles.materialSub}>{t('jobs.professionalMaterialsSub')}</Text>
+                  <Text style={[styles.materialTitle, { color: colors.text }]}>{t('common.provider')}</Text>
+                  <Text style={[styles.materialSub, { color: colors.textSecondary }]}>{t('jobs.professionalMaterialsSub')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.materialOption, materialsProvider === 'client' && styles.materialOptionActive]} onPress={() => setMaterialsProvider('client')}>
+                <TouchableOpacity style={[styles.materialOption, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }, materialsProvider === 'client' && [styles.materialOptionActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F8FFFD', borderColor: '#0D9488' }]]} onPress={() => setMaterialsProvider('client')}>
                   {materialsProvider === 'client' && (
                     <View style={styles.materialCheck}>
                       <MaterialCommunityIcons name="check" size={14} color="#FFF" />
                     </View>
                   )}
                   <MaterialCommunityIcons name="account-outline" size={30} color="#475569" />
-                  <Text style={styles.materialTitle}>{t('jobs.iWillProvide')}</Text>
-                  <Text style={styles.materialSub}>{t('jobs.clientMaterialsSub')}</Text>
+                  <Text style={[styles.materialTitle, { color: colors.text }]}>{t('jobs.iWillProvide')}</Text>
+                  <Text style={[styles.materialSub, { color: colors.textSecondary }]}>{t('jobs.clientMaterialsSub')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1127,7 +1128,7 @@ const PostTaskScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

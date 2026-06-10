@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useRef, useState } from 'react';
 import {
   StyleSheet,
@@ -9,7 +10,6 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -23,21 +23,21 @@ const SLIDES = [
     titleKey: 'onboarding.slide1Title',
     descKey: 'onboarding.slide1Desc',
     accent: '#0D9488',
-    image: require('../../../assets/onboarding-first.png'),
+    image: require('../../../assets/onboarding/experts.png'),
   },
   {
     id: '2',
     titleKey: 'onboarding.slide2Title',
     descKey: 'onboarding.slide2Desc',
     accent: '#14B8A6',
-    image: require('../../../assets/onboarding-second.png'),
+    image: require('../../../assets/onboarding/verified.png'),
   },
   {
     id: '3',
     titleKey: 'onboarding.slide3Title',
     descKey: 'onboarding.slide3Desc',
     accent: '#0D9488',
-    image: require('../../../assets/onboarding/learn_step3.png'),
+    image: require('../../../assets/onboarding/payment.png'),
   },
 ];
 
@@ -74,8 +74,8 @@ const OnboardingScreen = ({ navigation }) => {
         end={{ x: 1, y: 1 }}
         style={styles.background}
       >
-        <View style={[styles.colorPanel, { borderColor: item.accent }]}>
-          <Image source={item.image} style={styles.panelImage} resizeMode="cover" />
+        <View style={styles.colorPanel}>
+          <Image source={item.image} style={styles.panelImage} resizeMode="contain" />
         </View>
         <View style={styles.copyWrap}>
           <View style={[styles.kicker, { borderColor: item.accent }]}>
@@ -90,7 +90,7 @@ const OnboardingScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
       <FlatList
         ref={flatListRef}
         data={SLIDES}
@@ -150,20 +150,16 @@ const styles = StyleSheet.create({
   background: { flex: 1, justifyContent: 'flex-end' },
   colorPanel: {
     position: 'absolute',
-    top: '14%',
+    top: '12%',
     alignSelf: 'center',
-    width: width * 0.74,
-    height: width * 0.74,
-    borderRadius: width * 0.37,
-    borderWidth: 2,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    overflow: 'hidden',
-    padding: 10,
+    width: width * 0.9,
+    height: width * 0.9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   panelImage: {
     width: '100%',
     height: '100%',
-    borderRadius: width * 0.34,
   },
   copyWrap: {
     paddingHorizontal: 24,

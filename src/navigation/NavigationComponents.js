@@ -153,11 +153,11 @@ export const CustomDrawerContent = (props) => {
         borderTopRightRadius: 10,
         borderBottomRightRadius: 10,
         borderRightWidth: 1.5,
-        borderRightColor: isDarkMode ? '#1F2937' : '#E2E8F0',
+        borderRightColor: 'transparent',
         borderTopWidth: 1.5,
-        borderTopColor: isDarkMode ? '#1F2937' : '#E2E8F0',
+        borderTopColor: 'transparent',
         borderBottomWidth: 1.5,
-        borderBottomColor: isDarkMode ? '#1F2937' : '#E2E8F0',
+        borderBottomColor: 'transparent',
         overflow: 'hidden'
       }}>
       {/* Profile Header */}

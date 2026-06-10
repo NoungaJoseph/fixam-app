@@ -4,6 +4,7 @@ import {
   FlatList, KeyboardAvoidingView, Platform, Image, StatusBar, ActivityIndicator, Alert
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
@@ -379,8 +380,9 @@ const ChatScreen = ({ route, navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <SafeAreaView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      
       <View style={[styles.header, { backgroundColor: isDarkMode ? 'transparent' : '#FFF', borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}><MaterialCommunityIcons name="chevron-left" size={28} color={colors.primary} /></TouchableOpacity>
         <UserAvatar uri={avatarUri} name={userName} size={40} radius={12} style={styles.headerAvatar} />
@@ -447,12 +449,13 @@ const ChatScreen = ({ route, navigation }) => {
         )}
       </KeyboardAvoidingView>
     </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingTop: 60, paddingHorizontal: 16, paddingBottom: 15, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1 },
+  header: { paddingTop: 10, paddingHorizontal: 16, paddingBottom: 15, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1 },
   backBtn: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   headerAvatar: { width: 40, height: 40, borderRadius: 12, marginHorizontal: 12 },
   headerName: { fontSize: 16, fontWeight: '700' },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, StatusBar } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppContext } from '../../context/AppContext';
@@ -40,7 +40,7 @@ const FavoriteProvidersScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.headerBtn, { backgroundColor: colors.card }]}>

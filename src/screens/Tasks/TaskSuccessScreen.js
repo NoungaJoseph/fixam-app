@@ -38,7 +38,7 @@ const TaskSuccessScreen = ({ navigation }) => {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-            onPress={() => navigation.navigate('MyJobs')}
+            onPress={() => navigation.navigate('MyTasksMain')}
           >
             <MaterialCommunityIcons name="eye-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
             <Text style={styles.primaryBtnText}>{t('jobs.viewJobStatus')}</Text>

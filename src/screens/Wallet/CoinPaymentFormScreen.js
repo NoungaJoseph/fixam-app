@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -145,11 +145,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
   if (paymentStatus === 'PROCESSING') {
     return (
       <View style={[styles.background, { backgroundColor: colors.background }]}>
-        <StatusBar
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor="transparent"
-          translucent
-        />
+        
         <SafeAreaView style={styles.container}>
           <View style={styles.pendingContent}>
             <View style={[styles.pendingIcon, { backgroundColor: colors.accentSoft }]}>
@@ -173,11 +169,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor="transparent"
-        translucent
-      />
+      
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

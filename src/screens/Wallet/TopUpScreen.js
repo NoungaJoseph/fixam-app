@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Image, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,7 +51,7 @@ const TopUpScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.background, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA' }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      
       
       <SafeAreaView style={styles.container}>
         {/* Header */}

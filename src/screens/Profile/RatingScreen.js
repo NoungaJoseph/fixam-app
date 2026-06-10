@@ -79,7 +79,7 @@ const RatingScreen = ({ route, navigation }) => {
     <View 
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>

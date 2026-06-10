@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, StatusBar, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppContext } from '../../context/AppContext';
@@ -154,7 +154,7 @@ const ProviderListScreen = ({ route, navigation }) => {
     <View 
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>

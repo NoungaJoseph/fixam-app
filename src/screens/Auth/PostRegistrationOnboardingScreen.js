@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, StatusBar, FlatList, Dimensions, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -101,7 +101,7 @@ const PostRegistrationOnboardingScreen = ({ navigation, route }) => {
     <View 
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <View style={{ width: 42 }} />

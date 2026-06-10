@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -59,7 +59,7 @@ const HIDDEN_FAQS = [
   },
   {
     q: 'How long does it take for a professional to respond?',
-    a: 'Most professionals respond within 30 minutes. Average response time is shown on each provider's profile.',
+    a: 'Most professionals respond within 30 minutes. Average response time is shown on each provider\'s profile.',
     tags: ['response', 'time', 'fast', 'quick', 'wait'],
   },
   {
@@ -251,7 +251,7 @@ const HelpCenterScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>

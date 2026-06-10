@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   StatusBar, ActivityIndicator, Alert,
-  ScrollView, Image
+  ScrollView, Image, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -21,13 +21,16 @@ const LoginScreen = ({ navigation }) => {
   const { t } = useLanguage();
   const { loginDirect } = useAuth();
   const { isDarkMode, colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef(null);
+
   const phoneDigits = contact.replace(/\D/g, '').slice(0, 9);
   const authInputStyle = { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)' };
   const authInputTextStyle = { color: '#FFF' };
 
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isValidPhone = (phone) => /^6\d{8}$/.test(phone);
-  const isFormValid = loginMethod === 'phone' 
+  const isFormValid = loginMethod === 'phone'
     ? isValidPhone(phoneDigits) && password.length > 0
     : isValidEmail(contact.trim()) && password.length > 0;
 
@@ -56,9 +59,9 @@ const LoginScreen = ({ navigation }) => {
         [loginMethod === 'phone' ? 'phone' : 'email']: normalizedContact,
         password
       };
-      
+
       const res = await api.post('/auth/login', payload);
-      
+
       if (res.data.otpRequired) {
         navigation.navigate('OTP', { contact, method: loginMethod, role: res.data.user.role });
       } else if (res.data.requiresTwoFactor) {
@@ -85,113 +88,132 @@ const LoginScreen = ({ navigation }) => {
       end={{ x: 1, y: 1 }}
       style={styles.mainContainer}
     >
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-      <ScrollView
-        bounces={false}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.brandHeader}>
-          <Image source={require('../../../assets/fixam-white-bg.png')} style={styles.logoImage} resizeMode="contain" />
-          <Text style={styles.welcomeTo}>{t('login.welcome')}</Text>
-          <Text style={styles.headerSub}>{t('login.subtitle')}</Text>
-        </View>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView
+            ref={scrollViewRef}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: insets.bottom + 24 }
+            ]}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.brandHeader}>
+              <Image source={require('../../../assets/fixam-white-bg.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={styles.welcomeTo}>{t('login.welcome')}</Text>
+              <Text style={styles.headerSub}>{t('login.subtitle')}</Text>
+            </View>
 
-        <View style={styles.formArea}>
-          <View style={styles.methodToggle}>
-            <TouchableOpacity 
-              style={[styles.methodBtn, loginMethod === 'phone' && styles.methodBtnActive]}
-              onPress={() => { setLoginMethod('phone'); setContact(''); }}
-            >
-              <Text 
-                style={[styles.methodText, loginMethod === 'phone' && styles.methodTextActive]}
-                numberOfLines={1} 
-                adjustsFontSizeToFit
-              >
-                {t('login.mobileNumber')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.methodBtn, loginMethod === 'email' && styles.methodBtnActive]}
-              onPress={() => { setLoginMethod('email'); setContact(''); }}
-            >
-              <Text 
-                style={[styles.methodText, loginMethod === 'email' && styles.methodTextActive]}
-                numberOfLines={1} 
-                adjustsFontSizeToFit
-              >
-                {t('register.email')}
-              </Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.formArea}>
+              <View style={styles.methodToggle}>
+                <TouchableOpacity
+                  style={[styles.methodBtn, loginMethod === 'phone' && styles.methodBtnActive]}
+                  onPress={() => { setLoginMethod('phone'); setContact(''); }}
+                >
+                  <Text
+                    style={[styles.methodText, loginMethod === 'phone' && styles.methodTextActive]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {t('login.mobileNumber')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.methodBtn, loginMethod === 'email' && styles.methodBtnActive]}
+                  onPress={() => { setLoginMethod('email'); setContact(''); }}
+                >
+                  <Text
+                    style={[styles.methodText, loginMethod === 'email' && styles.methodTextActive]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {t('register.email')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-          <View style={styles.formContainer}>
-            <View style={[styles.inputWrapper, authInputStyle]}>
-              {loginMethod === 'phone' ? (
-                <View style={styles.countryPrefix}>
-                  <Text style={styles.flagText}>🇨🇲</Text>
-                  <Text style={styles.prefixText}>+237</Text>
+              <View style={styles.formContainer}>
+                {/* Contact field (phone / email) */}
+                <View style={[styles.inputWrapper, authInputStyle]}>
+                  {loginMethod === 'phone' ? (
+                    <View style={styles.countryPrefix}>
+                      <Text style={styles.flagText}>🇨🇲</Text>
+                      <Text style={styles.prefixText}>+237</Text>
+                    </View>
+                  ) : (
+                    <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
+                  )}
+                  <TextInput
+                    style={[styles.textInput, authInputTextStyle]}
+                    placeholder={loginMethod === 'phone' ? '6XX XXX XXX' : t('register.emailPlaceholder')}
+                    placeholderTextColor="rgba(255,255,255,0.66)"
+                    value={loginMethod === 'phone' ? phoneDigits : contact}
+                    onChangeText={handleContactChange}
+                    keyboardType={loginMethod === 'phone' ? 'phone-pad' : 'email-address'}
+                    maxLength={loginMethod === 'phone' ? 9 : undefined}
+                    selectionColor="#FFF"
+                  />
                 </View>
-              ) : (
-                <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
-              )}
-              <TextInput
-                style={[styles.textInput, authInputTextStyle]}
-                placeholder={loginMethod === 'phone' ? '6XX XXX XXX' : t('register.emailPlaceholder')}
-                placeholderTextColor="rgba(255,255,255,0.66)"
-                value={loginMethod === 'phone' ? phoneDigits : contact}
-                onChangeText={handleContactChange}
-                keyboardType={loginMethod === 'phone' ? "phone-pad" : "email-address"}
-                maxLength={loginMethod === 'phone' ? 9 : undefined}
-                selectionColor="#FFF"
-              />
-            </View>
 
-            <View style={[styles.inputWrapper, authInputStyle]}>
-              <MaterialIcons name="lock-outline" size={22} color="#FFF" style={styles.inputIcon} />
-              <TextInput
-                style={[styles.textInput, authInputTextStyle]}
-                placeholder={t('register.password')}
-                placeholderTextColor="rgba(255,255,255,0.66)"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                selectionColor="#FFF"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <MaterialIcons
-                  name={showPassword ? "visibility-off" : "visibility"}
-                  size={20}
-                  color="rgba(255,255,255,0.74)"
-                />
-              </TouchableOpacity>
-            </View>
+                {/* Password field */}
+                <View style={[styles.inputWrapper, authInputStyle]}>
+                  <MaterialIcons name="lock-outline" size={22} color="#FFF" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.textInput, authInputTextStyle]}
+                    placeholder={t('register.password')}
+                    placeholderTextColor="rgba(255,255,255,0.66)"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    selectionColor="#FFF"
+                    onFocus={() => {
+                      setTimeout(() => {
+                        scrollViewRef.current?.scrollToEnd({ animated: true });
+                      }, 300);
+                    }}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <MaterialIcons
+                      name={showPassword ? 'visibility-off' : 'visibility'}
+                      size={20}
+                      color="rgba(255,255,255,0.74)"
+                    />
+                  </TouchableOpacity>
+                </View>
 
-            <TouchableOpacity 
-              onPress={handleLogin} 
-              activeOpacity={0.8} 
-              disabled={loading || !isFormValid}
-              style={[styles.loginButton, { opacity: loading || !isFormValid ? 0.5 : 1 }]}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.loginButtonText}>{t('roleSelection.login')}</Text>
-              )}
-            </TouchableOpacity>
+                {/* Login button */}
+                <TouchableOpacity
+                  onPress={handleLogin}
+                  activeOpacity={0.8}
+                  disabled={loading || !isFormValid}
+                  style={[styles.loginButton, { opacity: loading || !isFormValid ? 0.5 : 1 }]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>{t('roleSelection.login')}</Text>
+                  )}
+                </TouchableOpacity>
 
-            <View style={styles.footerLinks}>
-              <TouchableOpacity onPress={() => navigation.navigate('RoleSelection')}>
-                <Text style={styles.registerLink}>{t('login.registerLink')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-                <Text style={styles.forgotText}>{t('login.forgotPassword')}</Text>
-              </TouchableOpacity>
+                <View style={styles.footerLinks}>
+                  <TouchableOpacity onPress={() => navigation.navigate('RoleSelection')}>
+                    <Text style={styles.registerLink}>{t('login.registerLink')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                    <Text style={styles.forgotText}>{t('login.forgotPassword')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
-      </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -199,7 +221,7 @@ const LoginScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 24, paddingBottom: 34, justifyContent: 'center' },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 24, justifyContent: 'center' },
   brandHeader: { alignItems: 'center', marginBottom: 26 },
   logoImage: { width: 340, height: 184, marginBottom: 14 },
   welcomeTo: { color: '#FFF', fontSize: 28, fontWeight: '900', textAlign: 'center' },

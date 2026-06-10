@@ -185,7 +185,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA' }]}>
-      <StatusBar style={pastHeader ? (isDarkMode ? 'light' : 'dark') : 'light'} translucent backgroundColor="transparent" />
+      
 
       {/* Persistent status bar background so time/battery are always visible */}
       <View style={{
@@ -600,7 +600,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
             onPress={() => navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 })}
           >
             <MaterialCommunityIcons name="calendar-check" size={22} color="#FFF" style={{ marginRight: 6 }} />
-            <Text style={styles.staticBookButtonText}>{t('profile.bookNow')} - {ratePrice}</Text>
+            <Text style={styles.staticBookButtonText}>{t('profile.bookNow')}</Text>
           </TouchableOpacity>
         </View>
 

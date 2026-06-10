@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppContext } from '../context/AppContext';
@@ -57,45 +58,24 @@ const Drawer = createDrawerNavigator();
 const HomeStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="HomeMain" component={ProviderHomeScreen} />
-    <Stack.Screen name="TaskDiscovery" component={TaskDiscoveryScreen} />
-    <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
-    <Stack.Screen name="LiveTaskMap" component={LiveTaskMapScreen} />
-    <Stack.Screen name="Notifications" component={NotificationsScreen} />
-    <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-    <Stack.Screen name="Chat" component={ChatScreen} />
-    <Stack.Screen name="BookingForm" component={BookingFormScreen} />
-    <Stack.Screen name="FindJobs" component={FindJobsScreen} />
-    <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
   </Stack.Navigator>
 );
 
 const FindJobsStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="FindJobsMain" component={FindJobsScreen} />
-    <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
-    <Stack.Screen name="Notifications" component={NotificationsScreen} />
-    <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
+    <Stack.Screen name="FindJobs" component={FindJobsScreen} />
   </Stack.Navigator>
 );
 
 const JobsStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="MyJobsMain" component={MyJobsScreen} />
-    <Stack.Screen name="MyJobs" component={MyJobsScreen} />
-    <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
-    <Stack.Screen name="LiveTaskMap" component={LiveTaskMapScreen} />
-    <Stack.Screen name="Chat" component={ChatScreen} />
-    <Stack.Screen name="BookingForm" component={BookingFormScreen} />
-    <Stack.Screen name="ReviewTask" component={ReviewTaskScreen} />
-    <Stack.Screen name="Notifications" component={NotificationsScreen} />
-    <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
   </Stack.Navigator>
 );
 
 const WalletStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="CoinSystem" component={CoinSystemScreen} />
-    <Stack.Screen name="WalletMain" component={CoinSystemScreen} />
     <Stack.Screen name="TopUp" component={TopUpScreen} />
     <Stack.Screen name="TopUpAmount" component={TopUpAmountScreen} />
     <Stack.Screen name="TopUpPayment" component={TopUpPaymentScreen} />
@@ -103,7 +83,6 @@ const WalletStack = () => (
     <Stack.Screen name="CoinPaymentForm" component={CoinPaymentFormScreen} />
     <Stack.Screen name="CoinPaymentSuccess" component={CoinPaymentSuccessScreen} />
     <Stack.Screen name="CoinPaymentFailed" component={CoinPaymentFailedScreen} />
-    <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
   </Stack.Navigator>
 );
 
@@ -116,35 +95,12 @@ const StatsStack = () => (
 const MessagesStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ChatList" component={ChatListScreen} />
-    <Stack.Screen name="Chat" component={ChatScreen} />
-    <Stack.Screen name="BookingForm" component={BookingFormScreen} />
-    <Stack.Screen name="LiveTaskMap" component={LiveTaskMapScreen} />
-    <Stack.Screen name="Notifications" component={NotificationsScreen} />
-    <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
   </Stack.Navigator>
 );
 
 const ProfileStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="SettingsMain" component={SettingsScreen} />
-    <Stack.Screen name="UserProfile" component={DashboardScreen} />
-    <Stack.Screen name="ProviderProfileEditItem" component={ProviderProfileEditItemScreen} />
-    <Stack.Screen name="ProviderProfileSectionEdit" component={ProviderProfileSectionEditScreen} />
-    <Stack.Screen name="Notifications" component={NotificationsScreen} />
-    <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-    <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
-    <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
-    <Stack.Screen name="LanguageSelection" component={ProfileLanguageScreen} />
-    <Stack.Screen name="Feedback" component={FeedbackScreen} />
-    <Stack.Screen name="Verification" component={VerificationScreen} />
-    <Stack.Screen name="DocUpload" component={DocUploadScreen} />
-    <Stack.Screen name="Selfie" component={SelfieScreen} />
-    <Stack.Screen name="VerificationSuccess" component={VerificationSuccessScreen} />
-    <Stack.Screen name="HiddenProfile" component={HiddenProfileScreen} />
-    <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-    <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
-    <Stack.Screen name="Chat" component={ChatScreen} />
-
   </Stack.Navigator>
 );
 
@@ -185,6 +141,7 @@ const BottomTabNavigator = () => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const { unreadCount } = useAppContext();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -197,8 +154,8 @@ const BottomTabNavigator = () => {
           tabBarInactiveTintColor: isDarkMode ? '#64748B' : '#94A3B8',
           tabBarStyle: {
             display: hideTabBar ? 'none' : 'flex',
-            height: Platform.OS === 'ios' ? 90 : 76,
-            paddingBottom: Platform.OS === 'ios' ? 30 : 12,
+            height: (Platform.OS === 'ios' ? 90 : 76) + insets.bottom,
+            paddingBottom: (Platform.OS === 'ios' ? 30 : 12) + insets.bottom,
             paddingTop: 8,
             backgroundColor: colors.tabBar,
             borderTopLeftRadius: 24,
@@ -272,7 +229,17 @@ const BottomTabNavigator = () => {
         component={MessagesStack}
         options={{
           title: t('tabs.messages'),
-          tabBarBadge: unreadCount > 0 ? unreadCount : null,
+          tabBarBadge: unreadCount > 0
+            ? (unreadCount > 99 ? '99+' : unreadCount)
+            : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#EF4444',
+            color: 'white',
+            fontSize: 10,
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+          },
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} size={22} color={color} />
           )
@@ -327,6 +294,31 @@ const ProviderTabNavigator = () => {
           drawerIcon: ({ color }) => <MaterialCommunityIcons name="home-variant-outline" size={24} color={color} />
         }}
       />
+
+      {/* Hidden Global Detail Screens */}
+      <Drawer.Screen name="TaskDiscovery" component={TaskDiscoveryScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="UserProfile" component={DashboardScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ProviderProfileEditItem" component={ProviderProfileEditItemScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ProviderProfileSectionEdit" component={ProviderProfileSectionEditScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="PrivacySecurity" component={PrivacySecurityScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="LanguageSelection" component={ProfileLanguageScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="Feedback" component={FeedbackScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="Verification" component={VerificationScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="DocUpload" component={DocUploadScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="Selfie" component={SelfieScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="VerificationSuccess" component={VerificationSuccessScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="HiddenProfile" component={HiddenProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="HelpCenter" component={HelpCenterScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      
+      <Drawer.Screen name="Notifications" component={NotificationsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="NotificationDetail" component={NotificationDetailScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="TaskDetails" component={TaskDetailsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="LiveTaskMap" component={LiveTaskMapScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="BookingForm" component={BookingFormScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="Chat" component={ChatScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ReviewTask" component={ReviewTaskScreen} options={{ drawerItemStyle: { display: 'none' } }} />
 
       <Drawer.Screen
         name="Wallet"

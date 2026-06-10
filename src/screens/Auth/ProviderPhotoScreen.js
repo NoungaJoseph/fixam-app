@@ -28,7 +28,7 @@ const ProviderPhotoScreen = ({ navigation, route }) => {
     <View 
       style={[styles.background, { backgroundColor: colors.background }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} translucent backgroundColor="transparent" />
+      
       <View style={[styles.overlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.4)' : 'transparent' }]}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 

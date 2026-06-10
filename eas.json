@@ -10,7 +10,8 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://fixam-backend-production.up.railway.app/api",
@@ -21,9 +22,15 @@
       }
     },
     "production": {
+      "developmentClient": false,
+      "android": {
+        "buildType": "app-bundle"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://fixam-backend-production.up.railway.app/api",
-        "EXPO_PUBLIC_SOCKET_URL": "https://fixam-backend-production.up.railway.app"
+        "EXPO_PUBLIC_SOCKET_URL": "https://fixam-backend-production.up.railway.app",
+        "SENTRY_ORG": "fixam",
+        "SENTRY_PROJECT": "react-native"
       }
     }
   },

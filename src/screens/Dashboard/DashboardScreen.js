@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, StatusBar, TextInput, ActivityIndicator, Alert, Modal, Platform, Share, ActionSheetIOS } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
@@ -244,9 +244,14 @@ const DashboardScreen = ({ navigation }) => {
 
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        
         <View style={[styles.freelancerHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.freelancerHeaderTitle, { color: colors.text }]}>{t('profileDetail.professionalDashboard')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.freelancerHeaderTitle, { color: colors.text }]}>{t('profileDetail.professionalDashboard')}</Text>
+          </View>
           <TouchableOpacity
             style={[styles.headerIconBtn, { backgroundColor: colors.accent + '15', borderRadius: 21 }]}
             onPress={switchToClient}
@@ -394,11 +399,16 @@ const DashboardScreen = ({ navigation }) => {
 
   if (!isProviderMode && !editing) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        
 
         <View style={[styles.freelancerHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.freelancerHeaderTitle, { color: colors.text }]}>{t('profileDetail.personalProfile')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.freelancerHeaderTitle, { color: colors.text }]}>{t('profileDetail.personalProfile')}</Text>
+          </View>
           {user?.role === 'PROVIDER' && (
             <TouchableOpacity
               style={[styles.headerIconBtn, { backgroundColor: colors.accent + '15', borderRadius: 21 }]}
@@ -469,13 +479,13 @@ const DashboardScreen = ({ navigation }) => {
             </View>
           </Section>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileHeader}>
           <View style={[styles.avatarWrap, { backgroundColor: colors.card }]}>

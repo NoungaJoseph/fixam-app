@@ -2,7 +2,7 @@ import React from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
@@ -17,7 +17,7 @@ const WalletScreen = ({ navigation }) => {
   
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* Premium Gradient Balance Card */}

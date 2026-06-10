@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, Image, StatusBar, Platform, Alert, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -263,7 +263,7 @@ const MyJobsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      
 
       {/* Header Top Row */}
       <View style={styles.headerTop}>
@@ -278,15 +278,6 @@ const MyJobsScreen = ({ navigation }) => {
           <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('jobs.manageJobsSubtitle')}</Text>
         </View>
 
-        {/* Bell Icon with badge */}
-        <TouchableOpacity style={[styles.bellBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('Notifications')}>
-          <MaterialCommunityIcons name="bell-outline" size={22} color={colors.text} />
-          {notificationCount > 0 && (
-            <View style={styles.bellBadge}>
-              <Text style={styles.bellBadgeText}>{notificationCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
       </View>
 
       {/* Stat Cards Grid (2-row grid for balance and breathing room) */}
@@ -387,36 +378,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 26, fontWeight: '900' },
   headerSub: { fontSize: 12, marginTop: 1, color: '#64748B' },
-  bellBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#EF4444',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bellBadgeText: {
-    color: '#FFF',
-    fontSize: 9,
-    fontWeight: '900',
-  },
 
   // Stats
   statsContainer: {

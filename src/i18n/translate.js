@@ -15,7 +15,7 @@ export const translateStatus = (value, options) => {
 export const translateService = (value, options) => {
   if (!value) return '';
   const translated = translate(`services.${value}`, options);
-  return translated === value ? value : translated;
+  return translated === `services.${value}` ? value : translated;
 };
 
 export const translateApiError = (error, fallbackKey = 'errors.generic') => {

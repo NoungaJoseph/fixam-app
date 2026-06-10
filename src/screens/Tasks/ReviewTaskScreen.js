@@ -33,7 +33,7 @@ const ReviewTaskScreen = ({ route, navigation }) => {
       });
 
       Alert.alert('Success', 'Thank you for your review!', [
-        { text: 'OK', onPress: () => navigation.navigate('MyJobs') }
+        { text: 'OK', onPress: () => navigation.navigate('MyJobsMain') }
       ]);
     } catch (error) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to submit review');
@@ -61,7 +61,7 @@ const ReviewTaskScreen = ({ route, navigation }) => {
     <View 
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
 
       {/* Header */}
       <View style={styles.header}>

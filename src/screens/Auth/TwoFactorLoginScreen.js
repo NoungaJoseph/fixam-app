@@ -49,8 +49,8 @@ const TwoFactorLoginScreen = ({ route, navigation }) => {
       });
       loginDirect(res.data.user, res.data.token);
     } catch (error) {
-      const msg = error.response?.data?.message || 'Invalid or expired code. Please try again.';
-      Alert.alert('Verification Failed', msg);
+      const msg = error.response?.data?.message || t('validation.invalidCode');
+      Alert.alert(t('common.error'), msg);
       setOtp('');
       setTimeout(() => inputRef.current?.focus(), 500);
     } finally {

@@ -7,10 +7,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 const SelfieScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
   const { uploadFile } = useAuth();
+  const { t } = useLanguage();
   const [selfieImage, setSelfieImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const params = route.params || {};
@@ -20,7 +22,7 @@ const SelfieScreen = ({ navigation, route }) => {
   const takeSelfie = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'Camera access is required to take a live selfie.');
+      Alert.alert(t('verification.permissionRequired'), t('verification.cameraAccessSelfie'));
       return;
     }
 
@@ -36,7 +38,7 @@ const SelfieScreen = ({ navigation, route }) => {
         setSelfieImage(result.assets[0].uri);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to open camera. Please try again.');
+      Alert.alert(t('verification.error'), t('verification.camError'));
     }
   };
 
@@ -55,7 +57,7 @@ const SelfieScreen = ({ navigation, route }) => {
 
   const handleSubmit = async () => {
     if (!selfieImage) {
-      Alert.alert('Selfie Required', 'Please take a selfie to confirm your identity.');
+      Alert.alert(t('verification.selfieReq'), t('verification.selfieReqDesc'));
       return;
     }
     setSubmitting(true);
@@ -72,7 +74,7 @@ const SelfieScreen = ({ navigation, route }) => {
       }
       navigation.navigate('VerificationSuccess');
     } catch (error) {
-      Alert.alert('Submission failed', error.response?.data?.message || 'Could not submit verification. Please try again.');
+      Alert.alert(t('verification.submitFailed'), error.response?.data?.message || t('verification.submitFailedDesc'));
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +91,7 @@ const SelfieScreen = ({ navigation, route }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}>
             <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Live Selfie</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('verification.takeSelfie')}</Text>
           <View style={{ width: 42 }} />
         </View>
 
@@ -111,16 +113,16 @@ const SelfieScreen = ({ navigation, route }) => {
                     )}
                   </View>
                   <Text style={[styles.progressLabel, { color: step <= 2 ? colors.accent : colors.textSecondary }]}>
-                    {step === 1 ? 'Document' : step === 2 ? 'Selfie' : 'Done'}
+                    {step === 1 ? t('verification.document') : step === 2 ? t('verification.selfie') : t('common.done')}
                   </Text>
                   {step < 3 && <View style={[styles.progressLine, { backgroundColor: step < 2 ? colors.accent : colors.border }]} />}
                 </View>
               ))}
             </View>
 
-            <Text style={[styles.title, { color: colors.text }]}>Take a Live Selfie</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('verification.takeSelfie')}</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              We need a live photo to confirm you are the owner of the submitted document. Please look directly at the camera.
+              {t('verification.selfieInstructions')}
             </Text>
 
             {/* Selfie area */}
@@ -134,7 +136,7 @@ const SelfieScreen = ({ navigation, route }) => {
               ) : (
                 <View style={styles.selfiePlaceholder}>
                   <MaterialCommunityIcons name="face-recognition" size={56} color={colors.placeholder} />
-                  <Text style={[styles.selfiePlaceholderText, { color: colors.textSecondary }]}>Tap to take selfie</Text>
+                  <Text style={[styles.selfiePlaceholderText, { color: colors.textSecondary }]}>{t('verification.tapToTake')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -142,17 +144,17 @@ const SelfieScreen = ({ navigation, route }) => {
             {selfieImage && (
               <TouchableOpacity style={styles.retakeLink} onPress={takeSelfie}>
                 <MaterialCommunityIcons name="camera-retake" size={18} color={colors.accent} />
-                <Text style={[styles.retakeLinkText, { color: colors.accent }]}>Retake Selfie</Text>
+                <Text style={[styles.retakeLinkText, { color: colors.accent }]}>{t('verification.retake')}</Text>
               </TouchableOpacity>
             )}
 
             {/* Instructions */}
             <View style={[styles.tipsBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : '#F8FAFC', borderColor: colors.border }]}>
               {[
-                { icon: 'white-balance-sunny', text: 'Good lighting — face a window or bright area' },
-                { icon: 'eye-outline', text: 'Look directly at the camera' },
-                { icon: 'hat-fedora', text: 'Remove glasses, hats or face coverings' },
-                { icon: 'face-man-outline', text: 'Only one face should be visible in the frame' },
+                { icon: 'white-balance-sunny', text: t('verification.selfieTipLight') },
+                { icon: 'eye-outline', text: t('verification.selfieTipEye') },
+                { icon: 'hat-fedora', text: t('verification.selfieTipHat') },
+                { icon: 'face-man-outline', text: t('verification.selfieTipOne') },
               ].map((tip, i) => (
                 <View key={i} style={styles.tipRow}>
                   <MaterialCommunityIcons name={tip.icon} size={18} color={colors.accent} />
@@ -167,7 +169,7 @@ const SelfieScreen = ({ navigation, route }) => {
               disabled={submitting}
             >
               {submitting ? <ActivityIndicator color="#FFF" /> : <MaterialCommunityIcons name="send-check" size={20} color="#FFF" />}
-              <Text style={styles.submitBtnText}>{submitting ? 'Submitting...' : 'Submit for Verification'}</Text>
+              <Text style={styles.submitBtnText}>{submitting ? t('common.loading') : t('verification.submitDocuments')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

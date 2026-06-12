@@ -144,7 +144,7 @@ const PrivacySecurityScreen = ({ navigation }) => {
       await refreshUser?.();
       Alert.alert('Success', 'Two-step verification is now active');
     } catch (error) {
-      setOtpError(error.response?.data?.message || 'Invalid or expired OTP');
+      setOtpError(error.response?.data?.message || t('validation.invalidOtp'));
       setOtp('');
       setTimeout(() => otpInputRef.current?.focus(), 100);
     } finally {
@@ -281,9 +281,9 @@ const PrivacySecurityScreen = ({ navigation }) => {
               <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
             
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Verify your phone</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Verify your email</Text>
             <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
-              Enter the 6-digit code sent to your number ending in {user?.phone?.slice(-4)}
+              Enter the 6-digit code sent to your email address: {user?.email}
             </Text>
 
             <TextInput

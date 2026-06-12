@@ -26,13 +26,7 @@ const FirstRunGuide = ({ user }) => {
   useEffect(() => {
     let mounted = true;
     if (!user?.id) return undefined;
-    AsyncStorage.getItem(guideKey(user.id))
-      .then((seen) => {
-        if (mounted && !seen) setVisible(true);
-      })
-      .catch(() => {
-        if (mounted) setVisible(true);
-      });
+    if (mounted) setVisible(true);
     return () => { mounted = false; };
   }, [user?.id]);
 

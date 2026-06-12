@@ -10,18 +10,41 @@ const { width, height } = Dimensions.get('window');
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const { isDarkMode, colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleReset = () => {
-    if (email) {
-      Alert.alert(
-        t('forgotPassword.alertTitle'), 
-        t('forgotPassword.alertBody'),
-        [{ text: "OK", onPress: () => navigation.goBack() }]
-      );
-    } else {
-      Alert.alert(t('common.error'), t('forgotPassword.alertError'));
+  const handleReset = async () => {
+    if (!email) {
+      setErrorMsg(t('forgotPassword.emailRequired'));
+      return;
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMsg(t('forgotPassword.invalidEmail'));
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      // Assuming you have an api service configured
+      const api = require('../../services/api').default;
+      const res = await api.post('/auth/forgot-password', { email, language });
+      if (res.data.success) {
+        // Navigate to OTP screen passing the email
+        navigation.navigate('ForgotPasswordOTP', { email });
+      } else {
+        setErrorMsg(res.data.message || t('forgotPassword.serverError'));
+      }
+    } catch (error) {
+      setErrorMsg(error.response?.data?.message || t('forgotPassword.serverError'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,6 +69,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
             {t('forgotPassword.subtitle')}
           </Text>
 
+          {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
+
           <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <MaterialCommunityIcons name="email-outline" size={22} color={colors.primary} style={styles.inputIcon} />
             <TextInput
@@ -61,7 +86,9 @@ const ForgotPasswordScreen = ({ navigation }) => {
           </View>
 
           <TouchableOpacity style={[styles.resetBtn, { backgroundColor: colors.accent }]} onPress={handleReset}>
-            <Text style={styles.resetBtnText}>{t('forgotPassword.sendLink')}</Text>
+            <Text style={styles.resetBtnText}>
+              {loading ? t('common.loading') : t('forgotPassword.sendCode')}
+            </Text>
           </TouchableOpacity>
         </View>
         </View>
@@ -83,6 +110,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 16, fontWeight: '600' },
   resetBtn: { width: '100%', paddingVertical: 18, borderRadius: 20, alignItems: 'center' },
   resetBtnText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
+  errorText: { color: '#FF3B30', fontSize: 14, marginBottom: 15, textAlign: 'center', fontWeight: '500' },
 });
 
 export default ForgotPasswordScreen;

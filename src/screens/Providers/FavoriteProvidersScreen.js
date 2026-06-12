@@ -4,11 +4,13 @@ import { StyleSheet, View, Text, TouchableOpacity, FlatList, StatusBar } from 'r
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { getMediaUrl } from '../../services/api';
 import UserAvatar from '../../components/UserAvatar';
 
 const FavoriteProvidersScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
+  const { t } = useLanguage();
   const { favoriteProviders, favoriteProviderIds, toggleFavoriteProvider } = useAppContext();
 
   const renderProvider = ({ item }) => {
@@ -46,7 +48,7 @@ const FavoriteProvidersScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.headerBtn, { backgroundColor: colors.card }]}>
             <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>Favorite Pros</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('favorites.title')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('ProviderList')} style={[styles.headerBtn, { backgroundColor: colors.card }]}>
             <MaterialCommunityIcons name="account-search-outline" size={23} color={colors.text} />
           </TouchableOpacity>
@@ -60,10 +62,10 @@ const FavoriteProvidersScreen = ({ navigation }) => {
           ListEmptyComponent={
             <View style={styles.empty}>
               <MaterialCommunityIcons name="heart-outline" size={70} color={colors.border} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>No favorites yet</Text>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Save providers from their profile or the discover page and they will appear here.</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('favorites.emptyTitle')}</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('favorites.emptyText')}</Text>
               <TouchableOpacity style={styles.discoverBtn} onPress={() => navigation.navigate('ProviderList')}>
-                <Text style={styles.discoverText}>Discover Pros</Text>
+                <Text style={styles.discoverText}>{t('favorites.discoverPros')}</Text>
               </TouchableOpacity>
             </View>
           }

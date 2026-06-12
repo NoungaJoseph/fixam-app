@@ -386,5 +386,32 @@
     "Child care": "Child care",
     "Elder care": "Elder care",
     "Home nursing": "Home nursing"
+  },
+  "otp": {
+    "verification": "Verification",
+    "checkSms": "Check your SMS",
+    "checkEmail": "Check your Email",
+    "sentCode": "We sent a 6-digit code to {{contact}}",
+    "resendIn": "Resend code in {{time}}",
+    "resendNow": "Resend Now",
+    "verifyContinue": "Verify & Continue",
+    "invalidCode": "Invalid OTP Code",
+    "failed": "Verification Failed"
+  },
+  "guide": {
+    "findTitle": "Find Experts",
+    "findText": "Search and find the best local professionals.",
+    "postTitle": "Post a Task",
+    "postText": "Describe what you need and set a budget.",
+    "bookingTitle": "Book Securely",
+    "bookingText": "Choose a provider and book their services securely.",
+    "chatTitle": "Chat Directly",
+    "chatText": "Message providers in real-time to discuss details.",
+    "coinsTitle": "Fixam Coins",
+    "coinsText": "Use coins to unlock direct messaging or apply for tasks.",
+    "verifyTitle": "Verified Users",
+    "verifyText": "Look for the badge to hire verified professionals.",
+    "reviewTitle": "Leave Reviews",
+    "reviewText": "Rate your experience to help the community."
   }
 }

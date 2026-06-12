@@ -121,11 +121,11 @@ const ProviderHomeScreen = ({ navigation }) => {
   ], [t]);
 
   useEffect(() => {
-    if (isNewUser) {
+    if (isNewUser && !isInitialLoad) {
       const timer = setTimeout(() => setShowWelcome(true), 600);
       return () => clearTimeout(timer);
     }
-  }, [isNewUser]);
+  }, [isNewUser, isInitialLoad]);
 
   const fetchMyJobs = React.useCallback(async () => {
     try {
@@ -434,6 +434,7 @@ const ProviderHomeScreen = ({ navigation }) => {
 
         {/* ÔöÇÔöÇ 3. PREMIUM BALANCE STATS CARD ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
         <LinearGradient
+          ref={topUpRef}
           colors={['#1D4ED8', '#0D9488']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.statsCard}
@@ -443,7 +444,6 @@ const ProviderHomeScreen = ({ navigation }) => {
             <Text style={styles.cardLabel}>{t('home.yourBalance')}</Text>
             <Text style={styles.cardValue}>{walletBalance} {t('payments.coins')}</Text>
             <TouchableOpacity
-              ref={topUpRef}
               style={styles.topUpBtn}
               onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' })}
             >

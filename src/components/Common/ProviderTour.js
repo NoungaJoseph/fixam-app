@@ -223,7 +223,7 @@ const ProviderTour = ({ steps, userId, visible, onDone, scrollViewRef }) => {
     : null;
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={finish}>
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={finish}>
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         {/* Dark overlay */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none" />

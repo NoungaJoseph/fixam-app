@@ -4,9 +4,13 @@ import { StyleSheet, View, Text, TouchableOpacity, StatusBar } from 'react-nativ
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const CoinPaymentFailedScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
+  const { user } = useAuth();
+  const { t } = useLanguage();
   const { message, package: pkg } = route.params || {};
 
   const handleTryAgain = () => {
@@ -31,7 +35,7 @@ const CoinPaymentFailedScreen = ({ navigation, route }) => {
             <MaterialCommunityIcons name="close" size={58} color="#FFF" />
           </View>
 
-          <Text style={[styles.title, { color: colors.text }]}>Payment Failed</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('payments.failed')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {message || 'Your payment could not be completed. Please try again.'}
           </Text>
@@ -42,7 +46,7 @@ const CoinPaymentFailedScreen = ({ navigation, route }) => {
             style={styles.primaryBtn}
             onPress={handleTryAgain}
           >
-            <Text style={styles.primaryBtnText}>Try Again</Text>
+            <Text style={styles.primaryBtnText}>{t('payments.tryAgain')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -50,7 +54,7 @@ const CoinPaymentFailedScreen = ({ navigation, route }) => {
             onPress={handleContactSupport}
           >
             <MaterialCommunityIcons name="message" size={20} color={colors.accent} />
-            <Text style={[styles.secondaryBtnText, { color: colors.accent }]}>Contact Support</Text>
+            <Text style={[styles.secondaryBtnText, { color: colors.accent }]}>{t('payments.contactSupport')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

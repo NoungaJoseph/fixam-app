@@ -9,6 +9,9 @@ import LoginScreen from '../screens/Auth/LoginScreen';
 import OTPScreen from '../screens/Auth/OTPScreen';
 import RegisterScreen from '../screens/Auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
+import ForgotPasswordOTPScreen from '../screens/Auth/ForgotPasswordOTPScreen';
+import NewPasswordScreen from '../screens/Auth/NewPasswordScreen';
+import PasswordSuccessScreen from '../screens/Auth/PasswordSuccessScreen';
 import TermsPolicyScreen from '../screens/Auth/TermsPolicyScreen';
 
 const Stack = createStackNavigator();
@@ -27,6 +30,9 @@ const AuthNavigator = () => {
       <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="ForgotPasswordOTP" component={ForgotPasswordOTPScreen} />
+      <Stack.Screen name="NewPassword" component={NewPasswordScreen} />
+      <Stack.Screen name="PasswordSuccess" component={PasswordSuccessScreen} />
       <Stack.Screen name="TermsPolicy" component={TermsPolicyScreen} />
       <Stack.Screen name="OTP" component={OTPScreen} />
       <Stack.Screen name="TwoFactorLoginScreen" component={require('../screens/Auth/TwoFactorLoginScreen').default} />

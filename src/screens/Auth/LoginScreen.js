@@ -62,7 +62,9 @@ const LoginScreen = ({ navigation }) => {
 
       const res = await api.post('/auth/login', payload);
 
-      if (res.data.otpRequired) {
+      if (res.data.requiresEmailVerification) {
+        navigation.navigate('OTP', { contact: res.data.email || contact, method: 'email', purpose: 'registration' });
+      } else if (res.data.otpRequired) {
         navigation.navigate('OTP', { contact, method: loginMethod, role: res.data.user.role });
       } else if (res.data.requiresTwoFactor) {
         navigation.navigate('TwoFactorLoginScreen', {

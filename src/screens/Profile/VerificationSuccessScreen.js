@@ -4,9 +4,11 @@ import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Animated, ScrollVi
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const VerificationSuccessScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
+  const { t } = useLanguage();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -42,9 +44,9 @@ const VerificationSuccessScreen = ({ navigation }) => {
           </View>
 
           <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', width: '100%' }}>
-            <Text style={[styles.title, { color: colors.text }]}>Documents Submitted!</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('verification.documentsSubmitted')}</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Your verification documents have been successfully received. Our team will review them and notify you once the process is complete.
+              {t('verification.successSubtitle')}
             </Text>
 
             {/* Info card */}
@@ -54,8 +56,8 @@ const VerificationSuccessScreen = ({ navigation }) => {
                   <MaterialCommunityIcons name="clock-outline" size={22} color={colors.accent} />
                 </View>
                 <View style={styles.infoText}>
-                  <Text style={[styles.infoTitle, { color: colors.text }]}>Processing Time</Text>
-                  <Text style={[styles.infoDesc, { color: colors.textSecondary }]}>Verification can take up to 48 hours</Text>
+                  <Text style={[styles.infoTitle, { color: colors.text }]}>{t('verification.processingTime')}</Text>
+                  <Text style={[styles.infoDesc, { color: colors.textSecondary }]}>{t('verification.processingDesc')}</Text>
                 </View>
               </View>
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -64,8 +66,8 @@ const VerificationSuccessScreen = ({ navigation }) => {
                   <MaterialCommunityIcons name="bell-ring-outline" size={22} color="#22C55E" />
                 </View>
                 <View style={styles.infoText}>
-                  <Text style={[styles.infoTitle, { color: colors.text }]}>You'll be notified</Text>
-                  <Text style={[styles.infoDesc, { color: colors.textSecondary }]}>A push notification will be sent once your verification is approved or if more info is needed.</Text>
+                  <Text style={[styles.infoTitle, { color: colors.text }]}>{t('verification.notified')}</Text>
+                  <Text style={[styles.infoDesc, { color: colors.textSecondary }]}>{t('verification.notifiedDesc')}</Text>
                 </View>
               </View>
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -74,8 +76,8 @@ const VerificationSuccessScreen = ({ navigation }) => {
                   <MaterialCommunityIcons name="shield-check-outline" size={22} color="#F97316" />
                 </View>
                 <View style={styles.infoText}>
-                  <Text style={[styles.infoTitle, { color: colors.text }]}>Secure & Private</Text>
-                  <Text style={[styles.infoDesc, { color: colors.textSecondary }]}>Your data is encrypted and will never be shared without your consent.</Text>
+                  <Text style={[styles.infoTitle, { color: colors.text }]}>{t('verification.securePrivate')}</Text>
+                  <Text style={[styles.infoDesc, { color: colors.textSecondary }]}>{t('verification.secureDesc')}</Text>
                 </View>
               </View>
             </View>
@@ -86,14 +88,14 @@ const VerificationSuccessScreen = ({ navigation }) => {
               onPress={goBackToSettings}
             >
               <MaterialCommunityIcons name="check" size={20} color="#FFF" />
-              <Text style={styles.doneBtnText}>Go to Settings</Text>
+              <Text style={styles.doneBtnText}>{t('verification.goToSettings')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.secondaryBtn, { borderColor: colors.border }]}
               onPress={() => navigation.goBack()}
             >
-              <Text style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>View Submission</Text>
+              <Text style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>{t('verification.viewSubmission')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </ScrollView>

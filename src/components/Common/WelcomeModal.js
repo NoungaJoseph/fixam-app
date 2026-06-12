@@ -73,6 +73,21 @@ const WelcomeModal = ({ visible, name, role, onDone }) => {
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}>{body}</Text>
 
+          {/* Welcome coin gift card */}
+          <View style={styles.coinGiftCard}>
+            <View style={styles.coinGiftIcon}>
+              <Text style={{ fontSize: 24 }}>🪙</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.coinGiftTitle}>
+                {t('tour.welcomeCoinTitle', '1 Free Coin Added!')}
+              </Text>
+              <Text style={styles.coinGiftDesc}>
+                {t('tour.welcomeCoinDesc', 'We\'ve added a free coin to your wallet as a welcome gift. Use it to get started!')}
+              </Text>
+            </View>
+          </View>
+
           <TouchableOpacity style={styles.btn} onPress={onDone}>
             <Text style={styles.btnText}>{t('tour.takeTour')}</Text>
           </TouchableOpacity>
@@ -146,6 +161,38 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  coinGiftCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  coinGiftIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  coinGiftTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#059669',
+    marginBottom: 2,
+  },
+  coinGiftDesc: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '500',
+    color: '#047857',
   },
 });
 

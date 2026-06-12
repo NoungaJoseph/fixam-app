@@ -5,9 +5,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const DocUploadScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
+  const { t } = useLanguage();
   const { docType } = route.params || {};
   const isTwoSided = docType?.sides === 2;
 
@@ -18,14 +20,14 @@ const DocUploadScreen = ({ navigation, route }) => {
 
   const pickImage = async (side) => {
     Alert.alert(
-      side === 'front' ? 'Upload Front Side' : 'Upload Back Side',
-      'How would you like to add the image?',
+      side === 'front' ? t('verification.uploadFront') : t('verification.uploadBack'),
+      t('verification.howAdd'),
       [
         {
-          text: 'Take a Photo',
+          text: t('verification.takePhoto'),
           onPress: async () => {
             const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') { Alert.alert('Permission required', 'Camera access is needed.'); return; }
+            if (status !== 'granted') { Alert.alert(t('verification.permissionRequired'), t('verification.cameraAccessDoc')); return; }
             const result = await ImagePicker.launchCameraAsync({ quality: 0.8, allowsEditing: false });
             if (!result.canceled) {
               if (side === 'front') setFrontImage(result.assets[0].uri);
@@ -34,7 +36,7 @@ const DocUploadScreen = ({ navigation, route }) => {
           },
         },
         {
-          text: 'Upload from Device',
+          text: t('verification.uploadDevice'),
           onPress: async () => {
             const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsEditing: false, mediaTypes: ImagePicker.MediaTypeOptions.Images });
             if (!result.canceled) {
@@ -43,7 +45,7 @@ const DocUploadScreen = ({ navigation, route }) => {
             }
           },
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   };
@@ -52,10 +54,10 @@ const DocUploadScreen = ({ navigation, route }) => {
 
   const handleContinue = () => {
     if (!canContinue) {
-      Alert.alert('Missing Document', isTwoSided ? 'Please upload both sides of your document.' : 'Please upload your document.');
+      Alert.alert(t('verification.missingDoc'), isTwoSided ? t('verification.missingBoth') : t('verification.missingOne'));
       return;
     }
-    navigation.navigate('Selfie', { docType, frontImage, backImage });
+    navigation.navigate(t('verification.selfie'), { docType, frontImage, backImage });
   };
 
   const UploadBox = ({ side, image, label, instruction }) => (
@@ -71,7 +73,7 @@ const DocUploadScreen = ({ navigation, route }) => {
             <Image source={{ uri: image }} style={styles.imagePreview} />
             <TouchableOpacity style={[styles.retakeBtn, { backgroundColor: colors.accent }]} onPress={() => pickImage(side)}>
               <MaterialCommunityIcons name="camera-retake" size={16} color="#FFF" />
-              <Text style={styles.retakeBtnText}>Retake</Text>
+              <Text style={styles.retakeBtnText}>{t('verification.retake')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -79,8 +81,8 @@ const DocUploadScreen = ({ navigation, route }) => {
             <View style={[styles.uploadIconCircle, { backgroundColor: isDarkMode ? colors.surface : '#EEF4FF' }]}>
               <MaterialCommunityIcons name="camera-plus-outline" size={32} color={colors.accent} />
             </View>
-            <Text style={[styles.uploadBoxTitle, { color: colors.text }]}>Tap to upload</Text>
-            <Text style={[styles.uploadBoxHint, { color: colors.textSecondary }]}>Take a photo or upload from device</Text>
+            <Text style={[styles.uploadBoxTitle, { color: colors.text }]}>{t('verification.tapToUpload')}</Text>
+            <Text style={[styles.uploadBoxHint, { color: colors.textSecondary }]}>{t('verification.takePhotoHint')}</Text>
           </>
         )}
       </TouchableOpacity>
@@ -98,7 +100,7 @@ const DocUploadScreen = ({ navigation, route }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}>
             <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{docType?.title || 'Upload Document'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{docType?.title || t('verification.document')}</Text>
           <View style={{ width: 42 }} />
         </View>
 
@@ -115,7 +117,7 @@ const DocUploadScreen = ({ navigation, route }) => {
                   )}
                 </View>
                 <Text style={[styles.progressLabel, { color: step <= 1 ? colors.accent : colors.textSecondary }]}>
-                  {step === 1 ? 'Document' : step === 2 ? 'Selfie' : 'Done'}
+                  {step === 1 ? t('verification.document') : step === 2 ? t('verification.selfie') : t('common.done')}
                 </Text>
                 {step < 3 && <View style={[styles.progressLine, { backgroundColor: colors.border }]} />}
               </View>
@@ -125,33 +127,27 @@ const DocUploadScreen = ({ navigation, route }) => {
           <UploadBox
             side="front"
             image={frontImage}
-            label={isTwoSided ? '📸 Front Side' : '📸 Document Page'}
-            instruction={
-              isTwoSided
-                ? 'Place the front of your document on a flat surface in good light. Make sure all four corners are visible and the text is clearly readable.'
-                : docType?.id === 'passport'
-                ? 'Open your passport to the data page (the page with your photo). Place it on a flat surface and ensure all text is clearly visible.'
-                : 'Make sure all text and your photo are clearly visible.'
-            }
+            label={isTwoSided ? `📸 ${t('verification.frontSide')}` : `📸 ${t('verification.document')}`}
+            instruction={t('verification.documentInstructions')}
           />
 
           {isTwoSided && (
             <UploadBox
               side="back"
               image={backImage}
-              label="📸 Back Side"
-              instruction="Now flip your document over and photograph the back. Ensure the barcode or chip area is clearly captured without glare."
+              label={`📸 ${t('verification.backSide')}`}
+              instruction={t('verification.backSideInstructions')}
             />
           )}
 
           {/* Tips */}
           <View style={[styles.tipsBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : '#F8FAFC', borderColor: colors.border }]}>
-            <Text style={[styles.tipsTitle, { color: colors.text }]}>📌 Tips for a great photo</Text>
+            <Text style={[styles.tipsTitle, { color: colors.text }]}>{t('verification.tipsGreatPhoto')}</Text>
             {[
-              'Use good lighting — avoid shadows and glare',
-              'Keep the document flat on a surface',
-              'Make sure all 4 corners are visible',
-              'Ensure all text is sharp and readable',
+              t('verification.tipLight'),
+              t('verification.tipFlat'),
+              t('verification.tipCorners'),
+              t('verification.tipSharp'),
             ].map((tip, i) => (
               <View key={i} style={styles.tipRow}>
                 <MaterialCommunityIcons name="check-circle-outline" size={16} color={colors.accent} />
@@ -164,7 +160,7 @@ const DocUploadScreen = ({ navigation, route }) => {
             style={[styles.continueBtn, { backgroundColor: canContinue ? colors.accent : colors.border }]}
             onPress={handleContinue}
           >
-            <Text style={styles.continueBtnText}>Continue to Selfie</Text>
+            <Text style={styles.continueBtnText}>{t('common.continue')}</Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
           </TouchableOpacity>
         </ScrollView>

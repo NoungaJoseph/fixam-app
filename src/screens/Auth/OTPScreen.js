@@ -9,8 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 const OTPScreen = ({ route, navigation }) => {
-  const { contact, method, role } = route.params || { contact: '', method: 'phone', role: 'CLIENT' };
-  const { loginWithOTP, isLoading } = useAuth();
+  const { contact, method, role, purpose } = route.params || { contact: '', method: 'phone', role: 'CLIENT' };
+  const { loginWithOTP, verifyEmailRegistration, isLoading } = useAuth();
   const { t } = useLanguage();
   const [otp, setOtp] = useState('');
   const [timer, setTimer] = useState(59);
@@ -50,7 +50,11 @@ const OTPScreen = ({ route, navigation }) => {
       const email = method === 'email' ? contact : null;
       const phone = method === 'phone' ? contact : null;
       
-      await loginWithOTP(email, phone, code);
+      if (purpose === 'registration') {
+        await verifyEmailRegistration(email, code);
+      } else {
+        await loginWithOTP(email, phone, code);
+      }
       // AuthContext will update user state and trigger navigation to Home
     } catch (error) {
       const msg = error.response?.data?.message || t('otp.invalidCode');

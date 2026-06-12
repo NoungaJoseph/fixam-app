@@ -29,7 +29,6 @@ const CoinSystemScreen = ({ navigation }) => {
     navigation.navigate('CoinPaymentForm', { package: pkg });
   };
 
-  const estimatedFcfa = (walletBalance || 0) * 500;
   const translateTransactionDescription = (tx) => {
     const description = String(tx.description || '').toLowerCase();
     if (description.includes('purchase')) return t('payments.coinPurchase');
@@ -100,7 +99,6 @@ const CoinSystemScreen = ({ navigation }) => {
                 <Text style={styles.balanceValue}>{walletBalance || 0}</Text>
                 <Text style={styles.balanceUnit}>{t('wallet.coins')}</Text>
               </View>
-              <Text style={styles.estimatedText}>≈ {estimatedFcfa.toLocaleString()} FCFA</Text>
             </View>
 
             <View style={styles.balanceRight}>

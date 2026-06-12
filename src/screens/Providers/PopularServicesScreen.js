@@ -43,7 +43,7 @@ const PopularServicesScreen = ({ navigation }) => {
         </View>
         <View style={styles.exploreTextWrap}>
           <Text style={[styles.exploreTitle, { color: colors.text }]} numberOfLines={2}>{translateService(item.name)}</Text>
-          <Text style={[styles.exploreSub, { color: colors.textSecondary }]} numberOfLines={1}>{item.group}</Text>
+          <Text style={[styles.exploreSub, { color: colors.textSecondary }]} numberOfLines={1}>{t(`home.groups.${item.group.toLowerCase()}`, item.group)}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -83,7 +83,7 @@ const PopularServicesScreen = ({ navigation }) => {
                   const active = item === group;
                   return (
                     <TouchableOpacity key={item} style={[styles.groupChip, { borderColor: active ? '#0D9488' : colors.border, backgroundColor: active ? '#0D9488' : 'transparent' }]} onPress={() => setGroup(item)}>
-                      <Text style={[styles.groupText, { color: active ? '#FFF' : colors.text }]}>{item}</Text>
+                      <Text style={[styles.groupText, { color: active ? '#FFF' : colors.text }]}>{t(`home.groups.${item.toLowerCase()}`, item)}</Text>
                     </TouchableOpacity>
                   );
                 })}

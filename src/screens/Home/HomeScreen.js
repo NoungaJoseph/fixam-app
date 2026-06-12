@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
@@ -14,6 +14,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
+import WelcomeModal from '../../components/Common/WelcomeModal';
+import ProviderTour from '../../components/Common/ProviderTour';
 import { POPULAR_SERVICE_CATALOG, POPULAR_SERVICE_IMAGES } from '../../data/popularServices';
 
 const { width } = Dimensions.get('window');
@@ -57,13 +59,55 @@ const LEARN_CARDS = [
 
 const HomeScreen = ({ navigation }) => {
   const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad, hasLoadedData } = useAppContext();
-  const { user } = useAuth();
+  const { user, isNewUser, clearNewUser } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const learnScrollRef = useRef(null);
+
+  const topUpRef = useRef(null);
+  const postTaskRef = useRef(null);
+  const verifiedProsRef = useRef(null);
+  const favoritesRef = useRef(null);
+  const clientMainScrollRef = useRef(null);
+
+  const tourSteps = useMemo(() => [
+    {
+      ref: topUpRef,
+      icon: 'wallet-plus-outline',
+      title: t('tour.clientTopUpTitle', 'Top Up Your Wallet 💰'),
+      text: t('tour.clientTopUpText', 'Add coins to book providers and unlock direct messaging. MTN MoMo and Orange Money accepted.'),
+    },
+    {
+      ref: postTaskRef,
+      icon: 'clipboard-plus-outline',
+      title: t('tour.clientPostTitle', 'Post a Task Here 📋'),
+      text: t('tour.clientPostText', 'Tap this button to describe what you need, set your budget and location. Providers near you will respond fast.'),
+    },
+    {
+      ref: verifiedProsRef,
+      icon: 'check-decagram',
+      title: t('tour.clientVerifiedTitle', 'Verified Pros ⭐'),
+      text: t('tour.clientVerifiedText', 'Find top-rated professionals whose identities have been completely verified.'),
+    },
+    {
+      ref: favoritesRef,
+      icon: 'heart-outline',
+      title: t('tour.clientFavoritesTitle', 'Your Favorites ❤️'),
+      text: t('tour.clientFavoritesText', 'Quickly access the providers you have saved for future jobs.'),
+    },
+  ], [t]);
+
+  useEffect(() => {
+    if (isNewUser && !isInitialLoad) {
+      const timer = setTimeout(() => setShowWelcome(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isNewUser, isInitialLoad]);
 
   useFocusEffect(
     useCallback(() => {
@@ -195,6 +239,7 @@ const HomeScreen = ({ navigation }) => {
       </LinearGradient>
 
       <ScrollView
+        ref={clientMainScrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0D9488']} tintColor="#0D9488" />}
@@ -264,8 +309,9 @@ const HomeScreen = ({ navigation }) => {
 
         {/* ═══ 2. WALLET BALANCE CARD ═══ */}
         <TouchableOpacity
+          ref={topUpRef}
           style={[styles.walletCard, { backgroundColor: isDarkMode ? '#134E4A' : '#0D9488' }]}
-          onPress={() => navigation.navigate('TopUp')}
+          onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'TopUp' })}
           activeOpacity={0.85}
         >
           {/* Left Column: Wallet Balance & Top Up stacked */}
@@ -280,7 +326,7 @@ const HomeScreen = ({ navigation }) => {
             
             <TouchableOpacity
               style={styles.topUpBtn}
-              onPress={() => navigation.navigate('TopUp')}
+              onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'TopUp' })}
             >
               <Text style={styles.topUpText}>{t('home.topUp')}</Text>
               <MaterialCommunityIcons name="plus" size={14} color="#0D9488" />
@@ -330,6 +376,7 @@ const HomeScreen = ({ navigation }) => {
 
         {/* ═══ 4. CTA - "What do you need done?" ═══ */}
         <TouchableOpacity
+          ref={postTaskRef}
           style={[styles.ctaCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
           onPress={() => navigation.navigate('Create Task', { screen: 'PostTask', params: { startOnPost: true } })}
           activeOpacity={0.85}
@@ -427,7 +474,7 @@ const HomeScreen = ({ navigation }) => {
             <Text style={[styles.quickSub, { color: colors.textSecondary }]}>{t('home.unreadCount', { count: unreadCount })}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickItem} onPress={() => navigation.navigate('FavoriteProviders')}>
+          <TouchableOpacity ref={favoritesRef} style={styles.quickItem} onPress={() => navigation.navigate('FavoriteProviders')}>
             <View style={[styles.quickIcon, { backgroundColor: isDarkMode ? '#422006' : '#FFF7ED' }]}>
               <MaterialCommunityIcons name="star" size={24} color="#F59E0B" />
             </View>
@@ -435,7 +482,7 @@ const HomeScreen = ({ navigation }) => {
             <Text style={[styles.quickSub, { color: colors.textSecondary }]}>{t('home.savedCount', { count: savedCount })}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickItem} onPress={() => navigation.navigate('ProviderList', { verifiedOnly: true })}>
+          <TouchableOpacity ref={verifiedProsRef} style={styles.quickItem} onPress={() => navigation.navigate('ProviderList', { verifiedOnly: true })}>
             <View style={[styles.quickIcon, { backgroundColor: isDarkMode ? '#052E16' : '#ECFDF5' }]}>
               <MaterialCommunityIcons name="check-decagram" size={24} color="#22C55E" />
             </View>
@@ -522,6 +569,27 @@ const HomeScreen = ({ navigation }) => {
         {/* Space at the bottom to avoid tabbar overlap */}
         <View style={{ height: 120 }} />
       </ScrollView>
+      
+      {/* Welcome celebration modal */}
+      <WelcomeModal
+        visible={showWelcome}
+        name={firstName}
+        role={user?.role}
+        onDone={() => {
+          setShowWelcome(false);
+          clearNewUser();
+          setTimeout(() => setShowTour(true), 400);
+        }}
+      />
+
+      {/* Client Highlight Tour */}
+      <ProviderTour
+        steps={tourSteps}
+        userId={user?.id}
+        visible={showTour}
+        onDone={() => setShowTour(false)}
+        scrollViewRef={clientMainScrollRef}
+      />
       </View>
     </SafeAreaView>
     </>

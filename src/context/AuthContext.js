@@ -164,6 +164,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyEmailRegistration = async (email, otp) => {
+    setIsLoading(true);
+    try {
+      const res = await api.post('/auth/verify-email-otp', { email, otp });
+      loginDirect(res.data.user, res.data.token, true);
+      return res.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -172,6 +185,7 @@ export const AuthProvider = ({ children }) => {
       isRestoring,
       loginWithOTP, 
       loginDirect,
+      verifyEmailRegistration,
       logout, 
       updateProfile, 
       refreshUser,

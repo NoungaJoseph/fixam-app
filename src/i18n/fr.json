@@ -386,5 +386,32 @@
     "Child care": "Garde denfants",
     "Elder care": "Garde de personnes âgées",
     "Home nursing": "Soins à domicile"
+  },
+  "otp": {
+    "verification": "Vérification",
+    "checkSms": "Vérifiez vos SMS",
+    "checkEmail": "Vérifiez vos E-mails",
+    "sentCode": "Nous avons envoyé un code à 6 chiffres à {{contact}}",
+    "resendIn": "Renvoyer le code dans {{time}}",
+    "resendNow": "Renvoyer maintenant",
+    "verifyContinue": "Vérifier et continuer",
+    "invalidCode": "Code OTP invalide",
+    "failed": "La vérification a échoué"
+  },
+  "guide": {
+    "findTitle": "Trouver des experts",
+    "findText": "Cherchez et trouvez les meilleurs professionnels locaux.",
+    "postTitle": "Publier une mission",
+    "postText": "Décrivez votre besoin et fixez un budget.",
+    "bookingTitle": "Réservez en sécurité",
+    "bookingText": "Choisissez un prestataire et réservez ses services en toute sécurité.",
+    "chatTitle": "Discutez directement",
+    "chatText": "Envoyez des messages aux prestataires en temps réel pour discuter des détails.",
+    "coinsTitle": "Pièces Fixam",
+    "coinsText": "Utilisez des pièces pour débloquer la messagerie directe ou postuler à des tâches.",
+    "verifyTitle": "Utilisateurs vérifiés",
+    "verifyText": "Recherchez le badge pour embaucher des professionnels vérifiés.",
+    "reviewTitle": "Laissez des avis",
+    "reviewText": "Évaluez votre expérience pour aider la communauté."
   }
 }

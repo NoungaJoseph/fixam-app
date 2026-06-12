@@ -102,7 +102,15 @@ const RegisterScreen = ({ navigation, route }) => {
           experienceLevel: '', availability: {}
         } : undefined
       });
-      loginDirect(res.data.user, res.data.token, true);
+      if (res.data.requiresEmailVerification) {
+        navigation.navigate('OTP', { 
+          contact: res.data.email, 
+          method: 'email', 
+          purpose: 'registration' 
+        });
+      } else {
+        loginDirect(res.data.user, res.data.token, true);
+      }
     } catch (error) {
       alert(error.response?.data?.message || t('errors.registrationFailed'));
     } finally {
@@ -120,8 +128,8 @@ const RegisterScreen = ({ navigation, route }) => {
       end={{ x: 1, y: 1 }}
       style={styles.background}
     >
-      
-      <KeyboardAvoidingView
+      <SafeAreaView style={styles.flex} edges={['top']}>
+        <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
@@ -334,6 +342,7 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      </SafeAreaView>
     </LinearGradient>
   );
 };

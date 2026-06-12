@@ -5,10 +5,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const CoinPaymentSuccessScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { coins, package: pkg } = route.params || {};
   const isProvider = user?.role?.toUpperCase() === 'PROVIDER';
   const coinCount = coins || pkg?.coins || 0;
@@ -60,34 +62,34 @@ const CoinPaymentSuccessScreen = ({ navigation, route }) => {
           </Animated.View>
 
           <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', width: '100%' }}>
-            <Text style={[styles.title, { color: colors.text }]}>Payment Successful! 🎉</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('payments.success')}</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              {coinCount} coins have been added to your wallet
+              {t('wallet.coinCount', { count: coinCount })}
             </Text>
 
             {/* Status Card */}
             <View style={[styles.statusCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.statusRow}>
-                <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>Status</Text>
+                <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>{t('payments.status')}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: '#DCFCE7' }]}>
                   <MaterialCommunityIcons name="check-circle" size={14} color="#16A34A" />
-                  <Text style={[styles.statusText, { color: '#16A34A' }]}>Completed</Text>
+                  <Text style={[styles.statusText, { color: '#16A34A' }]}>{t('payments.completed')}</Text>
                 </View>
               </View>
 
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
               <View style={styles.statusRow}>
-                <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>Package</Text>
-                <Text style={[styles.statusValue, { color: colors.text }]}>{pkg?.label || 'Coin top up'}</Text>
+                <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>{t('payments.package')}</Text>
+                <Text style={[styles.statusValue, { color: colors.text }]}>{pkg?.label ? t(`wallet.packages.${pkg.label.toLowerCase()}`) : t('wallet.buyCoins')}</Text>
               </View>
 
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
               <View style={styles.statusRow}>
-                <Text style={[styles.totalLabel, { color: colors.text }]}>Coins Added</Text>
+                <Text style={[styles.totalLabel, { color: colors.text }]}>{t('payments.coinsAdded')}</Text>
                 <Text style={[styles.totalValue, { color: colors.accent }]}>
-                  {coinCount} coins
+                  {t('wallet.coinCount', { count: coinCount })}
                 </Text>
               </View>
             </View>
@@ -100,14 +102,14 @@ const CoinPaymentSuccessScreen = ({ navigation, route }) => {
             style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
             onPress={handleBackToWallet}
           >
-            <Text style={styles.primaryBtnText}>Go to Wallet</Text>
+            <Text style={styles.primaryBtnText}>{t('payments.goToWallet')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.secondaryBtn, { borderColor: colors.border }]}
             onPress={handleContinue}
           >
-            <Text style={[styles.secondaryBtnText, { color: colors.accent }]}>Continue</Text>
+            <Text style={[styles.secondaryBtnText, { color: colors.accent }]}>{t('common.continue')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

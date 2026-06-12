@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
 import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
+import { validatePhoneForProvider, getNetworkFromPhone } from '../../utils/phoneValidation';
 
 const PAYMENT_METHODS = [
   { id: 'MTN', label: 'MTN MoMo', color: '#FFCC00', textColor: '#111827', icon: 'cellphone-wireless' },
@@ -27,6 +28,8 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
   });
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState('IDLE');
+  const [phoneError, setPhoneError] = useState(null);
+  const [networkDetected, setNetworkDetected] = useState(null);
   const timeoutRef = useRef(null);
 
   useEffect(() => {
@@ -105,10 +108,48 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
     poll();
   };
 
+  const handlePhoneChange = (text) => {
+    setFormData({ ...formData, phone: text });
+    setPhoneError(null);
+
+    const cleaned = text.replace(/[\s\-]/g, '').replace(/^\+?237/, '');
+    if (cleaned.length >= 3) {
+      const detected = getNetworkFromPhone(text);
+      setNetworkDetected(detected);
+      if (detected && detected !== 'UNKNOWN') {
+        setSelectedMethod(detected);
+      }
+    } else {
+      setNetworkDetected(null);
+    }
+  };
+
+  const handleMethodChange = (newMethod) => {
+    setSelectedMethod(newMethod);
+    setPhoneError(null);
+
+    const cleaned = formData.phone.replace(/[\s\-]/g, '').replace(/^\+?237/, '');
+    if (cleaned.length >= 9) {
+      const validation = validatePhoneForProvider(formData.phone, newMethod);
+      if (!validation.valid) {
+        setFormData({ ...formData, phone: '' });
+        setNetworkDetected(null);
+        setPhoneError(t(validation.error));
+      }
+    }
+  };
+
   const handleSubmitPayment = async () => {
     // Validate form
     if (!formData.phone.trim()) {
       Alert.alert(t('common.error'), t('payments.phoneRequiredShort'));
+      return;
+    }
+
+    // Validate phone matches selected provider
+    const validation = validatePhoneForProvider(formData.phone, selectedMethod);
+    if (!validation.valid) {
+      setPhoneError(t(validation.error));
       return;
     }
     try {
@@ -152,15 +193,14 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
               <ActivityIndicator size="large" color={colors.accent} />
             </View>
             <Text style={[styles.pendingTitle, { color: colors.text }]}>
-              Please approve the payment on your phone
+              {t('payments.waitingApproval', 'Waiting for your approval...')}
             </Text>
             <Text style={[styles.pendingSubtitle, { color: colors.textSecondary }]}>
-              We are checking your Kora payment status. This can take up to 2 minutes.
+              {t('payments.checkPhonePrompt', 'Check your phone for the payment prompt.')}
             </Text>
-            <View style={[styles.pendingReferenceBox, { borderColor: colors.border }]}>
-              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Reference</Text>
-              <Text style={[styles.paymentId, { color: colors.accent }]}>{paymentId}</Text>
-            </View>
+            <Text style={[styles.pendingHint, { color: colors.textSecondary }]}>
+              {t('payments.enterPinToComplete', 'Enter your Mobile Money PIN to complete the payment.')}
+            </Text>
           </View>
         </SafeAreaView>
       </View>
@@ -204,16 +244,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
             )}
           </View>
 
-          {/* Payment ID Section */}
-          <View style={[styles.sectionCard, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('payments.transactionId')}</Text>
-            <View style={[styles.paymentIdBox, { borderColor: colors.border }]}>
-              <Text style={[styles.paymentId, { color: colors.accent }]}>{paymentId}</Text>
-              <TouchableOpacity>
-                <MaterialCommunityIcons name="content-copy" size={20} color={colors.accent} />
-              </TouchableOpacity>
-            </View>
-          </View>
+          {/* Payment ID removed from user-facing UI — kept in console for debugging */}
 
           {/* User Info Section */}
           <View style={[styles.sectionCard, { borderBottomColor: colors.border }]}>
@@ -226,9 +257,33 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
                 placeholder="+237 6XXXXXXXX"
                 placeholderTextColor={colors.placeholder}
                 value={formData.phone}
-                onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                onChangeText={handlePhoneChange}
                 keyboardType="phone-pad"
               />
+              {/* Network detection badge */}
+              {formData.phone.replace(/[\s\-]/g, '').replace(/^\+?237/, '').length >= 3 && networkDetected && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                  <View style={{
+                    backgroundColor: networkDetected === 'MTN' ? '#FFCC00' : networkDetected === 'ORANGE' ? '#F16E00' : '#94A3B8',
+                    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginRight: 6
+                  }}>
+                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: networkDetected === 'MTN' ? '#000' : '#fff' }}>
+                      {networkDetected === 'UNKNOWN' ? '?' : networkDetected}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                    {networkDetected === 'MTN' ? 'MTN Mobile Money detected'
+                      : networkDetected === 'ORANGE' ? 'Orange Money detected'
+                      : 'Network not recognized'}
+                  </Text>
+                </View>
+              )}
+              {/* Phone validation error */}
+              {phoneError && (
+                <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontWeight: '600' }}>
+                  {phoneError}
+                </Text>
+              )}
             </View>
           </View>
 
@@ -241,7 +296,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
                 return (
                   <TouchableOpacity
                     key={method.id}
-                    onPress={() => setSelectedMethod(method.id)}
+                    onPress={() => handleMethodChange(method.id)}
                     style={[
                       styles.methodCard,
                       {
@@ -611,7 +666,15 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 24
+    marginBottom: 8
+  },
+  pendingHint: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 24,
+    fontStyle: 'italic'
   },
   pendingReferenceBox: {
     width: '100%',

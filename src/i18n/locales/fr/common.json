@@ -97,6 +97,10 @@
     "clientBrowseText": "Appuyez sur Voir tout pour voir tous les prestataires vérifiés près de vous.",
     "clientMyTasksTitle": "Suivez vos missions 📍",
     "clientMyTasksText": "Appuyez ici sur Mes missions pour voir le statut en direct de chaque mission publiée.",
+    "clientVerifiedTitle": "Pros Vérifiés ⭐",
+    "clientVerifiedText": "Trouvez des professionnels dont l'identité a été entièrement vérifiée.",
+    "clientFavoritesTitle": "Vos Favoris ❤️",
+    "clientFavoritesText": "Accédez rapidement aux prestataires que vous avez sauvegardés pour de futures missions.",
     "welcomeCoinTitle": "1 Coin Gratuit Ajouté !",
     "welcomeCoinDesc": "Nous avons ajouté un coin gratuit à votre portefeuille en cadeau de bienvenue. Utilisez-le pour commencer !"
   },

@@ -97,6 +97,10 @@
     "clientBrowseText": "Tap View All to see all verified providers near you. Filter by skill, rating, and availability.",
     "clientMyTasksTitle": "Track Your Tasks 📍",
     "clientMyTasksText": "Tap My Tasks here to see the live status of every job you've posted — from open to completed.",
+    "clientVerifiedTitle": "Verified Pros ⭐",
+    "clientVerifiedText": "Find top-rated professionals whose identities have been completely verified.",
+    "clientFavoritesTitle": "Your Favorites ❤️",
+    "clientFavoritesText": "Quickly access the providers you have saved for future jobs.",
     "welcomeCoinTitle": "1 Free Coin Added!",
     "welcomeCoinDesc": "We've added a free coin to your wallet as a welcome gift. Use it to get started!"
   },

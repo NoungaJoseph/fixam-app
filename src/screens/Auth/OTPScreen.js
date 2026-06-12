@@ -96,31 +96,29 @@ const OTPScreen = ({ route, navigation }) => {
           {t('otp.sentCode', { contact: maskedContact })}
         </Text>
 
-        {/* Hidden TextInput for native keyboard - Fixed for Android focus */}
-        <TextInput
-          ref={inputRef}
-          value={otp}
-          onChangeText={handleOtpChange}
-          keyboardType="number-pad"
-          maxLength={6}
-          style={styles.hiddenInput}
-          caretHidden
-          autoFocus={true}
-          blurOnSubmit={false}
-        />
+        <View style={{ position: 'relative' }}>
+          {/* Visible OTP Boxes */}
+          <View style={styles.otpRow}>
+            {[0, 1, 2, 3, 4, 5].map(i => (
+              <View key={i} style={[styles.otpBox, otp.length === i && styles.otpBoxActive]}>
+                <Text style={styles.otpDigit}>{otp[i] || ''}</Text>
+              </View>
+            ))}
+          </View>
 
-        {/* Visible OTP Boxes */}
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={() => inputRef.current?.focus()} 
-          style={styles.otpRow}
-        >
-          {[0, 1, 2, 3, 4, 5].map(i => (
-            <View key={i} style={[styles.otpBox, otp.length === i && styles.otpBoxActive]}>
-              <Text style={styles.otpDigit}>{otp[i] || ''}</Text>
-            </View>
-          ))}
-        </TouchableOpacity>
+          {/* Hidden TextInput overlaid natively to ensure keyboard opens on tap */}
+          <TextInput
+            ref={inputRef}
+            value={otp}
+            onChangeText={handleOtpChange}
+            keyboardType="number-pad"
+            maxLength={6}
+            style={styles.hiddenInput}
+            caretHidden
+            autoFocus={true}
+            blurOnSubmit={false}
+          />
+        </View>
 
         <View style={styles.resendContainer}>
           <Text style={styles.timerText}>
@@ -162,10 +160,10 @@ const styles = StyleSheet.create({
     position: 'absolute', 
     top: 0, 
     left: 0, 
-    width: '100%', 
-    height: 100, 
+    right: 0,
+    bottom: 0,
     opacity: 0,
-    zIndex: -1 
+    color: 'transparent',
   },
   otpRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
   otpBox: { width: 45, height: 60, borderWidth: 2, borderColor: '#F3F4F6', borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },

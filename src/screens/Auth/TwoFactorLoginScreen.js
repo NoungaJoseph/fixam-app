@@ -94,25 +94,27 @@ const TwoFactorLoginScreen = ({ route, navigation }) => {
           Enter the 6-digit code sent to {maskedContact}
         </Text>
 
-        <TextInput
-          ref={inputRef}
-          value={otp}
-          onChangeText={handleOtpChange}
-          keyboardType="number-pad"
-          maxLength={6}
-          style={styles.hiddenInput}
-          caretHidden
-          autoFocus={true}
-          blurOnSubmit={false}
-        />
+        <View style={{ position: 'relative' }}>
+          <View style={styles.otpRow}>
+            {[0, 1, 2, 3, 4, 5].map(i => (
+              <View key={i} style={[styles.otpBox, otp.length === i && styles.otpBoxActive]}>
+                <Text style={styles.otpDigit}>{otp[i] || ''}</Text>
+              </View>
+            ))}
+          </View>
 
-        <TouchableOpacity activeOpacity={1} onPress={() => inputRef.current?.focus()} style={styles.otpRow}>
-          {[0, 1, 2, 3, 4, 5].map(i => (
-            <View key={i} style={[styles.otpBox, otp.length === i && styles.otpBoxActive]}>
-              <Text style={styles.otpDigit}>{otp[i] || ''}</Text>
-            </View>
-          ))}
-        </TouchableOpacity>
+          <TextInput
+            ref={inputRef}
+            value={otp}
+            onChangeText={handleOtpChange}
+            keyboardType="number-pad"
+            maxLength={6}
+            style={styles.hiddenInput}
+            caretHidden
+            autoFocus={true}
+            blurOnSubmit={false}
+          />
+        </View>
 
         <View style={styles.resendContainer}>
           <Text style={styles.timerText}>
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
   iconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#F0F9FF', justifyContent: 'center', alignItems: 'center', marginBottom: 30 },
   verifyTitle: { fontSize: 24, fontWeight: '800', color: '#0F172A', marginBottom: 12, textAlign: 'center' },
   verifySubtitle: { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 24, marginBottom: 40 },
-  hiddenInput: { position: 'absolute', top: 0, left: 0, width: '100%', height: 100, opacity: 0, zIndex: -1 },
+  hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0, color: 'transparent' },
   otpRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
   otpBox: { width: 45, height: 60, borderWidth: 2, borderColor: '#F3F4F6', borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },
   otpBoxActive: { borderColor: '#0D9488', backgroundColor: '#FFF' },

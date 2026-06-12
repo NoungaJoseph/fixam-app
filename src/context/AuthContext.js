@@ -12,11 +12,18 @@ const fallbackStorage = {};
 const storeToken = async (key, value) => {
   try {
     if (value) {
-      await AsyncStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
-      await SecureStore.setItemAsync(key, typeof value === 'string' ? value : JSON.stringify(value));
+      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+      if (key === 'authToken') {
+        await SecureStore.setItemAsync(key, stringValue);
+      } else {
+        await AsyncStorage.setItem(key, stringValue);
+      }
     } else {
-      await AsyncStorage.removeItem(key);
-      await SecureStore.deleteItemAsync(key);
+      if (key === 'authToken') {
+        await SecureStore.deleteItemAsync(key);
+      } else {
+        await AsyncStorage.removeItem(key);
+      }
     }
   } catch (error) {
     // Fallback to memory storage
@@ -30,13 +37,13 @@ const storeToken = async (key, value) => {
 
 const getStoredToken = async (key) => {
   try {
-    return await SecureStore.getItemAsync(key) || await AsyncStorage.getItem(key);
-  } catch (error) {
-    try {
+    if (key === 'authToken') {
+      return await SecureStore.getItemAsync(key);
+    } else {
       return await AsyncStorage.getItem(key);
-    } catch (_) {
-      return fallbackStorage[key] || null;
     }
+  } catch (error) {
+    return fallbackStorage[key] || null;
   }
 };
 

@@ -416,6 +416,23 @@ const PostTaskScreen = ({ route, navigation }) => {
       ? `${budgetMin.toLocaleString()} – ${budgetMax.toLocaleString()} FCFA`
       : `${budgetMin.toLocaleString()} FCFA`;
 
+    const selectedAssignment = job.assignments?.find((assignment) => assignment.id === job.selectedAssignmentId) || job.assignments?.find((assignment) => assignment.status === 'ACCEPTED');
+    const assignedProviderUser = job.provider || selectedAssignment?.provider?.user;
+    const assignedProvider = assignedProviderUser ? {
+      name: assignedProviderUser.fullName || assignedProviderUser.name || t('jobs.assignedProfessional'),
+      id: assignedProviderUser.id,
+      avatar: assignedProviderUser.avatar || assignedProviderUser.image,
+    } : null;
+
+    const openChatWithProvider = (provider, currentJob) => {
+      navigation.navigate('Chat', {
+        receiverId: provider.id,
+        userName: provider.name,
+        avatar: provider.avatar,
+        task: currentJob
+      });
+    };
+
     return (
       <TouchableOpacity
         key={job.id}
@@ -491,6 +508,15 @@ const PostTaskScreen = ({ route, navigation }) => {
             <Text style={[styles.secondaryActionText, { color: colors.text }]}>{t('jobs.details')}</Text>
           </TouchableOpacity>
           
+          {assignedProvider && (
+            <TouchableOpacity
+              style={[styles.secondaryActionBtn, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}
+              onPress={() => openChatWithProvider(assignedProvider, job)}
+            >
+              <MaterialCommunityIcons name="message-text-outline" size={18} color={colors.accent} />
+              <Text style={[styles.secondaryActionText, { color: colors.accent }]}>{t('tabs.messages', 'Message')}</Text>
+            </TouchableOpacity>
+          )}
 
 
           {isComplete ? (

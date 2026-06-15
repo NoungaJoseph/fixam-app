@@ -131,7 +131,19 @@ const ChatScreen = ({ route, navigation }) => {
               setActiveConvId(res.data.data.id);
             }
           })
-          .catch((err) => console.log('[ChatScreen] Error fetching conv by participant:', err.message));
+          .catch((err) => {
+            console.log('[ChatScreen] Error fetching conv by participant:', err.message);
+            if (err.response?.data?.message === 'requiresBooking') {
+              Alert.alert(
+                t('messages.bookingRequiredTitle', 'Booking Required'),
+                t('messages.bookingRequiredBody', 'You need to book this provider to start messaging.'),
+                [
+                  { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+                  { text: t('messages.bookNow', 'Book Now'), onPress: openBookingForm }
+                ]
+              );
+            }
+          });
       }
       return;
     }
@@ -236,6 +248,14 @@ const ChatScreen = ({ route, navigation }) => {
   }, [activeConvId, fetchMessages, on, emit, receiverId, user?.id, fetchConversations, fetchNotifications]);
 
   const trackingTask = activeTask || task;
+  const hasExistingBooking = Boolean(
+    trackingTask?.id &&
+    (
+      !['CANCELLED', 'REJECTED'].includes(String(trackingTask.status || '').toUpperCase()) ||
+      (trackingTask.assignments && trackingTask.assignments.some((a) => !['CANCELLED', 'REJECTED'].includes(String(a.status || '').toUpperCase())))
+    )
+  );
+
   const hasAcceptedWork = Boolean(
     trackingTask?.id &&
     (
@@ -244,8 +264,6 @@ const ChatScreen = ({ route, navigation }) => {
       trackingTask.assignments?.some((assignment) => ['ACCEPTED', 'IN_PROGRESS'].includes(String(assignment.status || '').toUpperCase()))
     )
   );
-  const isDirectConversation = !isSupportConversation && otherParticipant?.role !== 'ADMIN';
-  const chatLocked = isDirectConversation && !hasAcceptedWork;
 
   const openTaskTracker = () => {
     if (!trackingTask?.id) {
@@ -343,7 +361,18 @@ const ChatScreen = ({ route, navigation }) => {
       });
       // Remove optimistic message if failed
       setMessages(prev => prev.filter(m => m.clientMessageId !== clientMessageId));
-      Alert.alert(t('common.error'), t('messages.sendFailed'));
+      if (error.response?.data?.message === 'requiresBooking') {
+        Alert.alert(
+          t('messages.bookingRequiredTitle', 'Booking Required'),
+          t('messages.bookingRequiredBody', 'You need to book this provider to start messaging.'),
+          [
+            { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+            { text: t('messages.bookNow', 'Book Now'), onPress: openBookingForm }
+          ]
+        );
+      } else {
+        Alert.alert(t('common.error'), t('messages.sendFailed'));
+      }
     } finally {
       setIsSending(false);
     }
@@ -438,7 +467,7 @@ const ChatScreen = ({ route, navigation }) => {
         {currentUser.role === 'CLIENT' &&
          otherParticipant?.role === 'PROVIDER' &&
          !isSupportConversation &&
-         !hasAcceptedWork && (
+         !hasExistingBooking && (
           <TouchableOpacity
             style={[styles.bookCompact, { backgroundColor: colors.accent }]}
             onPress={openBookingForm}
@@ -465,29 +494,13 @@ const ChatScreen = ({ route, navigation }) => {
           <FlatList ref={flatListRef} data={[...messages].reverse()} keyExtractor={item => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} inverted={true} />
         )}
 
-        {chatLocked ? (
-          <View style={[styles.bookingBanner, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 16) }]}>
-            <MaterialCommunityIcons name="calendar-lock" size={28} color={colors.placeholder} style={{ marginBottom: 8 }} />
-            <Text style={[styles.bookingBannerText, { color: colors.textSecondary }]}>
-              {currentUser.role === 'CLIENT' && otherParticipant?.role === 'PROVIDER'
-                ? t('messages.mustBookProvider', 'You must book this provider to message them.')
-                : t('messages.activeTaskRequired', 'Messaging is available only while an active booking or selected task is in progress.')}
-            </Text>
-            {currentUser.role === 'CLIENT' && otherParticipant?.role === 'PROVIDER' ? (
-              <TouchableOpacity style={[styles.bannerBookBtn, { backgroundColor: colors.accent }]} onPress={openBookingForm}>
-                <Text style={styles.bannerBookBtnText}>{t('messages.bookToMessage', 'Book to Message')}</Text>
-              </TouchableOpacity>
-            ) : null}
+        <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
+          <TouchableOpacity style={styles.attachBtn} onPress={handleImagePick} disabled={isUploading}>{isUploading ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="plus" size={24} color={colors.accent} />}</TouchableOpacity>
+          <View style={[styles.inputContainer, { backgroundColor: colors.background }]}>
+            <TextInput style={[styles.textInput, { color: colors.text }]} placeholder={t('messages.type')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline />
           </View>
-        ) : (
-          <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
-            <TouchableOpacity style={styles.attachBtn} onPress={handleImagePick} disabled={isUploading}>{isUploading ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="plus" size={24} color={colors.accent} />}</TouchableOpacity>
-            <View style={[styles.inputContainer, { backgroundColor: colors.background }]}>
-              <TextInput style={[styles.textInput, { color: colors.text }]} placeholder={t('messages.type')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline />
-            </View>
-            <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.accent, opacity: input.trim() && !isSending ? 1 : 0.45 }]} onPress={() => handleSend()} disabled={!input.trim() || isSending}><MaterialCommunityIcons name="send" size={20} color="#FFF" /></TouchableOpacity>
-          </View>
-        )}
+          <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.accent, opacity: input.trim() && !isSending ? 1 : 0.45 }]} onPress={() => handleSend()} disabled={!input.trim() || isSending}><MaterialCommunityIcons name="send" size={20} color="#FFF" /></TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </View>
     </SafeAreaView>

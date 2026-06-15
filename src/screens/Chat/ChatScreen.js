@@ -97,6 +97,7 @@ const ChatScreen = ({ route, navigation }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(!!conversationId); // Only show loading if we have a conversationId to fetch
+  const [hasCheckedTask, setHasCheckedTask] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -135,8 +136,8 @@ const ChatScreen = ({ route, navigation }) => {
             console.log('[ChatScreen] Error fetching conv by participant:', err.message);
             if (err.response?.data?.message === 'requiresBooking') {
               Alert.alert(
-                t('messages.bookingRequiredTitle', 'Booking Required'),
-                t('messages.bookingRequiredBody', 'You need to book this provider to start messaging.'),
+                t('chat:messages.bookingRequiredTitle', 'Booking Required'),
+                t('chat:messages.bookingRequiredBody', 'You need to book this provider to start messaging.'),
                 [
                   { text: t('common.cancel', 'Cancel'), style: 'cancel' },
                   { text: t('messages.bookNow', 'Book Now'), onPress: openBookingForm }
@@ -193,7 +194,8 @@ const ChatScreen = ({ route, navigation }) => {
 
       api.get(`/chat/${activeConvId}/active-task`, { timeout: 12000 })
         .then((activeTaskRes) => setActiveTask(activeTaskRes.data.data || task || null))
-        .catch(() => setActiveTask(task || null));
+        .catch(() => setActiveTask(task || null))
+        .finally(() => setHasCheckedTask(true));
     } catch (error) {
       console.log('Error fetching messages:', error.message);
       if (error.code === 'ECONNABORTED') {
@@ -363,8 +365,8 @@ const ChatScreen = ({ route, navigation }) => {
       setMessages(prev => prev.filter(m => m.clientMessageId !== clientMessageId));
       if (error.response?.data?.message === 'requiresBooking') {
         Alert.alert(
-          t('messages.bookingRequiredTitle', 'Booking Required'),
-          t('messages.bookingRequiredBody', 'You need to book this provider to start messaging.'),
+          t('chat:messages.bookingRequiredTitle', 'Booking Required'),
+          t('chat:messages.bookingRequiredBody', 'You need to book this provider to start messaging.'),
           [
             { text: t('common.cancel', 'Cancel'), style: 'cancel' },
             { text: t('messages.bookNow', 'Book Now'), onPress: openBookingForm }
@@ -467,6 +469,7 @@ const ChatScreen = ({ route, navigation }) => {
         {currentUser.role === 'CLIENT' &&
          otherParticipant?.role === 'PROVIDER' &&
          !isSupportConversation &&
+         hasCheckedTask && 
          !hasExistingBooking && (
           <TouchableOpacity
             style={[styles.bookCompact, { backgroundColor: colors.accent }]}
@@ -487,8 +490,8 @@ const ChatScreen = ({ route, navigation }) => {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top + 60, 90) : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top + 60, 90) : 20}
       >
         {loading ? <ActivityIndicator size="large" color={colors.accent} style={{ flex: 1 }} /> : (
           <FlatList ref={flatListRef} data={[...messages].reverse()} keyExtractor={item => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} inverted={true} />

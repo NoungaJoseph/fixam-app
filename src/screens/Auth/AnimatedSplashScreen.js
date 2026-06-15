@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const LOGO_TEXT = 'Fixam';
@@ -20,14 +19,33 @@ const DRAW_DURATION = 2400;
 
 const AnimatedSplashScreen = ({ navigation, onFinish }) => {
   const drawProgress = useRef(new Animated.Value(0)).current;
+  const penBob = useRef(new Animated.Value(0)).current;
+  const shimmer = useRef(new Animated.Value(0)).current;
   const containerOpacity = useRef(new Animated.Value(1)).current;
   const containerScale = useRef(new Animated.Value(1)).current;
-  const { t } = useLanguage();
 
   const revealWidth = useMemo(
     () => drawProgress.interpolate({
       inputRange: [0, 1],
       outputRange: [0, LOGO_WIDTH],
+      extrapolate: 'clamp',
+    }),
+    [drawProgress]
+  );
+
+  const penX = useMemo(
+    () => drawProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [-10, LOGO_WIDTH - 8],
+      extrapolate: 'clamp',
+    }),
+    [drawProgress]
+  );
+
+  const penRotate = useMemo(
+    () => drawProgress.interpolate({
+      inputRange: [0, 0.25, 0.5, 0.75, 1],
+      outputRange: ['-24deg', '-12deg', '-20deg', '-8deg', '-18deg'],
       extrapolate: 'clamp',
     }),
     [drawProgress]
@@ -40,6 +58,22 @@ const AnimatedSplashScreen = ({ navigation, onFinish }) => {
       easing: Easing.inOut(Easing.cubic),
       useNativeDriver: false,
     });
+
+    const bobAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(penBob, { toValue: -5, duration: 170, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+        Animated.timing(penBob, { toValue: 3, duration: 150, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+        Animated.timing(penBob, { toValue: 0, duration: 110, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+      ])
+    );
+
+    const shimmerAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+        Animated.timing(shimmer, { toValue: 0, duration: 0, useNativeDriver: false }),
+        Animated.delay(300),
+      ])
+    );
 
     const exitAnimation = Animated.parallel([
       Animated.timing(containerOpacity, {
@@ -55,6 +89,9 @@ const AnimatedSplashScreen = ({ navigation, onFinish }) => {
         useNativeDriver: false,
       }),
     ]);
+
+    bobAnimation.start();
+    shimmerAnimation.start();
 
     const introAnimation = onFinish
       ? Animated.loop(
@@ -72,6 +109,8 @@ const AnimatedSplashScreen = ({ navigation, onFinish }) => {
       ]);
 
     introAnimation.start(() => {
+      bobAnimation.stop();
+      shimmerAnimation.stop();
       if (!onFinish) {
         navigation?.replace('LanguageSelection');
       }
@@ -80,10 +119,12 @@ const AnimatedSplashScreen = ({ navigation, onFinish }) => {
     return () => {
       introAnimation.stop();
       drawProgress.stopAnimation();
+      penBob.stopAnimation();
+      shimmer.stopAnimation();
       containerOpacity.stopAnimation();
       containerScale.stopAnimation();
     };
-  }, [containerOpacity, containerScale, drawProgress, navigation, onFinish]);
+  }, [containerOpacity, containerScale, drawProgress, navigation, onFinish, penBob, shimmer]);
 
   return (
     <LinearGradient
@@ -102,24 +143,51 @@ const AnimatedSplashScreen = ({ navigation, onFinish }) => {
           },
         ]}
       >
-        <Text style={{
-          fontSize: 48,
-          fontWeight: '800',
-          color: '#FFFFFF',
-          letterSpacing: 3
-        }}>
-          Fixam
-        </Text>
-        
-        <Text style={{
-          fontSize: 14,
-          color: 'rgba(255, 255, 255, 0.8)',
-          marginTop: 8,
-          letterSpacing: 1,
-          fontStyle: 'italic'
-        }}>
-          {t('splash.subtitle', 'Services at your doorstep')}
-        </Text>
+        <View style={styles.logoStage}>
+          <Text style={[styles.logoText, styles.logoGhost]}>{LOGO_TEXT}</Text>
+
+          <Animated.View style={[styles.logoReveal, { width: revealWidth }]}>
+            <Text style={styles.logoText}>{LOGO_TEXT}</Text>
+          </Animated.View>
+
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.shine,
+              {
+                transform: [
+                  {
+                    translateX: shimmer.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-LOGO_WIDTH, LOGO_WIDTH],
+                    }),
+                  },
+                  { rotate: '-12deg' },
+                ],
+              },
+            ]}
+          />
+
+          <Animated.View
+            style={[
+              styles.pen,
+              {
+                transform: [
+                  { translateX: penX },
+                  { translateY: penBob },
+                  { rotate: penRotate },
+                ],
+              },
+            ]}
+          >
+            <MaterialCommunityIcons name="pen" size={34} color="#FFFFFF" />
+            <View style={styles.penTip} />
+          </Animated.View>
+        </View>
+
+        <View style={styles.underlineTrack}>
+          <Animated.View style={[styles.underlineFill, { width: revealWidth }]} />
+        </View>
       </Animated.View>
     </LinearGradient>
   );

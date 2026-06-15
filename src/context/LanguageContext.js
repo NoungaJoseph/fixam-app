@@ -49,6 +49,9 @@ export const LanguageProvider = ({ children }) => {
 
   const t = useCallback((key, options) => {
     const resolved = resolveI18nKey(key);
+    if (typeof options === 'string') {
+      return i18n.t(resolved.key, { ns: resolved.ns, defaultValue: options });
+    }
     return i18n.t(resolved.key, { ns: resolved.ns, ...options });
   }, [locale]); // re-bind when locale changes
 

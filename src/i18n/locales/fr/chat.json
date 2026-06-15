@@ -40,7 +40,9 @@
     "permissionRequired": "Autorisez l'accès à la galerie pour envoyer des images.",
     "activeTaskRequired": "La messagerie est disponible uniquement pendant une réservation active ou une mission sélectionnée en cours.",
     "mustBookProvider": "Vous devez réserver ce prestataire pour lui envoyer un message.",
-    "bookToMessage": "Réserver pour écrire"
+    "bookToMessage": "Réserver pour écrire",
+    "bookingRequiredTitle": "Réservation requise",
+    "bookingRequiredBody": "Vous devez envoyer une demande de réservation à ce prestataire avant de pouvoir commencer à discuter."
   },
   "support": {
     "title": "Assistance Fixam",

@@ -40,7 +40,9 @@
     "permissionRequired": "Please allow photo library access to send images.",
     "activeTaskRequired": "Messaging is available only while an active booking or selected task is in progress.",
     "mustBookProvider": "You must book this provider to message them.",
-    "bookToMessage": "Book to Message"
+    "bookToMessage": "Book to Message",
+    "bookingRequiredTitle": "Booking Required",
+    "bookingRequiredBody": "You must send a booking request to this provider before you can start messaging them."
   },
   "support": {
     "title": "Fixam Support",

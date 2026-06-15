@@ -6,14 +6,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import api, { getMediaUrl } from '../../services/api';
 import UserAvatar from '../../components/UserAvatar';
+import VerificationRequiredModal from '../../components/VerificationRequiredModal';
 import { StatusBar } from 'expo-status-bar';
 
 const ProviderProfileScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t, currentLanguage } = useLanguage();
   const { favoriteProviderIds, toggleFavoriteProvider } = useAppContext();
+  const { user } = useAuth();
   const provider = route.params?.provider || null;
   const providerUserId = provider?.user?.id || provider?.userId;
   const insets = useSafeAreaInsets();
@@ -21,6 +24,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [reviews, setReviews] = React.useState([]);
   const [hasBooking, setHasBooking] = React.useState(false);
   const [existingBooking, setExistingBooking] = React.useState(null);
+  const [showVerificationModal, setShowVerificationModal] = React.useState(false);
 
 
 
@@ -621,7 +625,14 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           <TouchableOpacity
             style={[styles.staticBookButton, { backgroundColor: colors.accent, opacity: providerUserId ? 1 : 0.55 }]}
             disabled={!providerUserId}
-            onPress={() => navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 })}
+            onPress={() => {
+              const isVerified = user?.fullName && !user?.isBlocked;
+              if (!isVerified) {
+                setShowVerificationModal(true);
+                return;
+              }
+              navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
+            }}
           >
             <MaterialCommunityIcons name="calendar-check" size={22} color="#FFF" style={{ marginRight: 6 }} />
             <Text style={styles.staticBookButtonText}>{t('profile.bookNow')}</Text>
@@ -629,6 +640,13 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         </View>
 
       </ScrollView>
+
+      <VerificationRequiredModal 
+        visible={showVerificationModal} 
+        onClose={() => setShowVerificationModal(false)}
+        message={t('verification.bookingRequired')}
+        isProvider={false}
+      />
 
     </View>
   );

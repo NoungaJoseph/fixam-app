@@ -37,7 +37,7 @@ const CoinPaymentFailedScreen = ({ navigation, route }) => {
 
           <Text style={[styles.title, { color: colors.text }]}>{t('payments.failed')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {message || 'Your payment could not be completed. Please try again.'}
+            {message || t('payments.paymentNotCompleted', 'Your payment could not be completed. Please try again.')}
           </Text>
         </View>
 

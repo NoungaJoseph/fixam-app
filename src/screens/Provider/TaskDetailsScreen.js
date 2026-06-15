@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
+import VerificationRequiredModal from '../../components/VerificationRequiredModal';
 
 const formatDate = (value, locale = 'en') => {
   if (!value) return null;
@@ -43,6 +44,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const { t, locale } = useLanguage();
   const insets = useSafeAreaInsets();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [applicationCount, setApplicationCount] = useState(task.assignments?.length || task.proposals || 0);
   const [applied, setApplied] = useState(false);
   const coinCost = 1;
@@ -91,6 +93,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const handleAccept = () => {
     if (hasApplied) {
       Alert.alert(t('jobs.alreadyApplied'), t('jobs.alreadyAppliedBody'));
+      return;
+    }
+    const isVerified = user?.providerProfile?.verification === 'VERIFIED' || user?.providerProfile?.verification === 'PENDING';
+    if (!isVerified) {
+      setShowVerificationModal(true);
       return;
     }
     if (walletBalance < coinCost) {
@@ -335,6 +342,13 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <VerificationRequiredModal 
+        visible={showVerificationModal} 
+        onClose={() => setShowVerificationModal(false)}
+        message={t('verification.jobRequired')}
+        isProvider={true}
+      />
     </SafeAreaView>
   );
 };

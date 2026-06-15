@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
-  FlatList, KeyboardAvoidingView, Platform, Image, StatusBar, ActivityIndicator, Alert
+  FlatList, KeyboardAvoidingView, Platform, Image, StatusBar, ActivityIndicator, Alert, Keyboard
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -110,11 +110,31 @@ const ChatScreen = ({ route, navigation }) => {
     activeConvIdRef.current = activeConvId;
   }, [activeConvId]);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    });
+    return () => showSub.remove();
+  }, []);
+
   // Always fetch full participant details from the conversation endpoint on mount.
   // This guarantees otherParticipant.role and providerProfile are populated regardless
   // of how the chat was opened (provider profile page vs. Messages list).
   useEffect(() => {
-    if (!activeConvId) return;
+    if (!activeConvId) {
+      if (receiverId) {
+        // We have a receiverId but no conversationId (e.g. from TaskDetails)
+        // Let's create or fetch the existing conversation ID from backend
+        api.post('/chat/conversations', { participantId: receiverId })
+          .then((res) => {
+            if (res.data?.data?.id) {
+              setActiveConvId(res.data.data.id);
+            }
+          })
+          .catch((err) => console.log('[ChatScreen] Error fetching conv by participant:', err.message));
+      }
+      return;
+    }
 
     api.get(`/chat/conversations/${activeConvId}`)
       .then((res) => {
@@ -137,7 +157,7 @@ const ChatScreen = ({ route, navigation }) => {
         }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeConvId]);
+  }, [activeConvId, receiverId]);
 
   const fetchMessages = useCallback(async () => {
     if (!activeConvId) {
@@ -192,7 +212,7 @@ const ChatScreen = ({ route, navigation }) => {
       console.log('[ChatScreen] Received message:new event:', msg.id, 'for conv:', msg.conversationId, 'expected:', activeConvId);
       if (msg.conversationId === activeConvId) {
         setMessages(prev => mergeMessage(prev, msg));
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }), 100);
         if (msg.senderId !== user?.id) {
           api.put(`/chat/${activeConvId}/read`, {}, { timeout: 8000 }).then(() => {
             fetchConversations();
@@ -244,6 +264,21 @@ const ChatScreen = ({ route, navigation }) => {
       providerId: receiverId,
       providerName: userName,
       task: trackingTask,
+    });
+  };
+
+  const handleAudioCall = () => {
+    emit('call:initiate', {
+      receiverId: receiverId,
+      callType: 'AUDIO',
+      conversationId: activeConvIdRef.current
+    });
+    
+    navigation.navigate('Call', {
+      callId: null,
+      otherUser: participantDetails.otherParticipant || { id: receiverId, fullName: userName, avatar: avatarUri },
+      isOutgoing: true,
+      callType: 'AUDIO'
     });
   };
 
@@ -402,7 +437,8 @@ const ChatScreen = ({ route, navigation }) => {
         ) : null}
         {currentUser.role === 'CLIENT' &&
          otherParticipant?.role === 'PROVIDER' &&
-         !isSupportConversation && (
+         !isSupportConversation &&
+         !hasAcceptedWork && (
           <TouchableOpacity
             style={[styles.bookCompact, { backgroundColor: colors.accent }]}
             onPress={openBookingForm}
@@ -413,15 +449,20 @@ const ChatScreen = ({ route, navigation }) => {
             <Text style={styles.bookCompactText}>Book</Text>
           </TouchableOpacity>
         )}
+        {!isSupportConversation && (
+          <TouchableOpacity onPress={handleAudioCall} style={{ marginLeft: 12 }}>
+            <Ionicons name="call-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top + 60, 90) : 0}
       >
         {loading ? <ActivityIndicator size="large" color={colors.accent} style={{ flex: 1 }} /> : (
-          <FlatList ref={flatListRef} data={messages} keyExtractor={item => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })} />
+          <FlatList ref={flatListRef} data={[...messages].reverse()} keyExtractor={item => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} inverted={true} />
         )}
 
         {chatLocked ? (

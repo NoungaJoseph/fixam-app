@@ -57,52 +57,97 @@ const NotificationDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const actionConfig = {
-    NEW_MESSAGE: notification?.data?.conversationId ? {
-      label: t('notifications.actions.openChat'),
-      onPress: () => navigation.navigate('Chat', { conversationId: notification.data.conversationId }),
-    } : null,
-    NEW_APPLICATION: notification?.data?.jobId ? {
-      label: t('notifications.actions.viewTask'),
-      onPress: () => goToJob(notification.data.jobId),
-    } : null,
-    APPLICATION_ACCEPTED: notification?.data?.jobId ? {
-      label: t('notifications.actions.viewJob'),
-      onPress: () => goToJob(notification.data.jobId),
-    } : null,
-    JOB_COMPLETED: notification?.data?.jobId ? {
-      label: t('notifications.actions.leaveReview'),
-      onPress: () => goToJob(notification.data.jobId),
-    } : null,
-    BOOKING_SENT: {
-      label: t('notifications.actions.viewBooking'),
-      onPress: () => navigation.goBack(),
-    },
-    COINS_ADDED: {
-      label: t('notifications.actions.viewWallet'),
-      onPress: () => user?.role === 'PROVIDER'
-        ? navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' })
-        : navigation.navigate('TopUp'),
-    },
-    PROVIDER_OF_MONTH: {
-      label: t('notifications.actions.viewProfile'),
-      onPress: () => navigation.navigate('UserProfile'),
-    },
-    TRANSACTION: {
-      label: t('notifications.actions.viewWallet'),
-      onPress: () => user?.role === 'PROVIDER'
-        ? navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' })
-        : navigation.navigate('TopUp'),
-    },
-    JOB: notification?.data?.jobId ? {
-      label: t('notifications.actions.viewJob'),
-      onPress: () => goToJob(notification.data.jobId),
-    } : null,
-    JOB_APPLICATION: notification?.data?.jobId ? {
-      label: t('notifications.actions.viewTask'),
-      onPress: () => goToJob(notification.data.jobId),
-    } : null,
-  }[type];
+  const actionConfig = (() => {
+    const data = notification?.data || {};
+    const notifType = data.type || type;
+
+    switch (notifType) {
+      case 'NEW_MESSAGE':
+        return data.conversationId ? {
+          label: 'Open Chat',
+          onPress: () => {
+            navigation.navigate('Messages');
+            setTimeout(() => {
+              navigation.navigate('Chat', { conversationId: data.conversationId });
+            }, 100);
+          }
+        } : null;
+
+      case 'NEW_BOOKING':
+      case 'BOOKING_CONFIRMED':
+      case 'BOOKING_SENT':
+        return {
+          label: 'View Booking',
+          onPress: () => {
+            navigation.navigate('Bookings', { bookingId: data.bookingId });
+          }
+        };
+
+      case 'NEW_APPLICATION':
+        return {
+          label: 'View Applicants',
+          onPress: () => {
+            if (data.jobId) {
+              navigation.navigate('Tasks');
+              setTimeout(() => {
+                navigation.navigate('JobStatus', { jobId: data.jobId });
+              }, 100);
+            }
+          }
+        };
+
+      case 'APPLICATION_ACCEPTED':
+      case 'JOB_APPROVED':
+      case 'JOB_REJECTED':
+        return {
+          label: 'View Task',
+          onPress: () => {
+            if (data.jobId) {
+              navigation.navigate('Tasks');
+              setTimeout(() => {
+                navigation.navigate('JobStatus', { jobId: data.jobId });
+              }, 100);
+            }
+          }
+        };
+
+      case 'JOB_COMPLETED':
+        return {
+          label: 'Leave Review',
+          onPress: () => {
+            if (data.jobId) {
+              navigation.navigate('Rating', { jobId: data.jobId });
+            }
+          }
+        };
+
+      case 'COINS_ADDED':
+      case 'TRANSACTION':
+        return {
+          label: 'View Wallet',
+          onPress: () => navigation.navigate('Wallet')
+        };
+
+      case 'NEW_REVIEW':
+        return {
+          label: 'View Review',
+          onPress: () => navigation.navigate('Profile')
+        };
+
+      case 'PROVIDER_OF_MONTH':
+        return {
+          label: 'View Profile',
+          onPress: () => {
+            if (data.providerId) {
+              navigation.navigate('ProviderProfile', { providerId: data.providerId });
+            }
+          }
+        };
+
+      default:
+        return null;
+    }
+  })();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

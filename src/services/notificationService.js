@@ -28,12 +28,20 @@ class NotificationService {
 
     switch (type) {
       case 'NEW_MESSAGE':
-        if (data.conversationId) {
-          nav.navigate('Messages');
-          setTimeout(() => {
-            nav.navigate('Chat', { conversationId: data.conversationId });
-          }, 150);
-        }
+        nav.navigate('Messages');
+        setTimeout(() => {
+          if (data.conversationId) {
+            nav.navigate('Chat', {
+              conversationId: data.conversationId
+            });
+          }
+        }, 100);
+        break;
+
+      case 'NEW_BOOKING':
+      case 'BOOKING_CONFIRMED':
+      case 'BOOKING_SENT':
+        nav.navigate('Bookings');
         break;
 
       case 'NEW_APPLICATION':
@@ -41,32 +49,21 @@ class NotificationService {
       case 'JOB_COMPLETED':
       case 'JOB_APPROVED':
       case 'JOB_REJECTED':
+        nav.navigate('Tasks');
         if (data.jobId) {
-          nav.navigate('My Tasks');
           setTimeout(() => {
-            nav.navigate('JobStatus', { jobId: data.jobId });
-          }, 150);
-        } else {
-          nav.navigate('My Tasks');
+            nav.navigate('JobStatus', {
+              jobId: data.jobId
+            });
+          }, 100);
         }
         break;
 
-      case 'NEW_BOOKING':
-      case 'BOOKING_SENT':
-        nav.navigate('My Tasks');
-        break;
-
       case 'COINS_ADDED':
-      case 'TRANSACTION':
         nav.navigate('Wallet');
         break;
 
-      case 'NEW_REVIEW':
-        nav.navigate('Settings');
-        break;
-
       default:
-        // Fall back to the Notifications screen inside the current tab
         nav.navigate('Notifications');
         break;
     }

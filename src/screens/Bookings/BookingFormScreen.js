@@ -4,6 +4,7 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, Te
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAppContext } from '../../context/AppContext';
 import api from '../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
@@ -21,8 +22,19 @@ const BookingFormScreen = ({ route, navigation }) => {
     longitude: task?.longitude || null,
     budget: String(task?.budgetMax || task?.budget || providerRate || 0),
     notes: task?.description || '',
+    bookingDuration: 'DAY',
+    urgencyLevel: 'NORMAL',
   });
   const [submitting, setSubmitting] = useState(false);
+  const { walletBalance } = useAppContext();
+
+  const getCoinCost = () => {
+    switch(form.urgencyLevel) {
+      case 'EMERGENCY': return 3;
+      case 'URGENT': return 2;
+      default: return 1;
+    }
+  };
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -94,6 +106,20 @@ const BookingFormScreen = ({ route, navigation }) => {
       Alert.alert(t('errors.required'), t('validation.bookingRequired'));
       return;
     }
+
+    const coinCost = getCoinCost();
+    if (walletBalance < coinCost) {
+      Alert.alert(
+        t('bookings.insufficientCoins', 'Insufficient coins'),
+        t('bookings.coinsRequired', `You need ${coinCost} coins for this booking. Top up your wallet.`),
+        [
+          { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+          { text: t('bookings.topUpWallet', 'Top Up Wallet'), onPress: () => navigation.navigate('Wallet') }
+        ]
+      );
+      return;
+    }
+
     try {
       setSubmitting(true);
       const bookingBudget = Number(String(form.budget || 0).replace(/[^\d.]/g, '')) || 0;
@@ -102,6 +128,8 @@ const BookingFormScreen = ({ route, navigation }) => {
         taskId: task?.id,
         bookingDate: form.bookingDate,
         bookingTime: form.bookingTime,
+        bookingDuration: form.bookingDuration,
+        urgencyLevel: form.urgencyLevel,
         budget: bookingBudget,
         location: form.location || '',
         latitude: form.latitude,
@@ -142,6 +170,57 @@ const BookingFormScreen = ({ route, navigation }) => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
+            {/* SECTION 1 — Booking Duration */}
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.text }]}>{t('bookings.bookingDuration', 'How long do you need this service?')}</Text>
+              <View style={styles.durationRow}>
+                {['DAY', 'WEEK', 'MONTH'].map((dur) => {
+                  const isSelected = form.bookingDuration === dur;
+                  return (
+                    <TouchableOpacity
+                      key={dur}
+                      style={[styles.durationCard, { backgroundColor: isSelected ? colors.accent + '20' : colors.card, borderColor: isSelected ? colors.accent : colors.border }]}
+                      onPress={() => setForm({ ...form, bookingDuration: dur })}
+                    >
+                      <Text style={[styles.durationText, { color: isSelected ? colors.accent : colors.text }]}>
+                        {t(`bookings.${dur.toLowerCase()}Option`, dur)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* SECTION 2 — Urgency Level */}
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.text }]}>{t('bookings.urgencyLevel', 'How urgent is this?')}</Text>
+              <View style={styles.urgencyContainer}>
+                {[
+                  { id: 'NORMAL', cost: 1, title: t('bookings.normalUrgency', 'Normal'), desc: t('bookings.normalDesc', 'Standard booking, scheduled in advance') },
+                  { id: 'URGENT', cost: 2, title: t('bookings.urgentUrgency', 'Urgent'), desc: t('bookings.urgentDesc', 'Same day or next day service') },
+                  { id: 'EMERGENCY', cost: 3, title: t('bookings.emergencyUrgency', 'Emergency'), desc: t('bookings.emergencyDesc', 'Immediate service required') },
+                ].map((urg) => {
+                  const isSelected = form.urgencyLevel === urg.id;
+                  return (
+                    <TouchableOpacity
+                      key={urg.id}
+                      style={[styles.urgencyCard, { backgroundColor: isSelected ? colors.accent + '10' : colors.card, borderColor: isSelected ? colors.accent : colors.border }]}
+                      onPress={() => setForm({ ...form, urgencyLevel: urg.id })}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.urgencyTitle, { color: isSelected ? colors.accent : colors.text }]}>{urg.title}</Text>
+                        <Text style={[styles.urgencyDesc, { color: colors.textSecondary }]}>{urg.desc}</Text>
+                      </View>
+                      <View style={[styles.coinBadge, { backgroundColor: isSelected ? colors.accent : colors.border }]}>
+                        <MaterialCommunityIcons name="currency-usd-circle" size={14} color="#FFF" />
+                        <Text style={styles.coinBadgeText}>{urg.cost}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.text }]}>{t('bookings.date')}</Text>
               <TouchableOpacity
@@ -191,9 +270,17 @@ const BookingFormScreen = ({ route, navigation }) => {
             <Input label={t('bookings.budget')} placeholder="15000" value={form.budget} onChangeText={(budget) => setForm({ ...form, budget })} keyboardType="numeric" colors={colors} />
             <Input label={t('bookings.details')} placeholder={t('bookings.detailsPlaceholder')} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} multiline colors={colors} />
 
+            <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.summaryTitle, { color: colors.text }]}>{t('bookings.bookingSummary', 'Booking Summary')}</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>Duration: {t(`bookings.${form.bookingDuration.toLowerCase()}Option`, form.bookingDuration)}</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>Type: {t(`bookings.${form.urgencyLevel.toLowerCase()}Urgency`, form.urgencyLevel)}</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>Date: {form.bookingDate || 'Not selected'}</Text>
+              <Text style={[styles.summaryCost, { color: colors.accent }]}>Cost: {getCoinCost()} coins will be deducted</Text>
+            </View>
+
             <TouchableOpacity onPress={submit} disabled={submitting} style={[styles.submitBtn, { opacity: submitting ? 0.65 : 1, marginTop: 12 }]}>
               <MaterialCommunityIcons name="calendar-check" size={20} color="#FFFFFF" />
-              <Text style={styles.submitText}>{submitting ? t('bookings.scheduling') : t('bookings.confirm')}</Text>
+              <Text style={styles.submitText}>{submitting ? t('bookings.scheduling') : t('bookings.bookNowCoins', { coins: getCoinCost() }).replace('{{coins}}', getCoinCost())}</Text>
             </TouchableOpacity>
           </ScrollView>
 
@@ -272,6 +359,19 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  durationRow: { flexDirection: 'row', gap: 10 },
+  durationCard: { flex: 1, borderWidth: 1, borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  durationText: { fontSize: 14, fontWeight: '700' },
+  urgencyContainer: { gap: 10 },
+  urgencyCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, padding: 14, gap: 10 },
+  urgencyTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  urgencyDesc: { fontSize: 13, fontWeight: '500' },
+  coinBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
+  coinBadgeText: { color: '#FFF', fontSize: 13, fontWeight: '800' },
+  summaryCard: { borderWidth: 1, borderRadius: 8, padding: 16, marginTop: 8 },
+  summaryTitle: { fontSize: 16, fontWeight: '800', marginBottom: 8 },
+  summaryText: { fontSize: 14, fontWeight: '500', marginBottom: 4 },
+  summaryCost: { fontSize: 14, fontWeight: '800', marginTop: 4 },
 });
 
 export default BookingFormScreen;

@@ -20,6 +20,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [pastHeader, setPastHeader] = React.useState(false);
   const [reviews, setReviews] = React.useState([]);
   const [hasBooking, setHasBooking] = React.useState(false);
+  const [existingBooking, setExistingBooking] = React.useState(null);
 
 
 
@@ -37,8 +38,12 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         if (!providerUserId) return;
         const res = await api.get(`/bookings/check?providerId=${providerUserId}`);
         setHasBooking(res.data.data?.hasBooking || false);
+        if (res.data.data?.hasBooking) {
+          setExistingBooking(res.data.data.booking);
+        }
       } catch (error) {
         setHasBooking(false);
+        setExistingBooking(null);
       }
     };
 
@@ -580,6 +585,25 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           )}
         </View>
 
+        {existingBooking && (
+          <View style={styles.sectionContainer}>
+            <View style={[styles.activeBookingCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <MaterialCommunityIcons name="calendar-check-outline" size={22} color="#0D9488" style={{ marginRight: 8 }} />
+                <Text style={[styles.activeBookingTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>Active Booking</Text>
+              </View>
+              <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>Duration: {existingBooking.bookingDuration || 'DAY'}</Text>
+              <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>Type: {existingBooking.urgencyLevel || 'NORMAL'}</Text>
+              <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
+                Date: {existingBooking.bookingDate ? new Date(existingBooking.bookingDate).toLocaleDateString() : 'Not set'}
+              </Text>
+              <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569', fontWeight: '700', marginTop: 4 }]}>
+                Status: {existingBooking.status}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {hasBooking && (
           <View style={styles.sectionContainer}>
             <TouchableOpacity
@@ -799,6 +823,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  activeBookingCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+  },
+  activeBookingTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  activeBookingText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   statVal: {
     flex: 1,

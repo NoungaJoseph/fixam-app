@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
   StatusBar, Share, Alert, Image
@@ -8,14 +8,35 @@ import { CustomHeader } from '../../navigation/NavigationComponents';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import api from '../../services/api';
 
 const InvitationScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { user } = useAuth();
   const { t } = useLanguage();
-  const referralCode = user?.referralCode || 'NO-CODE-YET';
-  const invitedCount = user?.referralStats?.invited || 0;
-  const earnedCoins = user?.referralStats?.coinsEarned || 0;
+
+  const [referralStats, setReferralStats] = useState({
+    referralCode: user?.referralCode || 'NO-CODE-YET',
+    friendsInvited: 0,
+    coinsEarned: 0,
+    referredUsers: []
+  });
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const res = await api.get('/users/referral-stats');
+        if (res.data && res.data.success) {
+          setReferralStats(res.data);
+        }
+      } catch (error) {
+        console.error('Referral stats failed:', error);
+      }
+    };
+    loadStats();
+  }, []);
+
+  const { referralCode, friendsInvited, coinsEarned, referredUsers } = referralStats;
 
   const onShare = async () => {
     try {
@@ -65,14 +86,42 @@ const InvitationScreen = ({ navigation }) => {
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.statVal, { color: colors.text }]}>{invitedCount}</Text>
+            <Text style={[styles.statVal, { color: colors.text }]}>{friendsInvited}</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('invite.friendsInvited')}</Text>
           </View>
           <View style={[styles.statCard, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.statVal, { color: '#22C55E' }]}>{earnedCoins}</Text>
+            <Text style={[styles.statVal, { color: '#22C55E' }]}>{coinsEarned}</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('invite.coinsEarned')}</Text>
           </View>
         </View>
+
+        {referredUsers.length > 0 && (
+          <View style={styles.referredUsersContainer}>
+            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 15 }]}>
+              {t('invite.referredFriends') || 'Friends You Invited'}
+            </Text>
+            {referredUsers.map((rUser) => (
+              <View key={rUser.id} style={[styles.referredUserItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                {rUser.avatar ? (
+                  <Image source={{ uri: rUser.avatar }} style={styles.referredAvatar} />
+                ) : (
+                  <View style={[styles.referredAvatarPlaceholder, { backgroundColor: colors.border }]}>
+                    <MaterialCommunityIcons name="account" size={24} color={colors.textSecondary} />
+                  </View>
+                )}
+                <View style={styles.referredUserInfo}>
+                  <Text style={[styles.referredUserName, { color: colors.text }]}>{rUser.name}</Text>
+                  <Text style={[styles.referredUserDate, { color: colors.textSecondary }]}>
+                    {new Date(rUser.joinedAt).toLocaleDateString()}
+                  </Text>
+                </View>
+                <View style={[styles.coinBadge, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
+                  <Text style={styles.coinBadgeText}>+1 Coin</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.shareBtn, { backgroundColor: colors.accent }]}
@@ -139,6 +188,15 @@ const styles = StyleSheet.create({
   stepNum: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   stepNumText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   stepText: { fontSize: 14, fontWeight: '600' },
+  referredUsersContainer: { width: '100%', marginBottom: 30, paddingHorizontal: 10 },
+  referredUserItem: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 12, borderWidth: 1, marginBottom: 10 },
+  referredAvatar: { width: 44, height: 44, borderRadius: 22, marginRight: 15 },
+  referredAvatarPlaceholder: { width: 44, height: 44, borderRadius: 22, marginRight: 15, justifyContent: 'center', alignItems: 'center' },
+  referredUserInfo: { flex: 1 },
+  referredUserName: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  referredUserDate: { fontSize: 12, fontWeight: '500' },
+  coinBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  coinBadgeText: { color: '#22C55E', fontSize: 12, fontWeight: '800' }
 });
 
 export default InvitationScreen;

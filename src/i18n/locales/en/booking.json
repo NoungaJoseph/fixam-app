@@ -14,6 +14,22 @@
     "sentBody": "The provider will see this under My Jobs > Bookings.",
     "failed": "Booking failed",
     "status": "Booking status",
-    "bookNow": "Book Now"
+    "bookNow": "Book Now",
+    "bookingDuration": "Service Duration",
+    "dayOption": "Day",
+    "weekOption": "Week",
+    "monthOption": "Month",
+    "urgencyLevel": "Urgency Level",
+    "normalUrgency": "Normal",
+    "urgentUrgency": "Urgent",
+    "emergencyUrgency": "Emergency",
+    "normalDesc": "Standard booking, scheduled in advance",
+    "urgentDesc": "Same day or next day service",
+    "emergencyDesc": "Immediate service required",
+    "bookingSummary": "Booking Summary",
+    "coinsRequired": "coins required",
+    "insufficientCoins": "Insufficient coins",
+    "topUpWallet": "Top Up Wallet",
+    "bookNowCoins": "Book Now — {{coins}} coins"
   }
 }

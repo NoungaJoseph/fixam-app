@@ -14,6 +14,22 @@
     "sentBody": "Le prestataire la verra dans Mes missions > Réservations.",
     "failed": "Réservation échouée",
     "status": "Statut de la réservation",
-    "bookNow": "Réserver"
+    "bookNow": "Réserver",
+    "bookingDuration": "Durée du Service",
+    "dayOption": "Jour",
+    "weekOption": "Semaine",
+    "monthOption": "Mois",
+    "urgencyLevel": "Niveau d'Urgence",
+    "normalUrgency": "Normal",
+    "urgentUrgency": "Urgent",
+    "emergencyUrgency": "Urgence",
+    "normalDesc": "Réservation standard, planifiée à l'avance",
+    "urgentDesc": "Service le jour même ou le lendemain",
+    "emergencyDesc": "Service immédiat requis",
+    "bookingSummary": "Résumé de la Réservation",
+    "coinsRequired": "pièces requises",
+    "insufficientCoins": "Pièces insuffisantes",
+    "topUpWallet": "Recharger le Portefeuille",
+    "bookNowCoins": "Réserver — {{coins}} pièces"
   }
 }

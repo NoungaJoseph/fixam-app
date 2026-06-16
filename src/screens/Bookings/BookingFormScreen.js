@@ -211,10 +211,6 @@ const BookingFormScreen = ({ route, navigation }) => {
                         <Text style={[styles.urgencyTitle, { color: isSelected ? colors.accent : colors.text }]}>{urg.title}</Text>
                         <Text style={[styles.urgencyDesc, { color: colors.textSecondary }]}>{urg.desc}</Text>
                       </View>
-                      <View style={[styles.coinBadge, { backgroundColor: isSelected ? colors.accent : colors.border }]}>
-                        <MaterialCommunityIcons name="currency-usd" size={14} color="#FFF" />
-                        <Text style={styles.coinBadgeText}>{urg.cost}</Text>
-                      </View>
                     </TouchableOpacity>
                   );
                 })}

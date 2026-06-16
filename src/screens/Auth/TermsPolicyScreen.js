@@ -8,15 +8,15 @@ import { useLanguage } from '../../context/LanguageContext';
 const TermsPolicyScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
-  
+
   const termsSections = t('legal.termsSections', { returnObjects: true });
   const privacySections = t('legal.privacySections', { returnObjects: true });
 
   return (
-    <View 
+    <View
       style={[styles.background, { backgroundColor: colors.background }]}
     >
-      
+
       <SafeAreaView style={styles.container}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -28,7 +28,7 @@ const TermsPolicyScreen = ({ navigation }) => {
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <Text style={[styles.lastUpdated, { color: colors.textSecondary }]}>{t('legal.lastUpdated')}</Text>
-          
+
           <Text style={[styles.mainSectionTitle, { color: colors.text }]}>{t('legal.termsTitle')}</Text>
           {Array.isArray(termsSections) && termsSections.map((section, index) => (
             <View key={`terms-${index}`} style={styles.sectionContainer}>
@@ -46,7 +46,7 @@ const TermsPolicyScreen = ({ navigation }) => {
           ))}
 
           <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 30 }]}>{t('legal.contact')}</Text>
-          
+
           <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>

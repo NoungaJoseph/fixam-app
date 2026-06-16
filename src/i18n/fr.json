@@ -415,54 +415,70 @@
     "reviewText": "Évaluez votre expérience pour aider la communauté."
   },
   "legal": {
-    "title": "Conditions et Politique de Confidentialité",
+    "title": "Conditions & Politique de Confidentialité",
     "lastUpdated": "Dernière mise à jour : Juin 2026",
     "termsTitle": "Conditions de Service",
     "privacyTitle": "Politique de Confidentialité",
     "termsSections": [
       {
-        "title": "1. Acceptation des Conditions",
-        "body": "En téléchargeant, accédant ou utilisant la plateforme Fixam, vous acceptez d'être lié par ces Conditions de Service. Fixam met en relation les clients ayant besoin de services avec des prestataires professionnels au Cameroun. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser notre application."
+        "title": "1. Introduction et Acceptation des Conditions",
+        "body": "Bienvenue sur Fixam. En téléchargeant, installant, accédant ou utilisant l'application mobile Fixam et les services associés (collectivement, la « Plateforme »), vous acceptez d'être lié par ces Conditions de Service. Fixam met en relation des clients ayant besoin de divers services avec des prestataires professionnels et vérifiés au Cameroun. Si vous n'acceptez pas l'intégralité de ces conditions, vous ne devez pas utiliser notre Plateforme."
       },
       {
-        "title": "2. Comptes Utilisateurs et Vérification",
-        "body": "Vous devez fournir des informations exactes, complètes et à jour lors de votre inscription. Les utilisateurs sont responsables de la confidentialité de leurs mots de passe et OTP. Fixam se réserve le droit de suspendre ou de fermer les comptes fournissant de fausses informations."
+        "title": "2. Éligibilité et Inscription au Compte",
+        "body": "Pour utiliser Fixam, vous devez être âgé d'au moins 18 ans et être capable de conclure un contrat contraignant. Lors de votre inscription, que ce soit en tant que Client ou Prestataire, vous devez fournir des informations exactes, complètes et à jour. Vous êtes seul responsable de la protection de vos identifiants de connexion (y compris les OTP) et de toutes les activités qui se produisent sous votre compte. Fixam se réserve le droit de suspendre ou de fermer les comptes qui fournissent de fausses informations ou qui violent nos directives communautaires."
       },
       {
-        "title": "3. Rôle de la Plateforme et Responsabilité",
-        "body": "Fixam agit uniquement en tant que place de marché technologique. Nous n'employons pas les prestataires et ne sommes pas responsables de la qualité ou de la sécurité des services. Tout litige doit être résolu directement entre le client et le prestataire."
+        "title": "3. Le Rôle de la Plateforme Fixam",
+        "body": "Fixam agit exclusivement en tant que place de marché technologique connectant les prestataires de services indépendants avec les clients. Nous n'employons pas directement les prestataires et n'agissons pas en tant qu'agent pour l'une ou l'autre des parties. Bien que nous nous efforcions de vérifier les prestataires et de maintenir des normes élevées, nous ne garantissons pas la qualité, la sécurité ou la légalité des services fournis. Tout litige découlant de la prestation de services doit être résolu directement entre le client et le prestataire, bien que Fixam puisse, à sa discrétion, offrir un soutien à la médiation."
       },
       {
-        "title": "4. Paiements et Pièces Fixam",
-        "body": "La réservation d'un prestataire nécessite des pièces Fixam (coins). Ces pièces ne sont pas remboursables, sauf en cas d'annulation éligible. Les prestataires fixent leurs tarifs et les clients s'engagent à payer le montant convenu à la fin du service."
+        "title": "4. Réservation, Paiements et Pièces Fixam",
+        "body": "La réservation d'un prestataire sur Fixam nécessite l'utilisation de pièces Fixam (coins), notre monnaie intégrée. Les pièces sont achetées via l'application et ne sont pas remboursables, sauf si une réservation est annulée dans les conditions explicitement décrites dans notre Politique d'Annulation. Les prestataires fixent indépendamment leurs tarifs de service, et les clients acceptent de payer le montant convenu directement au prestataire après l'achèvement satisfaisant du service. Fixam n'est pas responsable des transactions financières hors plateforme ou des litiges sur les montants de paiement entre utilisateurs."
       },
       {
-        "title": "5. Code de Conduite",
-        "body": "Tous les utilisateurs doivent se traiter avec respect. Le harcèlement, la discrimination, la fraude et tout comportement non professionnel sont strictement interdits."
+        "title": "5. Code de Conduite et Activités Interdites",
+        "body": "Tous les utilisateurs doivent se traiter avec le plus grand respect et professionnalisme. Le harcèlement, la discrimination, la fraude, le partage de contenu inapproprié et tout comportement non professionnel sont strictement interdits. Vous ne pouvez pas utiliser la Plateforme pour des activités illégales ou pour solliciter des services qui violent les lois locales. Les violations entraîneront la résiliation immédiate du compte et d'éventuelles poursuites judiciaires."
+      },
+      {
+        "title": "6. Droits de Propriété Intellectuelle",
+        "body": "Tout le contenu de la Plateforme Fixam, y compris, mais sans s'y limiter, les textes, graphiques, logos, images et logiciels, est la propriété de Fixam ou de ses concédants de licence et est protégé par les lois sur la propriété intellectuelle. Vous ne pouvez pas modifier, copier, distribuer ou faire de l'ingénierie inverse sur une quelconque partie de la Plateforme sans notre consentement écrit explicite."
+      },
+      {
+        "title": "7. Limitation de Responsabilité et Indemnisation",
+        "body": "Dans toute la mesure permise par la loi, Fixam ne sera pas responsable des dommages indirects, accessoires, spéciaux, consécutifs ou punitifs, ou de toute perte de profits ou de revenus, qu'elle soit subie directement ou indirectement, découlant de votre utilisation de la Plateforme. Vous acceptez d'indemniser et de dégager Fixam de toute responsabilité pour toute réclamation, perte ou dommage découlant de votre violation de ces Conditions ou de vos interactions avec d'autres utilisateurs."
+      },
+      {
+        "title": "8. Modifications des Conditions",
+        "body": "Nous nous réservons le droit de modifier ces Conditions à tout moment. Nous vous informerons de tout changement important en mettant à jour la date de « Dernière mise à jour » ou par communication directe. L'utilisation continue de la Plateforme après de tels changements constitue votre acceptation des nouvelles Conditions."
       }
     ],
     "privacySections": [
       {
-        "title": "1. Informations que nous collectons",
-        "body": "Nous collectons les informations personnelles que vous nous fournissez, y compris votre nom, numéro de téléphone, e-mail, emplacement physique et date de naissance."
+        "title": "1. Informations que Nous Collectons",
+        "body": "Nous collectons les informations personnelles que vous nous fournissez directement lorsque vous vous inscrivez et utilisez la Plateforme. Cela inclut votre nom complet, numéro de téléphone, adresse e-mail, emplacement physique, date de naissance, photo de profil et préférences de service. Pour les prestataires, nous collectons également les compétences professionnelles, les portfolios, les documents d'identification et les données de disponibilité. Nous collectons également automatiquement des données d'utilisation et des informations sur l'appareil lorsque vous interagissez avec l'application."
       },
       {
-        "title": "2. Comment nous utilisons vos informations",
-        "body": "Vos informations sont utilisées pour fournir, maintenir et améliorer Fixam. Nous utilisons votre position pour vous connecter aux utilisateurs à proximité."
+        "title": "2. Comment Nous Utilisons Vos Informations",
+        "body": "Vos informations sont principalement utilisées pour fournir, maintenir et améliorer la plateforme Fixam. Plus précisément, nous utilisons votre position pour vous connecter avec des prestataires ou des clients à proximité, vos coordonnées pour envoyer des messages transactionnels (comme les OTP et les mises à jour de réservation), et les données de votre profil pour personnaliser votre expérience. Nous utilisons également des données agrégées pour l'analyse et pour améliorer nos offres de services."
       },
       {
-        "title": "3. Partage d'Informations",
-        "body": "Nous partageons les informations pertinentes entre clients et prestataires pour faciliter les réservations. Nous ne vendons pas vos données à des tiers."
+        "title": "3. Partage et Divulgation d'Informations",
+        "body": "Pour faciliter les réservations de services, nous partageons des informations pertinentes entre clients et prestataires (par exemple, emplacement, nom, numéro de téléphone et détails du service). Nous ne vendons, ne louons ni n'échangeons vos données personnelles à des tiers à des fins de marketing. Nous pouvons partager des informations avec des prestataires de services tiers de confiance qui nous aident à exploiter l'application, ou avec les autorités légales si la loi l'exige ou pour protéger nos droits et la sécurité de nos utilisateurs."
       },
       {
-        "title": "4. Sécurité des Données",
-        "body": "Nous mettons en œuvre des mesures de sécurité conformes aux normes de l'industrie pour protéger vos informations, bien qu'aucune transmission sur Internet ne soit sécurisée à 100%."
+        "title": "4. Sécurité et Conservation des Données",
+        "body": "Nous mettons en œuvre des mesures de sécurité conformes aux normes de l'industrie, y compris le cryptage et les protocoles SSL, pour protéger vos informations personnelles contre tout accès, altération ou divulgation non autorisés. Cependant, aucune méthode de transmission sur Internet n'est sécurisée à 100 %. Nous ne conservons vos données que le temps nécessaire pour fournir nos services, nous conformer aux obligations légales et résoudre les litiges."
       },
       {
-        "title": "5. Vos Droits",
-        "body": "Vous avez le droit d'accéder, de mettre à jour ou de supprimer vos informations personnelles à tout moment via les paramètres de votre compte."
+        "title": "5. Vos Droits et Choix en Matière de Confidentialité",
+        "body": "Vous avez le droit d'accéder, de mettre à jour, de corriger ou de supprimer vos informations personnelles à tout moment via les paramètres de votre compte. Vous pouvez également vous désinscrire des communications promotionnelles, bien que vous continuiez à recevoir des messages transactionnels essentiels. Si vous souhaitez supprimer complètement votre compte et les données associées, vous pouvez le faire dans l'application ou en contactant notre équipe d'assistance."
+      },
+      {
+        "title": "6. Modifications de Cette Politique de Confidentialité",
+        "body": "Nous pouvons mettre à jour cette Politique de Confidentialité de temps à autre pour refléter les changements dans nos pratiques ou les exigences légales. Nous vous informerons de tout changement important via l'application ou par e-mail. Nous vous encourageons à revoir cette politique périodiquement pour rester informé de la manière dont nous protégeons votre vie privée."
       }
     ],
-    "contact": "Pour toute question, veuillez nous contacter à support@fixam.com."
+    "contact": "Si vous avez des questions, des préoccupations ou des commentaires concernant ces conditions ou nos pratiques de confidentialité, veuillez nous contacter à support@fixam.com."
   }
 }

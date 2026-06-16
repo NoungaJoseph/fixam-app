@@ -27,7 +27,7 @@ const cameroonRegions = {
 
 const RegisterScreen = ({ navigation, route }) => {
   const { isDarkMode, colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { loginDirect } = useAuth();
   const insets = useSafeAreaInsets();
   const { role } = route.params || { role: 'client' };
@@ -113,6 +113,7 @@ const RegisterScreen = ({ navigation, route }) => {
       setSubmitting(true);
       const res = await api.post('/auth/register', {
         ...userData,
+        language: locale || 'en',
         role: role.toUpperCase(),
         providerProfile: role === 'provider' ? {
           skills: [], bio: '', rate: 0,

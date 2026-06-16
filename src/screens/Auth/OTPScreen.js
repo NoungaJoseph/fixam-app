@@ -12,7 +12,7 @@ import { useLanguage } from '../../context/LanguageContext';
 const OTPScreen = ({ route, navigation }) => {
   const { contact, method, role, purpose } = route.params || { contact: '', method: 'phone', role: 'CLIENT' };
   const { loginWithOTP, verifyEmailRegistration, isLoading } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [otp, setOtp] = useState('');
   const [timer, setTimer] = useState(59);
   const inputRef = useRef(null);
@@ -70,7 +70,7 @@ const OTPScreen = ({ route, navigation }) => {
     try {
       const email = method === 'email' ? contact : null;
       const phone = method === 'phone' ? contact : null;
-      await api.post('/auth/request-otp', { email, phone });
+      await api.post('/auth/request-otp', { email, phone, language: locale });
       setTimer(60);
       Alert.alert(t('otp.success', 'Success'), t('otp.resendSuccess', 'A new code has been sent.'));
       if (inputRef.current) inputRef.current.focus();

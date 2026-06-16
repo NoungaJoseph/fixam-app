@@ -421,48 +421,64 @@
     "privacyTitle": "Privacy Policy",
     "termsSections": [
       {
-        "title": "1. Acceptance of Terms",
-        "body": "By downloading, accessing, or using the Fixam platform, you agree to be bound by these Terms of Service. Fixam connects clients needing services with professional providers in Cameroon. If you do not agree to these terms, please do not use our application."
+        "title": "1. Introduction and Acceptance of Terms",
+        "body": "Welcome to Fixam. By downloading, installing, accessing, or using the Fixam mobile application and related services (collectively, the 'Platform'), you agree to be bound by these Terms of Service. Fixam connects clients needing diverse services with professional, vetted service providers in Cameroon. If you do not agree to all of these terms and conditions, you must not use our Platform."
       },
       {
-        "title": "2. User Accounts and Verification",
-        "body": "You must provide accurate, complete, and current information when registering. Users are responsible for maintaining the confidentiality of their OTPs and passwords. Fixam reserves the right to suspend or terminate accounts that provide false information or violate community guidelines."
+        "title": "2. Eligibility and Account Registration",
+        "body": "To use Fixam, you must be at least 18 years of age and capable of forming a binding contract. When registering, whether as a Client or a Provider, you must provide accurate, complete, and current information. You are solely responsible for safeguarding your login credentials (including OTPs) and for all activities that occur under your account. Fixam reserves the right to suspend or terminate accounts that provide false information or violate our community guidelines."
       },
       {
-        "title": "3. Platform Role and Liability",
-        "body": "Fixam acts solely as a technological marketplace connecting independent service providers with clients. We do not employ the providers and are not responsible for the quality, safety, or legality of the services performed. Any disputes regarding the services must be resolved directly between the client and the provider, although Fixam may offer mediation support."
+        "title": "3. The Role of the Fixam Platform",
+        "body": "Fixam acts exclusively as a technological marketplace connecting independent service providers with clients. We do not directly employ the providers, nor do we act as an agent for either party. While we strive to verify providers and maintain high standards, we do not guarantee the quality, safety, or legality of the services performed. Any disputes arising from the provision of services must be resolved directly between the client and the provider, although Fixam may, at its discretion, offer mediation support."
       },
       {
-        "title": "4. Payments and Fixam Coins",
-        "body": "Booking a provider requires Fixam coins. These coins are non-refundable unless a booking is cancelled under eligible conditions. Providers agree to the rates they set, and clients agree to pay the agreed amount directly to the provider upon completion of the service. Fixam is not responsible for off-platform financial transactions."
+        "title": "4. Booking, Payments, and Fixam Coins",
+        "body": "Booking a provider on Fixam requires the use of Fixam coins, our in-app currency. Coins are purchased through the application and are non-refundable unless a booking is cancelled under conditions explicitly outlined in our Cancellation Policy. Providers independently set their service rates, and clients agree to pay the agreed-upon amount directly to the provider upon satisfactory completion of the service. Fixam is not responsible for off-platform financial transactions or disputes over payment amounts between users."
       },
       {
-        "title": "5. Code of Conduct",
-        "body": "All users must treat each other with respect. Harassment, discrimination, fraud, and unprofessional behavior are strictly prohibited and will result in immediate account termination and potential legal action."
+        "title": "5. Code of Conduct and Prohibited Activities",
+        "body": "All users must treat each other with utmost respect and professionalism. Harassment, discrimination, fraud, sharing inappropriate content, and any unprofessional behavior are strictly prohibited. You may not use the Platform for any illegal activities or to solicit services that violate local laws. Violations will result in immediate account termination and potential legal action."
+      },
+      {
+        "title": "6. Intellectual Property Rights",
+        "body": "All content on the Fixam Platform, including but not limited to text, graphics, logos, images, and software, is the property of Fixam or its licensors and is protected by intellectual property laws. You may not modify, copy, distribute, or reverse engineer any part of the Platform without our explicit written consent."
+      },
+      {
+        "title": "7. Limitation of Liability and Indemnification",
+        "body": "To the maximum extent permitted by law, Fixam shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, arising from your use of the Platform. You agree to indemnify and hold Fixam harmless from any claims, losses, or damages arising out of your breach of these Terms or your interactions with other users."
+      },
+      {
+        "title": "8. Modifications to Terms",
+        "body": "We reserve the right to modify these Terms at any time. We will notify you of any significant changes by updating the 'Last Updated' date or through direct communication. Continued use of the Platform after such changes constitutes your acceptance of the new Terms."
       }
     ],
     "privacySections": [
       {
         "title": "1. Information We Collect",
-        "body": "We collect personal information that you provide directly to us, including your name, phone number, email address, physical location, date of birth, and service preferences. For providers, we also collect professional skills, portfolios, and availability."
+        "body": "We collect personal information that you provide directly to us when you register and use the Platform. This includes your full name, phone number, email address, physical location, date of birth, profile picture, and service preferences. For providers, we also collect professional skills, portfolios, identification documents, and availability data. We also collect usage data and device information automatically as you interact with the app."
       },
       {
         "title": "2. How We Use Your Information",
-        "body": "Your information is used to provide, maintain, and improve the Fixam platform. We use your location to connect you with nearby providers or clients. We also use your contact information to send transactional messages, OTPs, and important updates."
+        "body": "Your information is primarily used to provide, maintain, and improve the Fixam platform. Specifically, we use your location to connect you with nearby providers or clients, your contact information to send transactional messages (like OTPs and booking updates), and your profile data to personalize your experience. We also use aggregated data for analytics and to improve our service offerings."
       },
       {
-        "title": "3. Information Sharing",
-        "body": "We share relevant information between clients and providers to facilitate bookings (e.g., location, name, phone number). We do not sell your personal data to third parties. We may share information with legal authorities if required by law."
+        "title": "3. Information Sharing and Disclosure",
+        "body": "To facilitate service bookings, we share relevant information between clients and providers (e.g., location, name, phone number, and service details). We do not sell, rent, or trade your personal data to third parties for marketing purposes. We may share information with trusted third-party service providers who assist us in operating the app, or with legal authorities if required by law or to protect our rights and the safety of our users."
       },
       {
-        "title": "4. Data Security",
-        "body": "We implement industry-standard security measures, including encryption and secure socket layers (SSL), to protect your personal information. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security."
+        "title": "4. Data Security and Retention",
+        "body": "We implement industry-standard security measures, including encryption and secure socket layers (SSL), to protect your personal information from unauthorized access, alteration, or disclosure. However, no method of transmission over the internet is 100% secure. We retain your data only for as long as your account is active or as needed to provide you services, comply with legal obligations, and resolve disputes."
       },
       {
-        "title": "5. Your Rights",
-        "body": "You have the right to access, update, or delete your personal information at any time through your account settings. You may also contact our support team to request data deletion."
+        "title": "5. Your Privacy Rights and Choices",
+        "body": "You have the right to access, update, correct, or delete your personal information at any time through your account settings. You may also opt-out of promotional communications, although you will continue to receive essential transactional messages. If you wish to completely delete your account and associated data, you may do so within the app or by contacting our support team."
+      },
+      {
+        "title": "6. Changes to This Privacy Policy",
+        "body": "We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements. We will notify you of any material changes via the app or email. We encourage you to review this policy periodically to stay informed about how we protect your privacy."
       }
     ],
-    "contact": "If you have any questions, please contact us at support@fixam.com."
+    "contact": "If you have any questions, concerns, or feedback regarding these terms or our privacy practices, please contact us at support@fixam.com."
   }
 }

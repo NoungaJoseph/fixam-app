@@ -94,7 +94,7 @@ const MyJobsScreen = ({ navigation }) => {
   const mappedBookings = bookings.map(booking => ({
     id: booking.id,
     title: booking.notes || t('jobs.scheduledServiceBooking'),
-    status: booking.status === 'ACCEPTED' ? 'Booked' : booking.status === 'COMPLETED' ? 'Completed' : booking.status === 'REJECTED' || booking.status === 'CANCELLED' ? 'Cancelled' : 'Requests',
+    status: booking.status === 'ACCEPTED' ? 'Booked' : booking.status === 'COMPLETED' ? 'Completed' : booking.status === 'REJECTED' || booking.status === 'CANCELLED' ? 'Cancelled' : booking.status === 'IN_PROGRESS' ? 'Active' : 'Requests',
     client: booking.client?.fullName || t('common.client'),
     avatar: booking.client?.avatar,
     time: `${new Date(booking.bookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${booking.bookingTime}`,
@@ -156,7 +156,7 @@ const MyJobsScreen = ({ navigation }) => {
     return (
       <TouchableOpacity
         style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}
-        onPress={() => item.isBooking ? null : navigation.navigate('TaskDetails', { task: item.rawJob })}
+        onPress={() => navigation.navigate('TaskDetails', { task: item.rawJob })}
         activeOpacity={0.85}
       >
         <View style={styles.jobRow}>

@@ -80,8 +80,8 @@ const MyTasksListScreen = ({ navigation }) => {
       id: job.id,
       title: job.title,
       status: statusVal,
-      client: job.client?.fullName || t('common.client'),
-      avatar: job.client?.avatar,
+      client: job.assignments?.[0]?.provider?.user?.fullName || t('jobs.provider'),
+      avatar: job.assignments?.[0]?.provider?.user?.avatar,
       time: job.scheduledTime ? new Date(job.scheduledTime).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US') : t('jobs.asap'),
       budget: Number(job.budgetMax || job.budget || 0),
       location: job.location || t('jobs.onSite'),
@@ -94,9 +94,9 @@ const MyTasksListScreen = ({ navigation }) => {
   const mappedBookings = bookings.map(booking => ({
     id: booking.id,
     title: booking.notes || t('jobs.scheduledServiceBooking'),
-    status: booking.status === 'ACCEPTED' ? 'Booked' : booking.status === 'COMPLETED' ? 'Completed' : booking.status === 'REJECTED' || booking.status === 'CANCELLED' ? 'Cancelled' : 'Requests',
-    client: booking.client?.fullName || t('common.client'),
-    avatar: booking.client?.avatar,
+    status: booking.status === 'ACCEPTED' ? 'Booked' : booking.status === 'COMPLETED' ? 'Completed' : booking.status === 'REJECTED' || booking.status === 'CANCELLED' ? 'Cancelled' : booking.status === 'IN_PROGRESS' ? 'Active' : 'Requests',
+    client: booking.provider?.fullName || t('jobs.provider'),
+    avatar: booking.provider?.avatar,
     time: `${new Date(booking.bookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${booking.bookingTime}`,
     budget: Number(booking.budget || 0),
     location: booking.location || t('jobs.onSite'),
@@ -155,7 +155,7 @@ const MyTasksListScreen = ({ navigation }) => {
     return (
       <TouchableOpacity
         style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}
-        onPress={() => item.isBooking ? null : navigation.navigate('JobStatus', { job: item.rawJob })}
+        onPress={() => navigation.navigate('JobStatus', { job: item.rawJob, isBooking: item.isBooking })}
         activeOpacity={0.85}
       >
         <View style={styles.jobRow}>
@@ -203,7 +203,7 @@ const MyTasksListScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[styles.chatBtn, { borderColor: colors.border }]}
                 onPress={() => navigation.navigate('Chat', {
-                receiverId: item.isBooking ? item.rawJob.clientId : item.rawJob.clientId,
+                receiverId: item.isBooking ? item.rawJob.providerId : item.rawJob.assignments?.[0]?.provider?.userId,
                 userName: item.client,
                 avatar: item.avatar,
                 task: item.rawJob,

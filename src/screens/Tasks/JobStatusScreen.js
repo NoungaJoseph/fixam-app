@@ -31,6 +31,7 @@ const JobStatusScreen = ({ route, navigation }) => {
 
   React.useEffect(() => {
     if (!route.params?.job?.id) return;
+    if (route.params?.isBooking || route.params?.job?.isBooking) return;
 
     let isMounted = true;
     api.get(`/jobs/${route.params.job.id}`)

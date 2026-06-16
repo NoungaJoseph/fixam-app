@@ -34,7 +34,7 @@ import {
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || '',
   tracesSampleRate: 1.0,
-  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: false,
 });
 
 // ---------------------------------------------------------------------------

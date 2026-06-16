@@ -22,6 +22,16 @@ export const requestStartupPermissions = async () => {
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#14B8A6',
         });
+        await Notifications.setNotificationChannelAsync('calls', {
+          name: 'Incoming Calls',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 1000, 500, 1000, 500, 1000],
+          lightColor: '#14B8A6',
+          sound: 'ringtone', // Attempt to use system default ringtone
+          enableVibrate: true,
+          bypassDnd: true,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC
+        });
       }
 
       const notificationStatus = await Notifications.getPermissionsAsync();

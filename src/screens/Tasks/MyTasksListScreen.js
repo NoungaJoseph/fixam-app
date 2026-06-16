@@ -39,7 +39,7 @@ const CATEGORY_ICONS = {
   BOOKING: 'calendar-check-outline',
 };
 
-const MyJobsScreen = ({ navigation }) => {
+const MyTasksListScreen = ({ navigation }) => {
   const { isDarkMode, colors } = useTheme();
   const { transactions, notificationCount } = useAppContext();
   const { on } = useSocket();
@@ -50,12 +50,12 @@ const MyJobsScreen = ({ navigation }) => {
 
   const fetchMyJobs = useCallback(async () => {
     try {
-      const res = await api.get('/jobs/my-jobs');
-      const bookingRes = await api.get('/bookings/mine?role=PROVIDER').catch(() => ({ data: { data: [] } }));
+      const res = await api.get('/jobs/client');
+      const bookingRes = await api.get('/bookings/mine?role=CLIENT').catch(() => ({ data: { data: [] } }));
       setJobs(res.data.data || []);
-      setBookings(bookingRes.data.data || []);
-    } catch (e) {
-      setJobs([]);
+      setBookings(bookingRes.data?.data || []);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
     }
   }, []);
 
@@ -134,7 +134,6 @@ const MyJobsScreen = ({ navigation }) => {
   };
 
   const StatCard = ({ icon, value, label, sub, color, bg }) => {
-    // Use a dark-mode-aware icon background
     const iconBg = isDarkMode ? 'rgba(255,255,255,0.08)' : (bg || '#F0FDFA');
     return (
       <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}>
@@ -156,7 +155,7 @@ const MyJobsScreen = ({ navigation }) => {
     return (
       <TouchableOpacity
         style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}
-        onPress={() => item.isBooking ? null : navigation.navigate('TaskDetails', { task: item.rawJob })}
+        onPress={() => item.isBooking ? null : navigation.navigate('JobStatus', { job: item.rawJob })}
         activeOpacity={0.85}
       >
         <View style={styles.jobRow}>
@@ -218,7 +217,7 @@ const MyJobsScreen = ({ navigation }) => {
           {item.status === 'Requests' && (
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              onPress={() => item.isBooking ? handleUpdateStatus(item.id, 'ACCEPTED') : navigation.navigate('TaskDetails', { task: item.rawJob })}
+              onPress={() => item.isBooking ? handleUpdateStatus(item.id, 'ACCEPTED') : navigation.navigate('JobStatus', { job: item.rawJob })}
             >
               <Text style={styles.primaryBtnText}>{item.isBooking ? t('jobs.accept') : t('jobs.review')}</Text>
             </TouchableOpacity>
@@ -465,4 +464,4 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 14 },
 });
 
-export default MyJobsScreen;
+export default MyTasksListScreen;

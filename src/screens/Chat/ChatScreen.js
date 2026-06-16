@@ -263,45 +263,28 @@ const ChatScreen = ({ route, navigation }) => {
   }, [activeConvId, fetchMessages, on, emit, receiverId, user?.id, fetchConversations, fetchNotifications]);
 
   const trackingTask = activeTask || task;
-  const hasExistingBooking = Boolean(
+  const hasBooking = Boolean(trackingTask?.id);
+  
+  const isTaskFinished = Boolean(
     trackingTask?.id &&
-    (
-      !['CANCELLED', 'REJECTED'].includes(String(trackingTask.status || '').toUpperCase()) ||
-      (trackingTask.assignments && trackingTask.assignments.some((a) => !['CANCELLED', 'REJECTED'].includes(String(a.status || '').toUpperCase())))
-    )
+    ['COMPLETED', 'CANCELLED', 'REJECTED'].includes(String(trackingTask.status || '').toUpperCase())
   );
 
-  const hasAcceptedWork = Boolean(
-    trackingTask?.id &&
-    (
-      ['ACCEPTED', 'ASSIGNED', 'IN_PROGRESS', 'ONGOING'].includes(String(trackingTask.status || '').toUpperCase()) ||
-      (trackingTask.isBooking && ['ACCEPTED', 'COMPLETED'].includes(String(trackingTask.status || '').toUpperCase())) ||
-      trackingTask.assignments?.some((assignment) => ['ACCEPTED', 'IN_PROGRESS'].includes(String(assignment.status || '').toUpperCase()))
-    )
-  );
+  const canMessage = isSupportConversation || currentUser.role === 'ADMIN' || (hasBooking && !isTaskFinished);
 
-  const canMessage = isSupportConversation || currentUser.role === 'ADMIN' || hasAcceptedWork;
   const showCannotMessageAlert = () => {
-    if (currentUser?.role === 'PROVIDER') {
+    if (isTaskFinished) {
       Alert.alert(
-        t('chat:messages.actionRequired', 'Action Required'),
-        t('chat:messages.providerMustAccept', 'Please accept the task before you can message the client.'),
+        t('common.error', 'Error'),
+        t('chat:messages.taskFinished', 'This task has been completed or cancelled. You can no longer send messages or make calls.'),
         [{ text: t('common.ok', 'OK'), style: 'default' }]
       );
     } else {
-      if (hasExistingBooking) {
-        Alert.alert(
-          t('chat:messages.pendingAcceptance', 'Pending Acceptance'),
-          t('chat:messages.clientMustWait', 'The provider has not accepted your booking yet. Please wait for them to accept.'),
-          [{ text: t('common.ok', 'OK'), style: 'default' }]
-        );
-      } else {
-        Alert.alert(
-          t('chat:messages.bookingRequiredTitle', 'Booking Required'),
-          t('chat:messages.bookingRequiredBody', 'You need to book this provider before you can send a message.'),
-          [{ text: t('common.ok', 'OK'), style: 'default' }]
-        );
-      }
+      Alert.alert(
+        t('chat:messages.bookingRequiredTitle', 'Booking Required'),
+        t('chat:messages.bookingRequiredBody', 'You need to book this provider before you can send a message.'),
+        [{ text: t('common.ok', 'OK'), style: 'default' }]
+      );
     }
   };
 
@@ -483,8 +466,11 @@ const ChatScreen = ({ route, navigation }) => {
       <View style={[styles.header, { backgroundColor: isDarkMode ? 'transparent' : '#FFF', borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}><MaterialCommunityIcons name="chevron-left" size={28} color={colors.primary} /></TouchableOpacity>
         <UserAvatar uri={avatarUri} name={userName} size={40} radius={12} style={styles.headerAvatar} />
-        <View style={{ flex: 1 }}><Text style={[styles.headerName, { color: colors.text }]}>{userName}</Text><Text style={styles.headerStatus}>{isTyping ? t('messages.typing') : t('messages.online')}</Text></View>
-        {hasAcceptedWork ? (
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.headerName, { color: colors.text }]}>{userName}</Text>
+          <Text style={styles.headerStatus}>{!canMessage ? '' : isTyping ? t('messages.typing') : t('messages.online')}</Text>
+        </View>
+        {hasBooking && !isTaskFinished ? (
           <TouchableOpacity
             style={[styles.trackCompact, { borderColor: colors.border, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#FFF' }]}
             onPress={openTaskTracker}
@@ -497,7 +483,7 @@ const ChatScreen = ({ route, navigation }) => {
             </Text>
           </TouchableOpacity>
         ) : null}
-        {!isSupportConversation && (
+        {!isSupportConversation && canMessage && (
           <TouchableOpacity onPress={handleAudioCall} style={{ marginLeft: 12 }}>
             <Ionicons name="call-outline" size={24} color={colors.primary} />
           </TouchableOpacity>

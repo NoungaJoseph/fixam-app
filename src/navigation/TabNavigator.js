@@ -81,9 +81,11 @@ const WalletStack = () => (
   </Stack.Navigator>
 );
 
+import MyTasksListScreen from '../screens/Tasks/MyTasksListScreen';
+
 const TaskStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="MyTasksMain" component={PostTaskScreen} />
+    <Stack.Screen name="MyTasksMain" component={MyTasksListScreen} />
     <Stack.Screen name="PostTask" component={PostTaskScreen} initialParams={{ startOnPost: true }} />
   </Stack.Navigator>
 );

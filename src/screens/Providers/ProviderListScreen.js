@@ -94,7 +94,7 @@ const ProviderListScreen = ({ route, navigation }) => {
   }), [providers, search, category, verifiedOnly, favoritesOnly, favoriteProviderIds, activeFilter]);
 
   const renderProvider = ({ item }) => {
-    const avatarUri = getMediaUrl(item.user?.avatar);
+    const avatarUri = getMediaUrl(item.image || item.avatar || item.user?.avatar);
     const isFavorite = favoriteProviderIds?.includes(item.id);
 
     return (
@@ -250,7 +250,7 @@ const ProviderListScreen = ({ route, navigation }) => {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topProvidersScroll}>
                 {topProviders.map(item => (
                   <TouchableOpacity key={`top-${item.id}`} style={[styles.topCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('ProviderProfile', { provider: item })}>
-                    <UserAvatar uri={getMediaUrl(item.user?.avatar)} name={item.user?.fullName} size={50} radius={25} style={styles.topAvatar} />
+                    <UserAvatar uri={getMediaUrl(item.image || item.avatar || item.user?.avatar)} name={item.user?.fullName} size={50} radius={25} style={styles.topAvatar} />
                     <Text style={[styles.topProvName, { color: colors.text }]} numberOfLines={1}>{item.user?.fullName}</Text>
                     <View style={styles.topRatingRow}>
                       <MaterialCommunityIcons name="star" size={12} color="#F59E0B" />

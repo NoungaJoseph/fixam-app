@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
-  StatusBar, KeyboardAvoidingView, Platform, ScrollView
+  StatusBar, KeyboardAvoidingView, Platform, ScrollView, Modal
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,19 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+
+const cameroonRegions = {
+  Adamawa: ["Ngaoundéré", "Meiganga", "Tibati", "Banyo"],
+  Centre: ["Yaoundé", "Bafia", "Mbalmayo", "Obala"],
+  East: ["Bertoua", "Batouri", "Abong-Mbang", "Yokadouma"],
+  "Far North": ["Maroua", "Yagoua", "Mokolo", "Kousseri"],
+  Littoral: ["Douala", "Edéa", "Nkongsamba", "Loum"],
+  North: ["Garoua", "Guider", "Figuil", "Tcholliré"],
+  Northwest: ["Bamenda", "Kumbo", "Wum", "Ndop"],
+  South: ["Ebolowa", "Sangmélima", "Kribi", "Campo"],
+  Southwest: ["Buea", "Limbe", "Kumba", "Tiko"],
+  West: ["Bafoussam", "Dschang", "Foumban", "Mbouda"]
+};
 
 const RegisterScreen = ({ navigation, route }) => {
   const { isDarkMode, colors } = useTheme();
@@ -25,7 +38,8 @@ const RegisterScreen = ({ navigation, route }) => {
     email: '',
     phone: '',
     referral: '',
-    location: '',
+    region: '',
+    city: '',
     password: '',
     repeatPassword: '',
   });
@@ -33,6 +47,8 @@ const RegisterScreen = ({ navigation, route }) => {
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showRegionPicker, setShowRegionPicker] = useState(false);
+  const [showCityPicker, setShowCityPicker] = useState(false);
 
   const setField = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
   const setPhoneField = (value) => setField('phone', value.replace(/\D/g, '').slice(0, 9));
@@ -61,14 +77,16 @@ const RegisterScreen = ({ navigation, route }) => {
     formData.lastName.trim().length > 0 &&
     isValidEmail(formData.email.trim()) &&
     isValidPhone(phoneDigits) &&
-    formData.location.trim().length > 0 &&
+    formData.region.trim().length > 0 &&
+    formData.city.trim().length > 0 &&
     metCount >= 3 &&
     formData.password === formData.repeatPassword &&
     agree;
 
   const handleRegister = async () => {
     const normalizedPhone = phoneDigits;
-    const userData = { ...formData, phone: normalizedPhone, fullName: `${formData.firstName} ${formData.lastName}`.trim() };
+    const finalLocation = formData.city && formData.region ? `${formData.city}, ${formData.region}` : '';
+    const userData = { ...formData, location: finalLocation, phone: normalizedPhone, fullName: `${formData.firstName} ${formData.lastName}`.trim() };
 
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
       alert(t('validation.nameRequired')); return;
@@ -79,7 +97,7 @@ const RegisterScreen = ({ navigation, route }) => {
     if (!isValidPhone(normalizedPhone)) {
       alert(t('validation.phoneRequired')); return;
     }
-    if (!formData.location.trim()) {
+    if (!formData.region.trim() || !formData.city.trim()) {
       alert(t('validation.locationRequired')); return;
     }
     if (metCount < 3) {
@@ -98,7 +116,7 @@ const RegisterScreen = ({ navigation, route }) => {
         role: role.toUpperCase(),
         providerProfile: role === 'provider' ? {
           skills: [], bio: '', rate: 0,
-          serviceArea: formData.location,
+          serviceArea: finalLocation,
           experienceLevel: '', availability: {}
         } : undefined
       });
@@ -223,15 +241,29 @@ const RegisterScreen = ({ navigation, route }) => {
 
             {/* Location */}
             <Text style={styles.label}>{t('register.location')}</Text>
-            <TextInput
-              style={[styles.input, inputStyle]}
-              placeholder="e.g. Akwa, Douala"
-              placeholderTextColor="rgba(255,255,255,0.66)"
-              value={formData.location}
-              onChangeText={(v) => setField('location', v)}
-              selectionColor="#FFF"
-            />
-
+            <View style={styles.row}>
+              <View style={styles.half}>
+                <TouchableOpacity 
+                  style={[styles.input, inputStyle, { justifyContent: 'center' }]} 
+                  onPress={() => setShowRegionPicker(true)}
+                >
+                  <Text style={{ color: formData.region ? '#FFF' : 'rgba(255,255,255,0.66)', fontSize: 15, fontWeight: '600' }}>
+                    {formData.region || "Select Region"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.half}>
+                <TouchableOpacity 
+                  style={[styles.input, inputStyle, { justifyContent: 'center' }, !formData.region && { opacity: 0.5 }]} 
+                  onPress={() => formData.region && setShowCityPicker(true)}
+                  disabled={!formData.region}
+                >
+                  <Text style={{ color: formData.city ? '#FFF' : 'rgba(255,255,255,0.66)', fontSize: 15, fontWeight: '600' }}>
+                    {formData.city || "Select City"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             {/* Password */}
             <Text style={styles.label}>{t('register.password')}</Text>
             <View style={[styles.inputWrapper, inputStyle]}>
@@ -342,6 +374,52 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={showRegionPicker} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRegionPicker(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Region</Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {Object.keys(cameroonRegions).map(region => (
+                <TouchableOpacity 
+                  key={region} 
+                  style={styles.modalOption}
+                  onPress={() => {
+                    setField('region', region);
+                    setField('city', ''); // reset city when region changes
+                    setShowRegionPicker(false);
+                  }}
+                >
+                  <Text style={styles.modalOptionText}>{region}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={showCityPicker} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowCityPicker(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select City</Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {formData.region && cameroonRegions[formData.region].map(city => (
+                <TouchableOpacity 
+                  key={city} 
+                  style={styles.modalOption}
+                  onPress={() => {
+                    setField('city', city);
+                    setShowCityPicker(false);
+                  }}
+                >
+                  <Text style={styles.modalOptionText}>{city}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       </SafeAreaView>
     </LinearGradient>
   );
@@ -392,6 +470,11 @@ const styles = StyleSheet.create({
   registerBtnText: { color: '#FFF', fontSize: 17, fontWeight: '900', textAlign: 'center' },
   buttonArrow: { position: 'absolute', right: 20 },
   passwordHint: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 4, marginLeft: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { width: '100%', backgroundColor: '#FFF', borderRadius: 16, padding: 20, maxHeight: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 12, textAlign: 'center' },
+  modalOption: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  modalOptionText: { fontSize: 16, color: '#374151', textAlign: 'center' },
 });
 
 export default RegisterScreen;

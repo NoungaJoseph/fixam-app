@@ -413,5 +413,56 @@
     "verifyText": "Recherchez le badge pour embaucher des professionnels vérifiés.",
     "reviewTitle": "Laissez des avis",
     "reviewText": "Évaluez votre expérience pour aider la communauté."
+  },
+  "legal": {
+    "title": "Conditions et Politique de Confidentialité",
+    "lastUpdated": "Dernière mise à jour : Juin 2026",
+    "termsTitle": "Conditions de Service",
+    "privacyTitle": "Politique de Confidentialité",
+    "termsSections": [
+      {
+        "title": "1. Acceptation des Conditions",
+        "body": "En téléchargeant, accédant ou utilisant la plateforme Fixam, vous acceptez d'être lié par ces Conditions de Service. Fixam met en relation les clients ayant besoin de services avec des prestataires professionnels au Cameroun. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser notre application."
+      },
+      {
+        "title": "2. Comptes Utilisateurs et Vérification",
+        "body": "Vous devez fournir des informations exactes, complètes et à jour lors de votre inscription. Les utilisateurs sont responsables de la confidentialité de leurs mots de passe et OTP. Fixam se réserve le droit de suspendre ou de fermer les comptes fournissant de fausses informations."
+      },
+      {
+        "title": "3. Rôle de la Plateforme et Responsabilité",
+        "body": "Fixam agit uniquement en tant que place de marché technologique. Nous n'employons pas les prestataires et ne sommes pas responsables de la qualité ou de la sécurité des services. Tout litige doit être résolu directement entre le client et le prestataire."
+      },
+      {
+        "title": "4. Paiements et Pièces Fixam",
+        "body": "La réservation d'un prestataire nécessite des pièces Fixam (coins). Ces pièces ne sont pas remboursables, sauf en cas d'annulation éligible. Les prestataires fixent leurs tarifs et les clients s'engagent à payer le montant convenu à la fin du service."
+      },
+      {
+        "title": "5. Code de Conduite",
+        "body": "Tous les utilisateurs doivent se traiter avec respect. Le harcèlement, la discrimination, la fraude et tout comportement non professionnel sont strictement interdits."
+      }
+    ],
+    "privacySections": [
+      {
+        "title": "1. Informations que nous collectons",
+        "body": "Nous collectons les informations personnelles que vous nous fournissez, y compris votre nom, numéro de téléphone, e-mail, emplacement physique et date de naissance."
+      },
+      {
+        "title": "2. Comment nous utilisons vos informations",
+        "body": "Vos informations sont utilisées pour fournir, maintenir et améliorer Fixam. Nous utilisons votre position pour vous connecter aux utilisateurs à proximité."
+      },
+      {
+        "title": "3. Partage d'Informations",
+        "body": "Nous partageons les informations pertinentes entre clients et prestataires pour faciliter les réservations. Nous ne vendons pas vos données à des tiers."
+      },
+      {
+        "title": "4. Sécurité des Données",
+        "body": "Nous mettons en œuvre des mesures de sécurité conformes aux normes de l'industrie pour protéger vos informations, bien qu'aucune transmission sur Internet ne soit sécurisée à 100%."
+      },
+      {
+        "title": "5. Vos Droits",
+        "body": "Vous avez le droit d'accéder, de mettre à jour ou de supprimer vos informations personnelles à tout moment via les paramètres de votre compte."
+      }
+    ],
+    "contact": "Pour toute question, veuillez nous contacter à support@fixam.com."
   }
 }

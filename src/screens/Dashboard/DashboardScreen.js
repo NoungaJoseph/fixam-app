@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, StatusBar,
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -17,6 +18,7 @@ const DashboardScreen = ({ navigation }) => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSkillPicker, setShowSkillPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
@@ -35,6 +37,7 @@ const DashboardScreen = ({ navigation }) => {
     certificateYear: user?.providerProfile?.certificates?.[0]?.year || '',
     certificateImageUrl: user?.providerProfile?.certificates?.[0]?.imageUrl || '',
     dob: user?.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
+    location: user?.location || '',
     password: '',
   });
 
@@ -136,25 +139,29 @@ const DashboardScreen = ({ navigation }) => {
       const updates = {
         fullName: form.fullName,
         email: form.email,
-        bio: form.bio,
-        skills: form.skills,
-        rate: parseFloat(form.rate) || 0,
-        serviceArea: form.serviceArea,
-        experienceLevel: form.experienceLevel,
-        portfolio: form.portfolioTitle || form.portfolioDescription || form.portfolioImageUrl ? [{
+        dob: form.dob,
+        location: form.location
+      };
+      if (form.password) updates.password = form.password;
+
+      if (user?.role === 'PROVIDER') {
+        updates.bio = form.bio;
+        updates.skills = form.skills;
+        updates.rate = parseFloat(form.rate) || 0;
+        updates.serviceArea = form.serviceArea;
+        updates.experienceLevel = form.experienceLevel;
+        updates.portfolio = form.portfolioTitle || form.portfolioDescription || form.portfolioImageUrl ? [{
           title: form.portfolioTitle,
           description: form.portfolioDescription,
           imageUrl: form.portfolioImageUrl
-        }] : [],
-        certificates: form.certificateTitle || form.certificateIssuer || form.certificateImageUrl ? [{
+        }] : [];
+        updates.certificates = form.certificateTitle || form.certificateIssuer || form.certificateImageUrl ? [{
           title: form.certificateTitle,
           issuer: form.certificateIssuer,
           year: form.certificateYear,
           imageUrl: form.certificateImageUrl
-        }] : [],
-        dob: form.dob
-      };
-      if (form.password) updates.password = form.password;
+        }] : [];
+      }
 
       await updateProfile(updates);
       setEditing(false);
@@ -409,14 +416,12 @@ const DashboardScreen = ({ navigation }) => {
             </TouchableOpacity>
             <Text style={[styles.freelancerHeaderTitle, { color: colors.text }]}>{t('profileDetail.personalProfile')}</Text>
           </View>
-          {user?.role === 'PROVIDER' && (
-            <TouchableOpacity
-              style={[styles.headerIconBtn, { backgroundColor: colors.accent + '15', borderRadius: 21 }]}
-              onPress={switchToProvider}
-            >
-              <MaterialCommunityIcons name="account-convert" size={24} color={colors.accent} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[styles.headerIconBtn, { backgroundColor: colors.accent + '15', borderRadius: 21 }]}
+            onPress={switchToProvider}
+          >
+            <MaterialCommunityIcons name="account-convert" size={24} color={colors.accent} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.freelancerScroll}>
@@ -442,9 +447,7 @@ const DashboardScreen = ({ navigation }) => {
             </Text>
           </Section>
 
-          {user?.role === 'PROVIDER' && (
-            <ProfileModeDropdown colors={colors} user={user} isProviderMode={isProviderMode} switchToClient={switchToClient} switchToProvider={switchToProvider} navigation={navigation} defaultMode="PERSONAL" />
-          )}
+          <ProfileModeDropdown colors={colors} user={user} isProviderMode={isProviderMode} switchToClient={switchToClient} switchToProvider={switchToProvider} navigation={navigation} defaultMode="PERSONAL" />
 
           <Section colors={colors} title={t('profileDetail.trustVerification')}>
             <View style={styles.profileLineItem}>
@@ -517,11 +520,33 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.formSection}>
           <ProfileField label={t('profileDetail.fullName')} value={form.fullName} onChangeText={(v) => setForm({ ...form, fullName: v })} editable={editing} style={inputStyle} colors={colors} />
           <ProfileField label={t('profileDetail.email')} value={form.email} onChangeText={(v) => setForm({ ...form, email: v })} editable={editing} style={inputStyle} colors={colors} />
-          <ProfileField label={t('profileDetail.dateOfBirth')} value={form.dob} onChangeText={(v) => setForm({ ...form, dob: v })} editable={editing} style={inputStyle} colors={colors} placeholder="1995-01-01" />
-
-          {editing && (
-            <ProfileField label={t('profileDetail.newPasswordOptional')} value={form.password} onChangeText={(v) => setForm({ ...form, password: v })} editable={editing} style={inputStyle} colors={colors} secureTextEntry />
-          )}
+          <ProfileField label={t('register.location')} value={form.location} onChangeText={(v) => setForm({ ...form, location: v })} editable={editing} style={inputStyle} colors={colors} />
+          
+          <View style={styles.fieldWrap}>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('profileDetail.dateOfBirth')}</Text>
+            <TouchableOpacity 
+              style={[styles.input, inputStyle, !editing && { opacity: 0.72 }, { justifyContent: 'center' }]} 
+              onPress={() => editing && setShowDatePicker(true)}
+              disabled={!editing}
+            >
+              <Text style={{ color: form.dob ? colors.text : colors.placeholder }}>
+                {form.dob || "1995-01-01"}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={form.dob ? new Date(form.dob) : new Date(1995, 0, 1)}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (selectedDate) {
+                    setForm({ ...form, dob: selectedDate.toISOString().split('T')[0] });
+                  }
+                }}
+              />
+            )}
+          </View>
 
           <ProfileField label={t('profileDetail.phone')} value={form.phone} editable={false} style={[inputStyle, { opacity: 0.5 }]} colors={colors} />
 

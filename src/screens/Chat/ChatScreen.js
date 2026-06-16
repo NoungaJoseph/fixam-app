@@ -106,6 +106,26 @@ const ChatScreen = ({ route, navigation }) => {
   const activeConvIdRef = useRef(conversationId);
   console.log('[ChatScreen] Initial loading state:', !!conversationId);
 
+  // Sync state with route.params when navigating to an already mounted ChatScreen
+  useEffect(() => {
+    if (route.params) {
+      if (route.params.conversationId !== activeConvIdRef.current) {
+        setActiveConvId(route.params.conversationId);
+        activeConvIdRef.current = route.params.conversationId;
+        setMessages([]);
+        setLoading(!!route.params.conversationId);
+        setHasCheckedTask(false);
+      }
+      setParticipantDetails({
+        userName: route.params.userName || '',
+        receiverId: route.params.receiverId || '',
+        avatar: route.params.avatar || '',
+        otherParticipant: route.params.otherParticipant || null,
+      });
+      if (route.params.task) setActiveTask(route.params.task);
+    }
+  }, [route.params]);
+
   // Keep activeConvIdRef in sync
   useEffect(() => {
     activeConvIdRef.current = activeConvId;
@@ -135,14 +155,7 @@ const ChatScreen = ({ route, navigation }) => {
           .catch((err) => {
             console.log('[ChatScreen] Error fetching conv by participant:', err.message);
             if (err.response?.data?.message === 'requiresBooking') {
-              Alert.alert(
-                t('chat:messages.bookingRequiredTitle', 'Booking Required'),
-                t('chat:messages.bookingRequiredBody', 'You need to book this provider to start messaging.'),
-                [
-                  { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-                  { text: t('messages.bookNow', 'Book Now'), onPress: openBookingForm }
-                ]
-              );
+              showCannotMessageAlert();
             }
           });
       }
@@ -262,10 +275,35 @@ const ChatScreen = ({ route, navigation }) => {
     trackingTask?.id &&
     (
       ['ACCEPTED', 'ASSIGNED', 'IN_PROGRESS', 'ONGOING'].includes(String(trackingTask.status || '').toUpperCase()) ||
-      (trackingTask.isBooking && ['PENDING', 'ACCEPTED'].includes(String(trackingTask.status || '').toUpperCase())) ||
+      (trackingTask.isBooking && ['ACCEPTED', 'COMPLETED'].includes(String(trackingTask.status || '').toUpperCase())) ||
       trackingTask.assignments?.some((assignment) => ['ACCEPTED', 'IN_PROGRESS'].includes(String(assignment.status || '').toUpperCase()))
     )
   );
+
+  const canMessage = isSupportConversation || currentUser.role === 'ADMIN' || hasAcceptedWork;
+  const showCannotMessageAlert = () => {
+    if (currentUser?.role === 'PROVIDER') {
+      Alert.alert(
+        t('chat:messages.actionRequired', 'Action Required'),
+        t('chat:messages.providerMustAccept', 'Please accept the task before you can message the client.'),
+        [{ text: t('common.ok', 'OK'), style: 'default' }]
+      );
+    } else {
+      if (hasExistingBooking) {
+        Alert.alert(
+          t('chat:messages.pendingAcceptance', 'Pending Acceptance'),
+          t('chat:messages.clientMustWait', 'The provider has not accepted your booking yet. Please wait for them to accept.'),
+          [{ text: t('common.ok', 'OK'), style: 'default' }]
+        );
+      } else {
+        Alert.alert(
+          t('chat:messages.bookingRequiredTitle', 'Booking Required'),
+          t('chat:messages.bookingRequiredBody', 'You need to book this provider before you can send a message.'),
+          [{ text: t('common.ok', 'OK'), style: 'default' }]
+        );
+      }
+    }
+  };
 
   const openTaskTracker = () => {
     if (!trackingTask?.id) {
@@ -364,14 +402,7 @@ const ChatScreen = ({ route, navigation }) => {
       // Remove optimistic message if failed
       setMessages(prev => prev.filter(m => m.clientMessageId !== clientMessageId));
       if (error.response?.data?.message === 'requiresBooking') {
-        Alert.alert(
-          t('chat:messages.bookingRequiredTitle', 'Booking Required'),
-          t('chat:messages.bookingRequiredBody', 'You need to book this provider to start messaging.'),
-          [
-            { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-            { text: t('messages.bookNow', 'Book Now'), onPress: openBookingForm }
-          ]
-        );
+        showCannotMessageAlert();
       } else {
         Alert.alert(t('common.error'), t('messages.sendFailed'));
       }
@@ -466,21 +497,6 @@ const ChatScreen = ({ route, navigation }) => {
             </Text>
           </TouchableOpacity>
         ) : null}
-        {currentUser.role === 'CLIENT' &&
-         otherParticipant?.role === 'PROVIDER' &&
-         !isSupportConversation &&
-         hasCheckedTask && 
-         !hasExistingBooking && (
-          <TouchableOpacity
-            style={[styles.bookCompact, { backgroundColor: colors.accent }]}
-            onPress={openBookingForm}
-            accessibilityRole="button"
-            accessibilityLabel="Book service"
-          >
-            <MaterialCommunityIcons name="calendar-plus" size={18} color="#FFFFFF" />
-            <Text style={styles.bookCompactText}>Book</Text>
-          </TouchableOpacity>
-        )}
         {!isSupportConversation && (
           <TouchableOpacity onPress={handleAudioCall} style={{ marginLeft: 12 }}>
             <Ionicons name="call-outline" size={24} color={colors.primary} />
@@ -497,12 +513,18 @@ const ChatScreen = ({ route, navigation }) => {
           <FlatList ref={flatListRef} data={[...messages].reverse()} keyExtractor={item => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} inverted={true} />
         )}
 
-        <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
-          <TouchableOpacity style={styles.attachBtn} onPress={handleImagePick} disabled={isUploading}>{isUploading ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="plus" size={24} color={colors.accent} />}</TouchableOpacity>
-          <View style={[styles.inputContainer, { backgroundColor: colors.background }]}>
-            <TextInput style={[styles.textInput, { color: colors.text }]} placeholder={t('messages.type')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline />
-          </View>
-          <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.accent, opacity: input.trim() && !isSending ? 1 : 0.45 }]} onPress={() => handleSend()} disabled={!input.trim() || isSending}><MaterialCommunityIcons name="send" size={20} color="#FFF" /></TouchableOpacity>
+        <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8), opacity: canMessage ? 1 : 0.6 }]}>
+          <TouchableOpacity style={styles.attachBtn} onPress={canMessage ? handleImagePick : showCannotMessageAlert} disabled={isUploading}>
+            {isUploading ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="plus" size={24} color={canMessage ? colors.accent : colors.placeholder} />}
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background }]} onPress={!canMessage ? showCannotMessageAlert : undefined} activeOpacity={canMessage ? 1 : 0.7}>
+            <View pointerEvents={canMessage ? 'auto' : 'none'} style={{ flex: 1 }}>
+              <TextInput style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]} placeholder={t('messages.type')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline editable={canMessage} />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.sendButton, { backgroundColor: canMessage ? colors.accent : colors.border, opacity: input.trim() && !isSending && canMessage ? 1 : 0.45 }]} onPress={canMessage ? () => handleSend() : showCannotMessageAlert} disabled={!input.trim() || isSending || !canMessage}>
+            <MaterialCommunityIcons name="send" size={20} color="#FFF" />
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </View>

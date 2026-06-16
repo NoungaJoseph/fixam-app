@@ -147,10 +147,6 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   };
 
   const handleMessageProvider = async () => {
-    if (!hasBooking) {
-      Alert.alert(t('common.error'), t('profile.bookBeforeMessaging'));
-      return;
-    }
 
     try {
       if (!providerUserId) {
@@ -169,10 +165,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         isSupportConversation: conversation.isSystem,
       });
     } catch (error) {
-      if (error.response?.status === 403) {
-        Alert.alert(t('common.error'), t('profile.bookBeforeMessaging'));
-        return;
-      }
+      if (error.response?.status === 403) { Alert.alert(t('common.error'), t('profile.bookBeforeMessaging')); return; }
       Alert.alert(t('common.error'), error.response?.data?.message || t('common.tryAgain'));
     }
   };

@@ -250,9 +250,36 @@ const JobStatusScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.error }]}>
-              <Text style={[styles.cancelBtnText, { color: colors.error }]}>{t('jobs.cancelTaskRequest')}</Text>
-            </TouchableOpacity>
+            {job.status === 'PENDING' && (
+              <TouchableOpacity 
+                style={[styles.cancelBtn, { borderColor: colors.error }]}
+                onPress={() => {
+                  Alert.alert(
+                    t('jobs.cancelTaskRequest'),
+                    t('jobs.cancelConfirm', 'Are you sure you want to cancel? Your coins will be refunded.'),
+                    [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      {
+                        text: t('common.yes', 'Yes'),
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            const endpoint = job.isBooking ? `/bookings/${job.id}/status` : `/jobs/${job.id}/status`;
+                            await api.put(endpoint, { status: 'CANCELLED' });
+                            setJob({ ...job, status: 'CANCELLED' });
+                            Alert.alert(t('common.success'), t('jobs.cancelledSuccess', 'Task cancelled successfully.'));
+                          } catch (err) {
+                            Alert.alert(t('common.error'), err.response?.data?.message || t('jobs.updateFailedClient'));
+                          }
+                        }
+                      }
+                    ]
+                  );
+                }}
+              >
+                <Text style={[styles.cancelBtnText, { color: colors.error }]}>{t('jobs.cancelTaskRequest')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>

@@ -508,7 +508,7 @@ const ProviderHomeScreen = ({ navigation }) => {
           {/* Bottom Section: Quick Nav Grid */}
           <View style={styles.quickNavGridContainer}>
             {/* Find Jobs */}
-            <TouchableOpacity ref={findJobsRef} style={styles.quickNavCard} onPress={() => navigation.navigate('FindJobs')}>
+            <TouchableOpacity ref={findJobsRef} style={styles.quickNavCard} onPress={() => navigation.navigate('Find Jobs')}>
               <View style={[styles.quickNavIconWrap, { backgroundColor: '#E6FDF3' }]}>
                 <MaterialCommunityIcons name="briefcase" size={24} color="#0D9488" />
               </View>
@@ -645,7 +645,7 @@ const ProviderHomeScreen = ({ navigation }) => {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.liveJobsNearYou')}</Text>
             <Text style={styles.liveCountText}>• {t('home.jobsAvailable', { count: filteredJobs.length })}</Text>
           </View>
-          <TouchableOpacity ref={viewAllJobsRef} onPress={() => navigation.navigate('FindJobs')}>
+          <TouchableOpacity ref={viewAllJobsRef} onPress={() => navigation.navigate('Find Jobs')}>
             <Text style={styles.viewAllText}>{t('home.viewAll')}</Text>
           </TouchableOpacity>
         </View>

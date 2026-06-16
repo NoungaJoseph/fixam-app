@@ -9,7 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
-
+import * as Clipboard from 'expo-clipboard';
 const InvitationScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { user } = useAuth();
@@ -76,7 +76,10 @@ const InvitationScreen = ({ navigation }) => {
             <Text style={[styles.codeText, { color: colors.text }]}>{referralCode}</Text>
             <TouchableOpacity 
               style={styles.copyBtn}
-              onPress={() => Alert.alert(t('invite.copied'), t('invite.copiedBody'))}
+              onPress={async () => {
+                await Clipboard.setStringAsync(referralCode);
+                Alert.alert(t('invite.copied'), t('invite.copiedBody'));
+              }}
             >
               <MaterialCommunityIcons name="content-copy" size={20} color={colors.accent} />
             </TouchableOpacity>

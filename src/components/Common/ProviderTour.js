@@ -58,7 +58,14 @@ const ProviderTour = ({ steps, userId, visible, onDone, scrollViewRef }) => {
           setReady(true);
           return;
         }
-        current.ref.current.measureInWindow((x, y, w, h) => {
+        const node = findNodeHandle(current.ref.current);
+        if (!node) {
+          setSpotlight(null);
+          setReady(true);
+          return;
+        }
+
+        UIManager.measureInWindow(node, (x, y, w, h) => {
           // If measurement returns 0s or element is still off-screen, retry a few times
           if ((w === 0 && h === 0) || y > SCREEN_H || y + h < 0) {
             if (retryCount.current < 5) {

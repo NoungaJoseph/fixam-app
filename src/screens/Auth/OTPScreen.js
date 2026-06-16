@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -62,6 +63,20 @@ const OTPScreen = ({ route, navigation }) => {
       setOtp('');
       // Refocus after error
       setTimeout(() => inputRef.current?.focus(), 500);
+    }
+  };
+
+  const handleResend = async () => {
+    try {
+      const email = method === 'email' ? contact : null;
+      const phone = method === 'phone' ? contact : null;
+      await api.post('/auth/request-otp', { email, phone });
+      setTimer(60);
+      Alert.alert(t('otp.success', 'Success'), t('otp.resendSuccess', 'A new code has been sent.'));
+      if (inputRef.current) inputRef.current.focus();
+    } catch (error) {
+      const msg = error.response?.data?.message || t('otp.failed');
+      Alert.alert(t('otp.error', 'Error'), msg);
     }
   };
 
@@ -125,7 +140,7 @@ const OTPScreen = ({ route, navigation }) => {
             {t('otp.resendIn', { time: `${String(Math.floor(timer / 60)).padStart(2, '0')}:${String(timer % 60).padStart(2, '0')}` })}
           </Text>
           {timer === 0 && (
-            <TouchableOpacity onPress={() => setTimer(60)}>
+            <TouchableOpacity onPress={handleResend}>
               <Text style={styles.resendLink}>{t('otp.resendNow')}</Text>
             </TouchableOpacity>
           )}

@@ -1,6 +1,7 @@
 export const POPULAR_SERVICE_IMAGES_FOLDER = 'app/assets/popular-services';
 
 export const POPULAR_SERVICE_CATALOG = [
+  { name: 'Home tutor', group: 'Professional', icon: 'school-outline', imageName: 'tutor.jpg', colors: ['#0E7490', '#67E8F9'] },
   { name: 'Plumbing', group: 'Home', icon: 'pipe-wrench', imageName: 'plumbing.jpg', colors: ['#2563EB', '#38BDF8'] },
   { name: 'Electrical', group: 'Home', icon: 'lightning-bolt', imageName: 'electrical.jpg', colors: ['#F59E0B', '#FCD34D'] },
   { name: 'Handyman', group: 'Home', icon: 'hammer-screwdriver', imageName: 'carpentry.jpg', colors: ['#92400E', '#F59E0B'] },
@@ -42,7 +43,7 @@ export const POPULAR_SERVICE_CATALOG = [
   { name: 'Videography', group: 'Events', icon: 'video-outline', imageName: 'videography.jpg', colors: ['#1E3A8A', '#60A5FA'] },
   { name: 'DJ service', group: 'Events', icon: 'music-circle-outline', imageName: 'dj-service.jpg', colors: ['#581C87', '#C084FC'] },
   { name: 'Decoration', group: 'Events', icon: 'party-popper', imageName: 'decoration.jpg', colors: ['#C026D3', '#F0ABFC'] },
-  { name: 'Tutor', group: 'Professional', icon: 'school-outline', imageName: 'tutor.jpg', colors: ['#0E7490', '#67E8F9'] },
+
   { name: 'Translator', group: 'Professional', icon: 'translate', imageName: 'translator.png', colors: ['#4338CA', '#A5B4FC'] },
   { name: 'Accountant', group: 'Professional', icon: 'calculator-variant-outline', imageName: 'accountant.jpg', colors: ['#166534', '#86EFAC'] },
   { name: 'Legal support', group: 'Professional', icon: 'scale-balance', imageName: 'legal-support.jpg', colors: ['#1E293B', '#64748B'] },

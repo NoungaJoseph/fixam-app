@@ -264,6 +264,7 @@ const ProviderTabNavigator = () => {
   const { t } = useLanguage();
   return (
     <Drawer.Navigator
+      backBehavior="history"
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: false,

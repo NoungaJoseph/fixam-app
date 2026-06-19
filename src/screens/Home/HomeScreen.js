@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  TextInput, Image, Dimensions, Platform, RefreshControl, ActivityIndicator
+  TextInput, Image, Dimensions, Platform, RefreshControl, ActivityIndicator,
+  Animated, Easing
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -56,6 +57,50 @@ const LEARN_CARDS = [
     colors: ['#F59E0B', '#FBBF24']
   }
 ];
+const MarqueeServices = ({ services, colors, isDarkMode, navigation }) => {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+  const CARD_WIDTH = 132;
+  const GAP = 10;
+  const TOTAL_WIDTH = (CARD_WIDTH + GAP) * services.length;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(animatedValue, {
+        toValue: -TOTAL_WIDTH,
+        duration: services.length * 2500,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      })
+    ).start();
+  }, [animatedValue, TOTAL_WIDTH, services.length]);
+
+  return (
+    <View style={{ overflow: 'hidden', paddingVertical: 8, paddingLeft: 18 }}>
+      <Animated.View style={{ flexDirection: 'row', transform: [{ translateX: animatedValue }] }}>
+        {[1, 2, 3, 4].map((batchIndex) => (
+          <View key={`batch-${batchIndex}`} style={{ flexDirection: 'row', gap: GAP, marginRight: GAP }}>
+            {services.map(service => (
+              <TouchableOpacity
+                key={`${batchIndex}-${service.name}`}
+                style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}
+                onPress={() => navigation.navigate('ProviderList', { category: service.name })}
+                activeOpacity={0.84}
+              >
+                <View style={styles.popularIconPanel}>
+                  <Image source={POPULAR_SERVICE_IMAGES[service.imageName]} style={styles.popularImage} resizeMode="cover" />
+                  <LinearGradient colors={['rgba(15,23,42,0.04)', 'rgba(15,23,42,0.22)']} style={StyleSheet.absoluteFill} />
+                </View>
+                <Text style={[styles.popularCardText, { color: colors.text }]} numberOfLines={2}>
+                  {translateService(service.name)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
+      </Animated.View>
+    </View>
+  );
+};
 
 const HomeScreen = ({ navigation }) => {
   const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad, hasLoadedData } = useAppContext();
@@ -280,31 +325,13 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
-            {POPULAR_SERVICES.map(service => (
-              <TouchableOpacity
-                key={service.name}
-                style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}
-                onPress={() => navigation.navigate('ProviderList', { category: service.name })}
-                activeOpacity={0.84}
-              >
-                <View style={styles.popularIconPanel}>
-                  <Image
-                    source={POPULAR_SERVICE_IMAGES[service.imageName]}
-                    style={styles.popularImage}
-                    resizeMode="cover"
-                  />
-                  <LinearGradient
-                    colors={['rgba(15,23,42,0.04)', 'rgba(15,23,42,0.22)']}
-                    style={StyleSheet.absoluteFill}
-                  />
-                </View>
-                <Text style={[styles.popularCardText, { color: colors.text }]} numberOfLines={2}>
-                  {translateService(service.name)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <MarqueeServices 
+            services={POPULAR_SERVICES} 
+            colors={colors} 
+            isDarkMode={isDarkMode} 
+            navigation={navigation} 
+            t={t}
+          />
         </LinearGradient>
 
         {/* ═══ 2. WALLET BALANCE CARD ═══ */}

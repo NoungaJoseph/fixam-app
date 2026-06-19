@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
   TextInput, Image, Dimensions, Platform, RefreshControl, ActivityIndicator,
-  Animated, Easing
+  Animated, Easing, FlatList
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -57,47 +57,84 @@ const LEARN_CARDS = [
     colors: ['#F59E0B', '#FBBF24']
   }
 ];
-const MarqueeServices = ({ services, colors, isDarkMode, navigation }) => {
-  const animatedValue = useRef(new Animated.Value(0)).current;
-  const CARD_WIDTH = 132;
-  const GAP = 10;
-  const TOTAL_WIDTH = (CARD_WIDTH + GAP) * services.length;
+const MarqueeServices = ({ services, colors, isDarkMode, navigation, t }) => {
+  const flatListRef = useRef(null);
+  const scrollOffset = useRef(0);
+  const isDragging = useRef(false);
+  const timerRef = useRef(null);
+
+  const extendedServices = useMemo(() => Array(100).fill(services).flat(), [services]);
+
+  const startAutoScroll = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      if (!isDragging.current && flatListRef.current) {
+        scrollOffset.current += 1.0;
+        flatListRef.current.scrollToOffset({ offset: scrollOffset.current, animated: false });
+      }
+    }, 20);
+  }, []);
+
+  const stopAutoScroll = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
 
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(animatedValue, {
-        toValue: -TOTAL_WIDTH,
-        duration: services.length * 2500,
-        useNativeDriver: true,
-        easing: Easing.linear,
-      })
-    ).start();
-  }, [animatedValue, TOTAL_WIDTH, services.length]);
+    startAutoScroll();
+    return stopAutoScroll;
+  }, [startAutoScroll, stopAutoScroll]);
+
+  const handleScroll = (event) => {
+    if (isDragging.current) {
+      scrollOffset.current = event.nativeEvent.contentOffset.x;
+    }
+  };
+
+  const renderItem = ({ item, index }) => (
+    <TouchableOpacity
+      style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF', marginRight: 10 }]}
+      onPress={() => navigation.navigate('ProviderList', { category: item.name })}
+      activeOpacity={0.84}
+    >
+      <View style={styles.popularIconPanel}>
+        <Image source={POPULAR_SERVICE_IMAGES[item.imageName]} style={styles.popularImage} resizeMode="cover" />
+        <LinearGradient colors={['rgba(15,23,42,0.04)', 'rgba(15,23,42,0.22)']} style={StyleSheet.absoluteFill} />
+      </View>
+      <Text style={[styles.popularCardText, { color: colors.text }]} numberOfLines={2}>
+        {translateService(item.name)}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={{ overflow: 'hidden', paddingVertical: 8, paddingLeft: 18 }}>
-      <Animated.View style={{ flexDirection: 'row', transform: [{ translateX: animatedValue }] }}>
-        {[1, 2, 3, 4].map((batchIndex) => (
-          <View key={`batch-${batchIndex}`} style={{ flexDirection: 'row', gap: GAP, marginRight: GAP }}>
-            {services.map(service => (
-              <TouchableOpacity
-                key={`${batchIndex}-${service.name}`}
-                style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}
-                onPress={() => navigation.navigate('ProviderList', { category: service.name })}
-                activeOpacity={0.84}
-              >
-                <View style={styles.popularIconPanel}>
-                  <Image source={POPULAR_SERVICE_IMAGES[service.imageName]} style={styles.popularImage} resizeMode="cover" />
-                  <LinearGradient colors={['rgba(15,23,42,0.04)', 'rgba(15,23,42,0.22)']} style={StyleSheet.absoluteFill} />
-                </View>
-                <Text style={[styles.popularCardText, { color: colors.text }]} numberOfLines={2}>
-                  {translateService(service.name)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
-      </Animated.View>
+    <View style={{ paddingVertical: 8 }}>
+      <FlatList
+        ref={flatListRef}
+        data={extendedServices}
+        keyExtractor={(item, index) => `${index}-${item.name}`}
+        renderItem={renderItem}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingLeft: 18 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          isDragging.current = true;
+          stopAutoScroll();
+        }}
+        onScrollEndDrag={() => {
+          isDragging.current = false;
+          startAutoScroll();
+        }}
+        onMomentumScrollEnd={() => {
+          isDragging.current = false;
+          startAutoScroll();
+        }}
+        getItemLayout={(data, index) => ({ length: 142, offset: 142 * index, index })}
+        initialNumToRender={10}
+        windowSize={5}
+        removeClippedSubviews={false}
+      />
     </View>
   );
 };

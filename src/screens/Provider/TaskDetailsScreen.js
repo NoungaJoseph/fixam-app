@@ -48,6 +48,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const [applicationCount, setApplicationCount] = useState(task.assignments?.length || task.proposals || 0);
   const [applied, setApplied] = useState(false);
   const coinCost = 1;
+  const isBooking = Boolean(route.params?.isBooking || task?.isBooking || task?.bookingDate);
   const isFavorite = favoriteJobIds?.includes(task.id);
   const clientName = typeof task.client === 'object' ? (task.client?.fullName || t('common.client')) : (task.client || t('common.client'));
   const clientId = typeof task.client === 'object' ? task.client?.id : task.clientId;
@@ -67,7 +68,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     assignment.providerId === user?.providerProfile?.id ||
     assignment.provider?.userId === user?.id ||
     assignment.provider?.user?.id === user?.id
-  ));
+  )) || (isBooking && ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(String(task.status || '').toUpperCase()));
   const providerAssignment = task.assignments?.find((assignment) => (
     assignment.providerId === user?.providerProfile?.id ||
     assignment.provider?.userId === user?.id ||
@@ -100,6 +101,12 @@ const TaskDetailsScreen = ({ route, navigation }) => {
       setShowVerificationModal(true);
       return;
     }
+
+    if (isBooking) {
+      confirmAccept();
+      return;
+    }
+
     if (walletBalance < coinCost) {
       Alert.alert(t('jobs.insufficientCoins'), t('jobs.needCoinsToApply', { count: coinCost }), [
         { text: t('common.cancel') },
@@ -113,13 +120,21 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const confirmAccept = async () => {
     try {
       setShowConfirm(false);
-      const res = await api.post(`/jobs/${task.id}/apply`);
-      setApplied(true);
-      await markJobApplied?.(task.id);
-      setApplicationCount(res.data.applicationCount || applicationCount + 1);
-      Alert.alert(t('jobs.proposalSent'), t('jobs.proposalSentBody'), [
-        { text: t('common.close') }
-      ]);
+      if (isBooking) {
+        await api.patch(`/bookings/${task.id}/status`, { status: 'ACCEPTED' });
+        setApplied(true);
+        Alert.alert(t('common.success', 'Success'), t('jobs.bookingAccepted', 'You have successfully accepted this booking.'), [
+          { text: t('common.close') }
+        ]);
+      } else {
+        const res = await api.post(`/jobs/${task.id}/apply`);
+        setApplied(true);
+        await markJobApplied?.(task.id);
+        setApplicationCount(res.data.applicationCount || applicationCount + 1);
+        Alert.alert(t('jobs.proposalSent'), t('jobs.proposalSentBody'), [
+          { text: t('common.close') }
+        ]);
+      }
     } catch (error) {
       const message = error.response?.data?.message || t('common.tryAgain');
       Alert.alert(t('jobs.couldNotApply'), message);
@@ -314,8 +329,12 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[styles.proposalBtn, hasApplied && styles.proposalBtnDisabled]} onPress={handleAccept} disabled={hasApplied}>
-          <Text style={styles.proposalTitle}>{hasApplied ? t('jobs.alreadyApplied') : t('jobs.sendProposal')}</Text>
-          <Text style={styles.proposalSub}>{t('wallet.coinCount', { count: coinCost })}</Text>
+          <Text style={styles.proposalTitle}>
+            {isBooking 
+              ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBooking', 'Accept Booking')) 
+              : (hasApplied ? t('jobs.alreadyApplied') : t('jobs.sendProposal'))}
+          </Text>
+          {!isBooking && <Text style={styles.proposalSub}>{t('wallet.coinCount', { count: coinCost })}</Text>}
         </TouchableOpacity>
         <TouchableOpacity style={styles.footerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
           <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={25} color={isFavorite ? '#EF4444' : colors.text} />

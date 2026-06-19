@@ -42,6 +42,7 @@ import HiddenProfileScreen from '../screens/Profile/HiddenProfileScreen';
 import ChangePasswordScreen from '../screens/Profile/ChangePasswordScreen';
 import HelpCenterScreen from '../screens/Profile/HelpCenterScreen';
 import InvitationScreen from '../screens/Profile/InvitationScreen';
+import ReviewTaskScreen from '../screens/Tasks/ReviewTaskScreen';
 
 import TopUpScreen from '../screens/Wallet/TopUpScreen';
 import TopUpAmountScreen from '../screens/Wallet/TopUpAmountScreen';
@@ -131,6 +132,7 @@ const HIDE_TAB_ROUTES = [
   'LiveTaskMap',
   'JobStatus',
   'TaskSuccess',
+  'ReviewTask',
 ];
 
 const BottomTabNavigator = () => {
@@ -356,6 +358,7 @@ const TabNavigator = () => {
       <Drawer.Screen name="JobStatus" component={JobStatusScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="LiveTaskMap" component={LiveTaskMapScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Chat" component={ChatScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ReviewTask" component={ReviewTaskScreen} options={{ drawerItemStyle: { display: 'none' } }} />
     </Drawer.Navigator>
   );
 };

@@ -22,7 +22,9 @@ const collectCompletionDates = (user, jobs = []) => {
     const belongsToProvider = !userId && !providerId
       ? true
       : job.providerId === providerId ||
+        job.providerId === userId ||
         job.provider?.id === providerId ||
+        job.provider?.id === userId ||
         job.provider?.userId === userId ||
         job.provider?.user?.id === userId ||
         job.assignments?.some((assignment) => (

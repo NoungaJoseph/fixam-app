@@ -52,10 +52,8 @@ const ChatListScreen = ({ navigation }) => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const { on } = useSocket();
-  const { jobs } = useAppContext();
+  const { jobs, myTasksList, myBookingsList, conversations, fetchConversations, isLoading } = useAppContext();
 
-  const [conversations, setConversations] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [archivedIds, setArchivedIds] = useState([]);
@@ -95,60 +93,22 @@ const ChatListScreen = ({ navigation }) => {
     }
   };
 
-  const persistCache = useCallback(async (list) => {
-    if (!user?.id || !Array.isArray(list)) return;
-    try {
-      await AsyncStorage.setItem(chatCacheKey(user.id), JSON.stringify({ savedAt: Date.now(), list }));
-    } catch (_) {}
-  }, [user?.id]);
-
-  const fetchConversations = useCallback(async () => {
-    try {
-      const res = await api.get('/chat/conversations', { timeout: 12000 });
-      const list = res.data.data || [];
-      setConversations(list);
-      persistCache(list);
-    } catch (_) {} finally {
-      setLoading(false);
-    }
-  }, [persistCache]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (user?.id) {
-        try {
-          const raw = await AsyncStorage.getItem(chatCacheKey(user.id));
-          if (!cancelled && raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed?.list?.length) { setConversations(parsed.list); setLoading(false); }
-          }
-        } catch (_) {}
-      }
-      if (!cancelled) fetchConversations();
-    })();
-    return () => { cancelled = true; };
-  }, [fetchConversations, user?.id]);
-
   useFocusEffect(useCallback(() => { fetchConversations(); }, [fetchConversations]));
 
-  useEffect(() => {
-    const off = on('message:new', () => fetchConversations());
-    return () => off?.();
-  }, [fetchConversations, on]);
 
   const helperGetJob = useCallback((c) => {
     const directJob = c.task || c.job || c.activeJob || c.activeTask || c.booking;
     if (directJob) return directJob;
 
     const other = c.participants?.[0] || {};
-    return jobs.find((job) => {
+    const allJobs = [...(jobs || []), ...(myTasksList || []), ...(myBookingsList || [])];
+    return allJobs.find((job) => {
       const providerUserId = job.provider?.user?.id || job.booking?.provider?.user?.id;
       const providerId = job.provider?.id || job.providerId || job.booking?.providerId;
       const clientId = job.client?.id || job.clientId || job.booking?.clientId;
       return [providerUserId, providerId, clientId].filter(Boolean).includes(other.id);
     });
-  }, [jobs]);
+  }, [jobs, myTasksList, myBookingsList]);
 
   const helperIsOngoingJob = useCallback((t) => {
     if (!t) return false;
@@ -435,7 +395,7 @@ const ChatListScreen = ({ navigation }) => {
           })}
         </ScrollView>
         {/* List */}
-        {loading && conversations.length === 0 ? (
+        {isLoading && conversations.length === 0 ? (
           <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 60 }} />
         ) : (
           <FlatList

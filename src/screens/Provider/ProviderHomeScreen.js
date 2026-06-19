@@ -129,11 +129,14 @@ const ProviderHomeScreen = ({ navigation }) => {
 
   const fetchMyJobs = React.useCallback(async () => {
     try {
-      // Need to import api, so let's just do an inline require or assume api isn't imported yet. 
-      // Actually, api is NOT imported at the top of ProviderHomeScreen.js! Let me fix that by importing it.
       const { default: api } = await import('../../services/api');
-      const res = await api.get('/jobs/my-jobs');
-      setMyJobs(res.data.data || []);
+      const [jobsRes, bookingsRes] = await Promise.allSettled([
+        api.get('/jobs/my-jobs'),
+        api.get('/bookings/mine?role=PROVIDER')
+      ]);
+      const jobs = jobsRes.status === 'fulfilled' ? (jobsRes.value.data.data || []) : [];
+      const bookings = bookingsRes.status === 'fulfilled' ? (bookingsRes.value.data.data || []) : [];
+      setMyJobs([...jobs, ...bookings]);
     } catch (e) {
       console.log('Failed to fetch my jobs for level progress', e);
     }
@@ -549,9 +552,6 @@ const ProviderHomeScreen = ({ navigation }) => {
         {/* ÔöÇÔöÇ 5. "LEARN FIXAM" SLIDER SECTION ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
         <View style={styles.learnHeader}>
           <Text style={[styles.learnTitle, { color: colors.text }]}>{t('home.learnFixam')}</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>{t('home.seeAll')}</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Step cards list */}

@@ -399,9 +399,6 @@ const HomeScreen = ({ navigation }) => {
         {/* ═══ 4.5. LEARN FIXAM CAROUSEL ═══ */}
         <View style={styles.learnHeader}>
           <Text style={[styles.learnTitle, { color: colors.text }]}>{t('home.learnFixam')}</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>{t('home.seeAll')}</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Step cards list */}

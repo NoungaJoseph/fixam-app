@@ -10,28 +10,38 @@ import { CustomHeader } from '../../navigation/NavigationComponents';
 import { useLanguage } from '../../context/LanguageContext';
 
 import { Alert } from 'react-native';
+import { useAppContext } from '../../context/AppContext';
 import api from '../../services/api';
 
 const ReportsScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
+  const { myTasksList, myBookingsList } = useAppContext();
   
-  const [myJobs, setMyJobs] = React.useState([]);
+  const [myJobs, setMyJobs] = React.useState([...(myTasksList || []), ...(myBookingsList || [])]);
 
   const fetchMyJobs = React.useCallback(async () => {
     try {
-      const res = await api.get('/jobs/my-jobs');
-      setMyJobs(res.data.data || []);
+      const [jobsRes, bookingsRes] = await Promise.allSettled([
+        api.get('/jobs/my-jobs'),
+        api.get('/bookings/mine?role=PROVIDER')
+      ]);
+      const jobs = jobsRes.status === 'fulfilled' ? (jobsRes.value.data.data || []) : [];
+      const bookings = bookingsRes.status === 'fulfilled' ? (bookingsRes.value.data.data || []) : [];
+      setMyJobs([...jobs, ...bookings]);
     } catch (e) {
       console.log('Failed to fetch my jobs for reports', e);
     }
   }, []);
 
   React.useEffect(() => {
+    if (myTasksList?.length || myBookingsList?.length) {
+      setMyJobs([...(myTasksList || []), ...(myBookingsList || [])]);
+    }
     const unsub = navigation.addListener('focus', fetchMyJobs);
     fetchMyJobs();
     return unsub;
-  }, [fetchMyJobs, navigation]);
+  }, [fetchMyJobs, navigation, myTasksList, myBookingsList]);
 
   const reports = React.useMemo(() => {
     const completed = myJobs.filter(j => j.status === 'COMPLETED');

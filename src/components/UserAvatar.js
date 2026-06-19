@@ -51,9 +51,10 @@ const UserAvatar = ({
   ];
 
   if (uri) {
+    const fullUri = getMediaUrl(uri);
     return (
       <Image
-        source={{ uri }}
+        source={{ uri: fullUri }}
         style={[baseStyle, imageStyle]}
         contentFit="cover"
         transition={180}

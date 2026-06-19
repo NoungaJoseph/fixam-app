@@ -38,10 +38,14 @@ const DocUploadScreen = ({ navigation, route }) => {
         {
           text: t('verification.uploadDevice'),
           onPress: async () => {
-            const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsEditing: false, mediaTypes: ImagePicker.MediaTypeOptions.Images });
-            if (!result.canceled) {
-              if (side === 'front') setFrontImage(result.assets[0].uri);
-              else setBackImage(result.assets[0].uri);
+            try {
+              const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsEditing: false, mediaTypes: ['images'] });
+              if (!result.canceled && result.assets?.[0]?.uri) {
+                if (side === 'front') setFrontImage(result.assets[0].uri);
+                else setBackImage(result.assets[0].uri);
+              }
+            } catch (error) {
+              console.error(error);
             }
           },
         },

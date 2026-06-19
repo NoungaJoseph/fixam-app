@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -27,7 +28,18 @@ const TASK_CATS = [
   { id: '7', name: 'MOVING', icon: 'truck-outline' },
   { id: '8', name: 'APPLIANCE', icon: 'fridge-outline' },
   { id: '9', name: 'REPAIR', icon: 'wrench' },
-  { id: '10', name: 'OTHER', icon: 'dots-horizontal-circle' },
+  { id: '10', name: 'TEACHING', icon: 'school-outline' },
+  { id: '11', name: 'BEAUTY', icon: 'face-woman' },
+  { id: '12', name: 'TUTORING', icon: 'book-open-page-variant' },
+  { id: '13', name: 'COOKING', icon: 'chef-hat' },
+  { id: '14', name: 'PHOTOGRAPHY', icon: 'camera' },
+  { id: '15', name: 'DELIVERY', icon: 'truck-delivery' },
+  { id: '16', name: 'IT_SUPPORT', icon: 'laptop' },
+  { id: '17', name: 'BABYSITTING', icon: 'baby-carriage' },
+  { id: '18', name: 'PET_CARE', icon: 'paw' },
+  { id: '19', name: 'FITNESS', icon: 'dumbbell' },
+  { id: '20', name: 'EVENT_PLANNING', icon: 'party-popper' },
+  { id: '21', name: 'OTHER', icon: 'dots-horizontal-circle' },
 ];
 
 const PREFERENCES = [
@@ -97,7 +109,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [step, setStep] = useState('details'); // 'details', 'review', 'success'
   const [taskMode, setTaskMode] = useState(route?.params?.startOnPost ? 'post' : 'tasks');
   const [editingJob, setEditingJob] = useState(null);
-  const [selectedCat, setSelectedCat] = useState('PLUMBING');
+  const [selectedCat, setSelectedCat] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -113,16 +125,14 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [whatNeedsDone, setWhatNeedsDone] = useState('');
   const [importantDetails, setImportantDetails] = useState('');
   const [taskScope, setTaskScope] = useState('');
-  const [materialsProvider, setMaterialsProvider] = useState('professional');
   const [selectedPreferences, setSelectedPreferences] = useState(['verified', 'fast', 'rated', 'today']);
   const [detailEditor, setDetailEditor] = useState(null);
+  const [priority, setPriority] = useState('normal');
   
   const [scheduledDate, setScheduledDate] = useState(new Date());
   const [scheduledTime, setScheduledTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [dateDraft, setDateDraft] = useState(formatDateInput(new Date()));
-  const [timeDraft, setTimeDraft] = useState(formatTimeInput(new Date()));
 
   useEffect(() => {
     if (route?.params?.startOnPost) {
@@ -135,7 +145,7 @@ const PostTaskScreen = ({ route, navigation }) => {
 
   const resetForm = () => {
     setEditingJob(null);
-    setSelectedCat('PLUMBING');
+    setSelectedCat('');
     setTitle('');
     setDescription('');
     setLocation('');
@@ -149,9 +159,9 @@ const PostTaskScreen = ({ route, navigation }) => {
     setWhatNeedsDone('');
     setImportantDetails('');
     setTaskScope('');
-    setMaterialsProvider('professional');
     setSelectedPreferences(['verified', 'fast', 'rated', 'today']);
     setDetailEditor(null);
+    setPriority('normal');
     setScheduledDate(new Date());
     setScheduledTime(new Date());
   };
@@ -172,7 +182,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const startEditTask = (job) => {
     const scheduled = job.scheduledTime ? new Date(job.scheduledTime) : new Date();
     setEditingJob(job);
-    setSelectedCat(job.category || 'PLUMBING');
+    setSelectedCat(job.category || '');
     setTitle(job.title || '');
     setDescription(job.description || '');
     setLocation(job.location || '');
@@ -185,9 +195,9 @@ const PostTaskScreen = ({ route, navigation }) => {
     setWhatNeedsDone(job.whatNeedsDone || '');
     setImportantDetails(job.importantDetails || '');
     setTaskScope(job.taskScope || '');
-    setMaterialsProvider(job.materialsProvider || 'professional');
     setSelectedPreferences(job.preferences || ['verified', 'fast', 'rated', 'today']);
     setDetailEditor(null);
+    setPriority(job.priority || 'normal');
     setScheduledDate(Number.isNaN(scheduled.getTime()) ? new Date() : scheduled);
     setScheduledTime(Number.isNaN(scheduled.getTime()) ? new Date() : scheduled);
     setTaskMode('post');
@@ -210,51 +220,6 @@ const PostTaskScreen = ({ route, navigation }) => {
     else stackParent?.openDrawer?.();
   };
 
-  const openDatePicker = () => {
-    setDateDraft(formatDateInput(scheduledDate));
-    setShowDatePicker(true);
-  };
-
-  const openTimePicker = () => {
-    setTimeDraft(formatTimeInput(scheduledTime));
-    setShowTimePicker(true);
-  };
-
-  const applyDateDraft = () => {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateDraft.trim());
-    if (!match) {
-      Alert.alert(t('jobs.invalidDate'), t('jobs.invalidDateFormat'));
-      return;
-    }
-    const nextDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (Number.isNaN(nextDate.getTime()) || nextDate < today) {
-      Alert.alert(t('jobs.invalidDate'), t('jobs.invalidDateFuture'));
-      return;
-    }
-    setScheduledDate(nextDate);
-    setShowDatePicker(false);
-  };
-
-  const applyTimeDraft = () => {
-    const match = /^(\d{1,2}):(\d{2})$/.exec(timeDraft.trim());
-    if (!match) {
-      Alert.alert(t('jobs.invalidTime'), t('jobs.invalidTimeFormat'));
-      return;
-    }
-    const hours = Number(match[1]);
-    const minutes = Number(match[2]);
-    if (hours > 23 || minutes > 59) {
-      Alert.alert(t('jobs.invalidTime'), t('jobs.invalidTimeValid'));
-      return;
-    }
-    const nextTime = new Date(scheduledTime);
-    nextTime.setHours(hours, minutes, 0, 0);
-    setScheduledTime(nextTime);
-    setShowTimePicker(false);
-  };
-
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -264,13 +229,33 @@ const PostTaskScreen = ({ route, navigation }) => {
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const { latitude, longitude } = loc.coords;
-      setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      
+      try {
+        const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (geocode && geocode.length > 0) {
+          const address = geocode[0];
+          const parts = [
+            address.name !== address.street ? address.name : '',
+            address.street,
+            address.district || address.subregion,
+            address.city || address.region
+          ].filter(Boolean);
+          const uniqueParts = [...new Set(parts)];
+          const locationString = uniqueParts.join(', ');
+          setLocation(locationString || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        } else {
+          setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        }
+      } catch (geocodeError) {
+        setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      }
     } catch (error) {
       Alert.alert(t('common.error'), t('jobs.locationFailed'));
     }
   };
 
   const validateForm = () => {
+    if (!selectedCat) return t('jobs.categoryRequired', 'Please select a category');
     if (!title.trim()) return t('jobs.taskTitleRequired');
     if (!location.trim()) return t('jobs.locationRequired');
     const min = budgetMode === 'range' ? parseInt(budgetMin) : parseInt(budget);
@@ -306,12 +291,14 @@ const PostTaskScreen = ({ route, navigation }) => {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: false,
         quality: 0.8,
+        allowsMultipleSelection: true,
+        selectionLimit: 5 - selectedPhotos.length
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
-        setSelectedPhotos((prev) => [...prev, result.assets[0].uri].slice(0, 5));
+        setSelectedPhotos((prev) => [...prev, ...result.assets.map(a => a.uri)].slice(0, 5));
       }
     } catch (error) {
       Alert.alert(t('jobs.uploadFailed'), t('jobs.photoUploadFailed'));
@@ -369,8 +356,8 @@ const PostTaskScreen = ({ route, navigation }) => {
         whatNeedsDone,
         importantDetails,
         taskScope,
-        materialsProvider,
         preferences: selectedPreferences,
+        priority,
       };
       if (editingJob) {
         await api.put(`/jobs/${editingJob.id}`, payload);
@@ -551,31 +538,15 @@ const PostTaskScreen = ({ route, navigation }) => {
     return normalizedStatus === activeFilter;
   });
 
-  const detailEditorConfig = detailEditor === 'what'
+  const detailEditorConfig = detailEditor === 'important'
     ? {
-      title: t('jobs.whatNeedsDone'),
-      subtitle: t('jobs.whatNeedsDoneSub'),
-      value: whatNeedsDone,
-      setter: setWhatNeedsDone,
-      placeholder: t('jobs.whatNeedsDonePlaceholder'),
+      title: t('jobs.importantDetails'),
+      subtitle: t('jobs.importantDetailsSub'),
+      value: importantDetails,
+      setter: setImportantDetails,
+      placeholder: t('jobs.importantDetailsPlaceholder'),
     }
-    : detailEditor === 'important'
-      ? {
-        title: t('jobs.importantDetails'),
-        subtitle: t('jobs.importantDetailsSub'),
-        value: importantDetails,
-        setter: setImportantDetails,
-        placeholder: t('jobs.importantDetailsPlaceholder'),
-      }
-      : detailEditor === 'scope'
-        ? {
-          title: t('jobs.taskScope'),
-          subtitle: t('jobs.taskScopeSub'),
-          value: taskScope,
-          setter: setTaskScope,
-          placeholder: t('jobs.taskScopePlaceholder'),
-        }
-        : null;
+    : null;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
@@ -696,27 +667,19 @@ const PostTaskScreen = ({ route, navigation }) => {
                   <Text style={styles.viewAllText}>{t('jobs.viewAll')}</Text>
                 </TouchableOpacity>
               </View>
-              <View style={[styles.categorySearchWrap, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}>
+              <TouchableOpacity 
+                style={[styles.categorySearchWrap, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}
+                onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+              >
                 <MaterialCommunityIcons name="shape-outline" size={21} color="#0D9488" />
-                <TextInput
-                  style={[styles.categorySearchInput, { color: colors.text }]}
-                  placeholder={t('jobs.selectCategory')}
-                  placeholderTextColor="#94A3B8"
-                  value={showCategoryPicker ? categorySearch : getCategoryLabel(selectedCat)}
-                  onFocus={() => {
-                    setCategorySearch('');
-                    setShowCategoryPicker(true);
-                  }}
-                  onChangeText={(value) => {
-                    setCategorySearch(value);
-                    setShowCategoryPicker(true);
-                  }}
-                />
+                <Text style={[styles.categorySearchInput, { color: colors.text }]}>
+                  {getCategoryLabel(selectedCat) || t('jobs.selectCategory')}
+                </Text>
                 <MaterialCommunityIcons name={showCategoryPicker ? 'chevron-up' : 'chevron-right'} size={24} color="#64748B" />
-              </View>
+              </TouchableOpacity>
               {showCategoryPicker && (
                 <View style={[styles.categoryResults, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}>
-                  {(filteredCategories.length ? filteredCategories : TASK_CATS).map((cat) => {
+                  {TASK_CATS.map((cat) => {
                     const active = selectedCat === cat.name;
                     return (
                       <TouchableOpacity key={cat.id} style={[styles.categoryResultItem, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderBottomColor: colors.border }]} onPress={() => selectCategory(cat)}>
@@ -914,16 +877,6 @@ const PostTaskScreen = ({ route, navigation }) => {
             </View>
             <Text style={styles.descriptionHint}>{t('jobs.descriptionHint')}</Text>
 
-            <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('what')}>
-              <View>
-                <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.whatNeedsDone')}</Text>
-                <Text style={[styles.promptText, { color: colors.textSecondary }]} numberOfLines={2}>
-                  {whatNeedsDone || t('jobs.whatNeedsDoneExample')}
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#64748B" />
-            </TouchableOpacity>
-
             <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('important')}>
               <View>
                 <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.importantDetails')}</Text>
@@ -934,40 +887,38 @@ const PostTaskScreen = ({ route, navigation }) => {
               <MaterialCommunityIcons name="chevron-right" size={24} color="#64748B" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('scope')}>
-              <View>
-                <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.taskScope')}</Text>
-                <Text style={[styles.promptText, { color: colors.textSecondary }]}>{taskScope || t('jobs.selectScope')}</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#64748B" />
-            </TouchableOpacity>
-
-            <View style={styles.materialsCard}>
-              <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.materials')}</Text>
-              <Text style={[styles.promptText, { color: colors.textSecondary }]}>{t('jobs.materialsQuestion')}</Text>
-              <View style={styles.materialsRow}>
-                <TouchableOpacity style={[styles.materialOption, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }, materialsProvider === 'professional' && [styles.materialOptionActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F8FFFD', borderColor: '#0D9488' }]]} onPress={() => setMaterialsProvider('professional')}>
-                  {materialsProvider === 'professional' && (
-                    <View style={styles.materialCheck}>
-                      <MaterialCommunityIcons name="check" size={14} color="#FFF" />
-                    </View>
-                  )}
-                  <MaterialCommunityIcons name="briefcase-variant" size={28} color="#0D9488" />
-                  <Text style={[styles.materialTitle, { color: colors.text }]}>{t('common.provider')}</Text>
-                  <Text style={[styles.materialSub, { color: colors.textSecondary }]}>{t('jobs.professionalMaterialsSub')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.materialOption, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }, materialsProvider === 'client' && [styles.materialOptionActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F8FFFD', borderColor: '#0D9488' }]]} onPress={() => setMaterialsProvider('client')}>
-                  {materialsProvider === 'client' && (
-                    <View style={styles.materialCheck}>
-                      <MaterialCommunityIcons name="check" size={14} color="#FFF" />
-                    </View>
-                  )}
-                  <MaterialCommunityIcons name="account-outline" size={30} color="#475569" />
-                  <Text style={[styles.materialTitle, { color: colors.text }]}>{t('jobs.iWillProvide')}</Text>
-                  <Text style={[styles.materialSub, { color: colors.textSecondary }]}>{t('jobs.clientMaterialsSub')}</Text>
-                </TouchableOpacity>
-              </View>
+            <Text style={[styles.descriptionLabel, { color: colors.text, marginTop: 10, fontSize: 16 }]}>{t('jobs.scheduleTask', 'Schedule Task')}</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
+              <TouchableOpacity style={[styles.categorySearchWrap, { flex: 1, backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border, marginBottom: 0 }]} onPress={() => setShowDatePicker(true)}>
+                <MaterialCommunityIcons name="calendar-blank-outline" size={20} color="#64748B" />
+                <Text style={{ flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' }}>
+                  {scheduledDate.toLocaleDateString()}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.categorySearchWrap, { flex: 1, backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border, marginBottom: 0 }]} onPress={() => setShowTimePicker(true)}>
+                <MaterialCommunityIcons name="clock-outline" size={20} color="#64748B" />
+                <Text style={{ flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' }}>
+                  {scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            <Text style={[styles.descriptionLabel, { color: colors.text, fontSize: 16 }]}>{t('jobs.taskPriority', 'Task Priority')}</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 26 }}>
+              {['normal', 'urgent', 'emergency'].map(p => {
+                const isActive = priority === p;
+                const bg = isActive ? (isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F0FDFA') : (isDarkMode ? '#1F2937' : '#FFF');
+                const brd = isActive ? '#0D9488' : colors.border;
+                const txt = isActive ? '#0D9488' : colors.textSecondary;
+                return (
+                  <TouchableOpacity key={p} style={{ flex: 1, height: 44, borderRadius: 10, borderWidth: 1, borderColor: brd, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }} onPress={() => setPriority(p)}>
+                    <Text style={{ color: txt, fontSize: 13, fontWeight: '800', textTransform: 'capitalize' }}>{t(`jobs.priority_${p}`, p)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+
 
             <View style={styles.descriptionActions}>
               <TouchableOpacity style={styles.descriptionBackBtn} onPress={() => setStep('details')}>
@@ -1077,13 +1028,6 @@ const PostTaskScreen = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {whatNeedsDone ? (
-                <View style={styles.reviewFullItem}>
-                  <Text style={[styles.reviewLabel, { color: colors.textSecondary }]}>{t('jobs.whatNeedsDone')}</Text>
-                  <Text style={[styles.reviewValue, { color: colors.text }]}>{whatNeedsDone}</Text>
-                </View>
-              ) : null}
-
               {importantDetails ? (
                 <View style={styles.reviewFullItem}>
                   <Text style={[styles.reviewLabel, { color: colors.textSecondary }]}>{t('jobs.importantDetails')}</Text>
@@ -1093,12 +1037,8 @@ const PostTaskScreen = ({ route, navigation }) => {
 
               <View style={styles.reviewGrid}>
                 <View style={styles.reviewItem}>
-                  <Text style={[styles.reviewLabel, { color: colors.textSecondary }]}>{t('jobs.scope')}</Text>
-                  <Text style={[styles.reviewValue, { color: colors.text }]}>{taskScope || t('common.notAvailable')}</Text>
-                </View>
-                <View style={styles.reviewItem}>
-                  <Text style={[styles.reviewLabel, { color: colors.textSecondary }]}>{t('jobs.materials')}</Text>
-                  <Text style={[styles.reviewValue, { color: colors.text }]}>{materialsProvider === 'professional' ? t('jobs.professionalWillProvide') : t('jobs.clientWillProvide')}</Text>
+                  <Text style={[styles.reviewLabel, { color: colors.textSecondary }]}>{t('jobs.taskPriority', 'Priority')}</Text>
+                  <Text style={[styles.reviewValue, { color: colors.text, textTransform: 'capitalize' }]}>{t(`jobs.priority_${priority}`, priority)}</Text>
                 </View>
                 <View style={styles.reviewItem}>
                   <Text style={[styles.reviewLabel, { color: colors.textSecondary }]}>{t('jobs.photos')}</Text>
@@ -1153,6 +1093,30 @@ const PostTaskScreen = ({ route, navigation }) => {
             <Text style={[styles.secondaryBtnText, { color: colors.accent }]}>{t('jobs.postAnotherTask')}</Text>
           </TouchableOpacity>
         </View>
+      )}
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={scheduledDate}
+          mode="date"
+          display="spinner"
+          onChange={(event, date) => {
+            setShowDatePicker(false);
+            if (date) setScheduledDate(date);
+          }}
+        />
+      )}
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={scheduledTime}
+          mode="time"
+          display="spinner"
+          onChange={(event, date) => {
+            setShowTimePicker(false);
+            if (date) setScheduledTime(date);
+          }}
+        />
       )}
     </SafeAreaView>
   );
@@ -1828,34 +1792,42 @@ const styles = StyleSheet.create({
     marginBottom: 26,
   },
   descriptionBackBtn: {
-    flex: 0.55,
-    height: 58,
+    flex: 1,
+    minHeight: 52,
     borderRadius: 10,
     backgroundColor: '#F1F5F9',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    gap: 4,
   },
   descriptionBackText: {
     color: '#071936',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
+    textAlign: 'center',
+    flexShrink: 1,
   },
   descriptionNextBtn: {
-    flex: 1.45,
-    height: 58,
+    flex: 1,
+    minHeight: 52,
     borderRadius: 10,
     backgroundColor: '#0D9488',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    gap: 4,
   },
   descriptionNextText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
+    textAlign: 'center',
+    flexShrink: 1,
   },
   secureRow: {
     flexDirection: 'row',
@@ -1874,8 +1846,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  backBtn2: { flex: 0.4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 15, borderWidth: 1 },
-  backBtnText: { fontSize: 15, fontWeight: '700' },
+  backBtn2: { flex: 1, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 6, borderWidth: 1 },
+  backBtnText: { fontSize: 14, fontWeight: '900', textAlign: 'center', flexShrink: 1 },
   headerTitle: { fontSize: 18, fontWeight: '800' },
   scrollContent: { paddingHorizontal: 0, paddingBottom: 122 },
   tasksHero: {
@@ -1984,9 +1956,9 @@ const styles = StyleSheet.create({
   budgetInput: { flex: 1, fontSize: 18, fontWeight: '800' },
   datePickerBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderRadius: 12, paddingHorizontal: 16, height: 56, borderWidth: 1.5 },
   dateText: { fontSize: 15, fontWeight: '700' },
-  submitBtn: { marginHorizontal: 20, borderRadius: 14, paddingVertical: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, elevation: 4 },
-  submitBtnText: { color: '#FFF', fontSize: 18, fontWeight: '800' },
-  buttonRow: { flexDirection: 'row', gap: 12, marginTop: 10, paddingHorizontal: 20 },
+  submitBtn: { flex: 1, minHeight: 52, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, elevation: 4 },
+  submitBtnText: { color: '#FFF', fontSize: 14, fontWeight: '800', textAlign: 'center', flexShrink: 1 },
+  buttonRow: { flexDirection: 'row', gap: 10, marginTop: 10, paddingHorizontal: 20 },
   reviewCard: { marginHorizontal: 8, borderRadius: 5, padding: 18, borderWidth: 1.5, marginBottom: 30 },
   reviewTitle: { fontSize: 24, fontWeight: '900', marginBottom: 14 },
   reviewDescription: { fontSize: 16, lineHeight: 24, marginBottom: 20 },

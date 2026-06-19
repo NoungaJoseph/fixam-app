@@ -4,6 +4,7 @@ import {
   ScrollView, StatusBar, TextInput, Modal, Alert
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
 
 import { useTheme } from '../../context/ThemeContext';
 
@@ -27,13 +28,13 @@ const ReviewTaskScreen = ({ route, navigation }) => {
     try {
       await api.post(`/reviews`, {
         jobId: task.id,
-        providerId: provider.id,
+        targetUserId: provider.id,
         rating,
         comment
       });
 
       Alert.alert('Success', 'Thank you for your review!', [
-        { text: 'OK', onPress: () => navigation.navigate('MyJobsMain') }
+        { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to submit review');
@@ -58,7 +59,7 @@ const ReviewTaskScreen = ({ route, navigation }) => {
   );
 
   return (
-    <View 
+    <SafeAreaView 
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       
@@ -181,16 +182,15 @@ const ReviewTaskScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingVertical: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

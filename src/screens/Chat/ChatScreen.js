@@ -42,7 +42,7 @@ const normalizeParticipant = (participant) => {
   if (!userData?.id) return null;
 
   return {
-    userName: userData.fullName || userData.phone || 'User',
+    userName: userData.role === 'ADMIN' ? 'Fixam Support' : (userData.fullName || userData.phone || 'User'),
     receiverId: userData.id,
     avatar: userData.avatar || '',
     otherParticipant: userData,
@@ -213,7 +213,7 @@ const ChatScreen = ({ route, navigation }) => {
       console.log('Error fetching messages:', error.message);
       if (error.code === 'ECONNABORTED') {
         console.log('[ChatScreen] Timeout, retrying...');
-        setTimeout(() => fetchMessages(), 1000);
+        setTimeout(() => fetchMessages(), 5000);
       }
     } finally {
       setLoading(false);
@@ -263,29 +263,10 @@ const ChatScreen = ({ route, navigation }) => {
   }, [activeConvId, fetchMessages, on, emit, receiverId, user?.id, fetchConversations, fetchNotifications]);
 
   const trackingTask = activeTask || task;
-  const hasBooking = Boolean(trackingTask?.id);
-  
-  const isTaskFinished = Boolean(
-    trackingTask?.id &&
-    ['COMPLETED', 'CANCELLED', 'REJECTED'].includes(String(trackingTask.status || '').toUpperCase())
-  );
-
-  const canMessage = isSupportConversation || currentUser.role === 'ADMIN' || (hasBooking && !isTaskFinished);
+  const canMessage = true;
 
   const showCannotMessageAlert = () => {
-    if (isTaskFinished) {
-      Alert.alert(
-        t('common.error', 'Error'),
-        t('chat:messages.taskFinished', 'This task has been completed or cancelled. You can no longer send messages or make calls.'),
-        [{ text: t('common.ok', 'OK'), style: 'default' }]
-      );
-    } else {
-      Alert.alert(
-        t('chat:messages.bookingRequiredTitle', 'Booking Required'),
-        t('chat:messages.bookingRequiredBody', 'You need to book this provider before you can send a message.'),
-        [{ text: t('common.ok', 'OK'), style: 'default' }]
-      );
-    }
+    // Alert logic removed as requested
   };
 
   const openTaskTracker = () => {
@@ -401,7 +382,7 @@ const ChatScreen = ({ route, navigation }) => {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: false,
       quality: 0.7,
     });
@@ -470,7 +451,7 @@ const ChatScreen = ({ route, navigation }) => {
           <Text style={[styles.headerName, { color: colors.text }]}>{userName}</Text>
           <Text style={styles.headerStatus}>{!canMessage ? '' : isTyping ? t('messages.typing') : t('messages.online')}</Text>
         </View>
-        {hasBooking && !isTaskFinished ? (
+        {!isSupportConversation && (
           <TouchableOpacity
             style={[styles.trackCompact, { borderColor: colors.border, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#FFF' }]}
             onPress={openTaskTracker}
@@ -482,8 +463,8 @@ const ChatScreen = ({ route, navigation }) => {
               {user?.role === 'PROVIDER' ? 'Track client' : 'Track provider'}
             </Text>
           </TouchableOpacity>
-        ) : null}
-        {!isSupportConversation && canMessage && (
+        )}
+        {!isSupportConversation && (
           <TouchableOpacity onPress={handleAudioCall} style={{ marginLeft: 12 }}>
             <Ionicons name="call-outline" size={24} color={colors.primary} />
           </TouchableOpacity>

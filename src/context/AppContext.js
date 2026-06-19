@@ -59,11 +59,14 @@ export const AppProvider = ({ children }) => {
   const [favoriteJobIds, setFavoriteJobIds] = useState([]);
   const [favoriteProviderIds, setFavoriteProviderIds] = useState([]);
   const [appliedJobIds, setAppliedJobIds] = useState([]);
+  const [myTasksList, setMyTasksList] = useState([]);
+  const [myBookingsList, setMyBookingsList] = useState([]);
   const [isProviderOnline, setIsProviderOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
   const markingNotificationsRef = React.useRef(new Set());
   const lastFetchRef = React.useRef(null);
 
@@ -85,6 +88,9 @@ export const AppProvider = ({ children }) => {
             setWalletDetails(data.walletDetails || null);
             setConversations(data.conversations || []);
             setTransactions(data.transactions || []);
+            setMyTasksList(data.myTasks || []);
+            setMyBookingsList(data.myBookings || []);
+            setMyReviews(data.myReviews || []);
             setHasLoadedData(true);
             setIsInitialLoad(false);
           }
@@ -179,11 +185,11 @@ export const AppProvider = ({ children }) => {
       });
 
       const offJobApproved = on('job:approved', () => {
-        fetchAppData();
+        fetchAppData(true);
       });
 
       const offJobUpdated = on('job:updated', () => {
-        fetchAppData();
+        fetchAppData(true);
       });
 
       const offApplicationCount = on('job:application-count', ({ jobId, applicationCount }) => {
@@ -194,7 +200,7 @@ export const AppProvider = ({ children }) => {
         )));
       });
       const offBookingUpdate = on('booking:update', () => {
-        fetchAppData();
+        fetchAppData(true);
       });
 
       return () => {
@@ -267,6 +273,29 @@ export const AppProvider = ({ children }) => {
 
       if (user?.role?.toUpperCase() === 'CLIENT') {
         fetchFavoriteProviders();
+        try {
+          const [jobsRes, bookingsRes] = await Promise.all([
+            api.get('/jobs/client'),
+            api.get('/bookings/mine?role=CLIENT')
+          ]);
+          setMyTasksList(jobsRes.data?.data || []);
+          setMyBookingsList(bookingsRes.data?.data || []);
+        } catch (e) {
+          console.log('[Client Tasks Fetch Error]', e.message);
+        }
+      } else if (user?.role?.toUpperCase() === 'PROVIDER') {
+        try {
+          const [jobsRes, bookingsRes, reviewsRes] = await Promise.all([
+            api.get('/jobs/my-jobs'),
+            api.get('/bookings/mine?role=PROVIDER'),
+            api.get(`/reviews/users/${user.id}`)
+          ]);
+          setMyTasksList(jobsRes.data?.data || []);
+          setMyBookingsList(bookingsRes.data?.data || []);
+          setMyReviews(reviewsRes.data?.data || []);
+        } catch (e) {
+          console.log('[Provider Jobs Fetch Error]', e.message);
+        }
       }
 
       // Cache data
@@ -276,7 +305,10 @@ export const AppProvider = ({ children }) => {
         walletBalance: data.wallet?.balance || 0,
         walletDetails: data.wallet || null,
         conversations: normalizedConv,
-        transactions: data.transactions || []
+        transactions: data.transactions || [],
+        myTasks: myTasksList,
+        myBookings: myBookingsList,
+        myReviews: myReviews
       }));
 
       lastFetchRef.current = now;
@@ -475,8 +507,11 @@ export const AppProvider = ({ children }) => {
       favoriteJobIds,
       favoriteProviders,
       favoriteProviderIds,
+      myReviews,
       appliedJobIds,
       hiddenJobIds,
+      myTasksList,
+      myBookingsList,
       conversations,
       notifications,
       unreadCount,

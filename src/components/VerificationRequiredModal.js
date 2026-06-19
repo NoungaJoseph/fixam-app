@@ -12,12 +12,10 @@ const VerificationRequiredModal = ({ visible, onClose, message, isProvider = fal
 
   const handleVerify = () => {
     onClose();
-    // Navigate to verification screen based on role
-    if (isProvider) {
-      navigation.navigate('ProviderProfile', { screen: 'Verification' });
-    } else {
-      navigation.navigate('Profile', { screen: 'Verification' });
-    }
+    // Navigate using a slight timeout to ensure modal closes before navigation
+    setTimeout(() => {
+      navigation.navigate('Verification');
+    }, 100);
   };
 
   return (
@@ -43,20 +41,20 @@ const VerificationRequiredModal = ({ visible, onClose, message, isProvider = fal
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={[styles.button, styles.cancelButton, { borderColor: colors.border }]} 
-              onPress={onClose}
-            >
-              <Text style={[styles.cancelText, { color: colors.text }]}>
-                {t('common.cancel', 'Cancel')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
               style={[styles.button, styles.verifyButton, { backgroundColor: colors.accent }]} 
               onPress={handleVerify}
             >
               <Text style={styles.verifyText}>
                 {t('verification.verifyNow')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.button, styles.cancelButton, { borderColor: colors.border }]} 
+              onPress={onClose}
+            >
+              <Text style={[styles.cancelText, { color: colors.text }]}>
+                {t('common.cancel', 'Cancel')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -76,7 +74,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: '100%',
-    borderRadius: 20,
+    borderRadius: 0,
     padding: 24,
     alignItems: 'center',
     elevation: 10,
@@ -106,19 +104,20 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 12,
     width: '100%',
   },
   button: {
-    flex: 1,
+    width: '100%',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
-    borderWidth: 1.5,
+    borderWidth: 0,
+    backgroundColor: '#F1F5F9',
   },
   verifyButton: {
   },

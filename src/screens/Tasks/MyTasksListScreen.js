@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, Image, StatusBar, Platform, Alert, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, Image, StatusBar, Platform, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
@@ -41,12 +41,13 @@ const CATEGORY_ICONS = {
 
 const MyTasksListScreen = ({ navigation }) => {
   const { isDarkMode, colors } = useTheme();
-  const { transactions, notificationCount } = useAppContext();
+  const { transactions, notificationCount, myTasksList, myBookingsList } = useAppContext();
   const { on } = useSocket();
   const { t, locale } = useLanguage();
-  const [jobs, setJobs] = useState([]);
-  const [bookings, setBookings] = useState([]);
+  const [jobs, setJobs] = useState(myTasksList || []);
+  const [bookings, setBookings] = useState(myBookingsList || []);
   const [activeTab, setActiveTab] = useState('All Jobs');
+  const [loadingJobId, setLoadingJobId] = useState(null);
 
   const fetchMyJobs = useCallback(async () => {
     try {
@@ -58,6 +59,11 @@ const MyTasksListScreen = ({ navigation }) => {
       console.error('Error fetching tasks:', error);
     }
   }, []);
+
+  useEffect(() => {
+    if (myTasksList?.length) setJobs(myTasksList);
+    if (myBookingsList?.length) setBookings(myBookingsList);
+  }, [myTasksList, myBookingsList]);
 
   useEffect(() => {
     const unsub = navigation.addListener('focus', fetchMyJobs);
@@ -120,16 +126,19 @@ const MyTasksListScreen = ({ navigation }) => {
   const filtered = activeTab === 'All Jobs' ? mapped : mapped.filter(j => j.status === activeTab);
 
   const handleUpdateStatus = async (jobId, status) => {
+    setLoadingJobId(jobId);
     try {
       const target = mapped.find((item) => item.id === jobId);
       if (target?.isBooking) {
-        await api.patch(`/bookings/${jobId}/status`, { status: status === 'IN_PROGRESS' ? 'ACCEPTED' : status });
+        await api.patch(`/bookings/${jobId}/status`, { status });
       } else {
         await api.put(`/jobs/${jobId}/status`, { status });
       }
-      fetchMyJobs();
+      await fetchMyJobs();
     } catch {
       alert(t('jobs.updateFailed'));
+    } finally {
+      setLoadingJobId(null);
     }
   };
 
@@ -217,9 +226,10 @@ const MyTasksListScreen = ({ navigation }) => {
           {item.status === 'Requests' && (
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              onPress={() => item.isBooking ? handleUpdateStatus(item.id, 'ACCEPTED') : navigation.navigate('JobStatus', { job: item.rawJob })}
+              onPress={() => navigation.navigate('JobStatus', { job: item.rawJob, isBooking: item.isBooking })}
+              disabled={loadingJobId === item.id}
             >
-              <Text style={styles.primaryBtnText}>{item.isBooking ? t('jobs.accept') : t('jobs.review')}</Text>
+              <Text style={styles.primaryBtnText}>{item.isBooking ? t('jobs.viewStatus', 'View Status') : t('jobs.review')}</Text>
             </TouchableOpacity>
           )}
           {item.status === 'Booked' && (
@@ -229,8 +239,9 @@ const MyTasksListScreen = ({ navigation }) => {
                 { text: t('common.cancel'), style: 'cancel' },
                 { text: t('jobs.start'), onPress: () => handleUpdateStatus(item.rawJob.id, 'IN_PROGRESS') },
               ])}
+              disabled={loadingJobId === item.rawJob.id}
             >
-              <Text style={styles.primaryBtnText}>{t('jobs.startJob')}</Text>
+              {loadingJobId === item.rawJob.id ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryBtnText}>{t('jobs.startJob')}</Text>}
             </TouchableOpacity>
           )}
           {item.status === 'Active' && (
@@ -240,17 +251,18 @@ const MyTasksListScreen = ({ navigation }) => {
                 { text: t('common.cancel'), style: 'cancel' },
                 { text: t('jobs.complete'), onPress: () => handleUpdateStatus(item.rawJob.id, 'COMPLETED') },
               ])}
+              disabled={loadingJobId === item.rawJob.id}
             >
-              <Text style={styles.primaryBtnText}>{t('jobs.markCompleted')}</Text>
+              {loadingJobId === item.rawJob.id ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryBtnText}>{t('jobs.markCompleted')}</Text>}
             </TouchableOpacity>
           )}
           {item.status === 'Completed' && (
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              onPress={() => navigation.navigate('ReviewTask', { task: item.rawJob, provider: { id: item.rawJob.clientId, fullName: item.client } })}
+              onPress={() => navigation.navigate('ReviewTask', { task: item.rawJob, provider: { id: item.isBooking ? item.rawJob.providerId : item.rawJob.assignments?.[0]?.provider?.userId, fullName: item.client } })}
             >
               <MaterialCommunityIcons name="star-outline" size={13} color="#FFF" />
-              <Text style={styles.primaryBtnText}>{t('jobs.rateClient')}</Text>
+              <Text style={styles.primaryBtnText}>{t('jobs.rateProvider', 'Rate Provider')}</Text>
             </TouchableOpacity>
           )}
         </View>

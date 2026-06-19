@@ -148,19 +148,17 @@ const SettingsScreen = ({ navigation, route }) => {
           <SectionCard>
             <SettingItem icon="account-circle-outline" title={t('settings.profile')} desc={t('settings.profileDesc')} onPress={() => navigation.navigate('UserProfile')} />
             <SettingItem icon="lock-outline" title={t('settings.changePassword')} desc={t('settings.changePasswordDesc')} onPress={() => navigation.navigate('ChangePassword')} />
-            {user?.role === 'PROVIDER' && (
-              <SettingItem
-                icon="check-decagram-outline"
-                title={t('settings.verification')}
-                desc={t('settings.verificationDesc')}
-                onPress={() => navigation.navigate('Verification')}
-                right={
-                  <View style={[styles.statusPill, { backgroundColor: verBg }]}>
-                    <Text style={[styles.statusPillText, { color: verColor }]}>{verLabel}</Text>
-                  </View>
-                }
-              />
-            )}
+            <SettingItem
+              icon="check-decagram-outline"
+              title={t('settings.verification')}
+              desc={t('settings.verificationDesc')}
+              onPress={() => navigation.navigate('Verification')}
+              right={
+                <View style={[styles.statusPill, { backgroundColor: verBg }]}>
+                  <Text style={[styles.statusPillText, { color: verColor }]}>{verLabel}</Text>
+                </View>
+              }
+            />
           </SectionCard>
 
           {/* PREFERENCES */}

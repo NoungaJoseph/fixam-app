@@ -156,7 +156,7 @@ const NotificationDetailScreen = ({ route, navigation }) => {
         <View style={styles.header}>
           <TouchableOpacity
             style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('Notifications')}
           >
             <MaterialCommunityIcons name="arrow-left" size={20} color={colors.text} />
           </TouchableOpacity>

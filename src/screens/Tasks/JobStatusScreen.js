@@ -17,6 +17,7 @@ const JobStatusScreen = ({ route, navigation }) => {
 
   const normalizedStatus = String(job.status || 'PENDING').toUpperCase();
   const displayStatus = translateStatus(normalizedStatus);
+  const isBooking = Boolean(route.params?.isBooking || job?.isBooking || job?.bookingDate);
   const selectedAssignment = job.assignments?.find((assignment) => assignment.id === job.selectedAssignmentId) || job.assignments?.find((assignment) => assignment.status === 'ACCEPTED');
   const assignedProviderUser = job.provider || selectedAssignment?.provider?.user;
   const assignedProvider = assignedProviderUser ? {
@@ -45,22 +46,6 @@ const JobStatusScreen = ({ route, navigation }) => {
     };
   }, [route.params?.job?.id]);
 
-  const getProviderFromAssignment = (assignment) => {
-    const provider = assignment?.provider || assignment?.providerProfile || null;
-    const providerUser = provider?.user || assignment?.providerUser || assignment?.user || null;
-
-    if (!provider && !providerUser) return null;
-
-    return {
-      ...(provider || {}),
-      id: provider?.id || assignment?.providerId,
-      user: providerUser || provider?.user || {
-        id: assignment?.providerUserId || assignment?.userId,
-        fullName: assignment?.providerName || t('common.provider'),
-        avatar: assignment?.providerAvatar,
-      },
-    };
-  };
 
   const chooseProvider = (assignment) => {
     const provider = getProviderFromAssignment(assignment);
@@ -107,7 +92,7 @@ const JobStatusScreen = ({ route, navigation }) => {
             <View style={[styles.idBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.accentSoft }]}>
               <Text style={[styles.idText, { color: colors.accent, fontWeight: '800' }]}>#{job.id?.slice(-6) || t('jobs.task')}</Text>
             </View>
-            <Text style={[styles.jobTitle, { color: colors.text }]}>{job.title || t('jobs.taskDetails')}</Text>
+            <Text style={[styles.jobTitle, { color: colors.text }]}>{isBooking ? (job.notes || t('jobs.scheduledServiceBooking')) : (job.title || t('jobs.taskDetails'))}</Text>
             <View style={[styles.statusChip, { backgroundColor: isDarkMode ? 'rgba(96, 165, 250, 0.1)' : '#EFF6FF' }]}>
               <View style={[styles.statusDot, { backgroundColor: colors.accent }]} />
               <Text style={[styles.statusChipText, { color: colors.accent }]}>{displayStatus}</Text>
@@ -203,8 +188,8 @@ const JobStatusScreen = ({ route, navigation }) => {
             </View>
 
             <Detail icon="map-marker-radius" label={t('jobs.location')} value={job.location || t('jobs.onSite')} colors={colors} isDarkMode={isDarkMode} />
-            <Detail icon="calendar-clock" label={t('jobs.scheduled')} value={job.scheduledTime ? new Date(job.scheduledTime).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US') : t('jobs.asap')} colors={colors} isDarkMode={isDarkMode} />
-            <Detail icon="text-box-outline" label={t('jobs.description')} value={job.description || t('jobs.noAdditionalDetails')} colors={colors} isDarkMode={isDarkMode} />
+            <Detail icon="calendar-clock" label={t('jobs.scheduled')} value={isBooking ? `${new Date(job.bookingDate).toLocaleDateString()} ${job.bookingTime}` : (job.scheduledTime ? new Date(job.scheduledTime).toLocaleString() : t('jobs.asap'))} colors={colors} isDarkMode={isDarkMode} />
+            <Detail icon="text-box-outline" label={t('jobs.description')} value={(isBooking ? job.notes : job.description) || t('jobs.noAdditionalDetails')} colors={colors} isDarkMode={isDarkMode} />
           </View>
 
           <View style={[styles.costCard, { backgroundColor: colors.accent }]}>
@@ -232,7 +217,8 @@ const JobStatusScreen = ({ route, navigation }) => {
                       text: t('jobs.completeAndRate'),
                       onPress: async () => {
                         try {
-                          await api.put(`/jobs/${job.id}/status`, { status: 'COMPLETED' });
+                          const endpoint = isBooking ? `/bookings/${job.id}/status` : `/jobs/${job.id}/status`;
+                          await api.put(endpoint, { status: 'COMPLETED' });
                           navigation.navigate('Rating', {
                             jobId: job.id,
                             targetUser: assignedProviderUser,
@@ -265,8 +251,8 @@ const JobStatusScreen = ({ route, navigation }) => {
                         style: 'destructive',
                         onPress: async () => {
                           try {
-                            const endpoint = job.isBooking ? `/bookings/${job.id}/status` : `/jobs/${job.id}/status`;
-                            await api.put(endpoint, { status: 'CANCELLED' });
+                            const endpoint = isBooking ? `/bookings/${job.id}/status` : `/jobs/${job.id}/status`;
+                            await api.patch(endpoint, { status: 'CANCELLED' });
                             setJob({ ...job, status: 'CANCELLED' });
                             Alert.alert(t('common.success'), t('jobs.cancelledSuccess', 'Task cancelled successfully.'));
                           } catch (err) {

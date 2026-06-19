@@ -88,7 +88,7 @@ const SelfieScreen = ({ navigation, route }) => {
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}>
+          <TouchableOpacity onPress={() => navigation.navigate('DocUpload', { docType: params.docType, frontImage: params.frontImage, backImage: params.backImage })} style={[styles.backBtn, { backgroundColor: colors.card }]}>
             <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('verification.takeSelfie')}</Text>

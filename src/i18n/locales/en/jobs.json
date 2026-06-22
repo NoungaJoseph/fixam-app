@@ -18,6 +18,7 @@
     "bookings": "Bookings",
     "postedTasks": "Your posted tasks",
     "postedTasksSubtitle": "Track approval, edit pending work, and manage your service requests.",
+    "bookingRequestsSubtitle": "Review direct booking requests",
     "allTasks": "All Tasks",
     "pending": "Pending",
     "inProgress": "In Progress",

@@ -16,6 +16,7 @@ import { getProviderProgress } from '../../utils/providerProgress';
 import { translateService } from '../../i18n/translate';
 import WelcomeModal from '../../components/Common/WelcomeModal';
 import ProviderTour from '../../components/Common/ProviderTour';
+import NewsTicker from '../../components/NewsTicker';
 
 const { width } = Dimensions.get('window');
 
@@ -65,7 +66,7 @@ const LEARN_CARDS = [
 const ProviderHomeScreen = ({ navigation }) => {
   const {
     isProviderOnline, updateProviderStatus,
-    walletBalance, visibleJobs, notificationCount, unreadCount, isInitialLoad
+    walletBalance, visibleJobs, notificationCount, unreadCount, isInitialLoad, myBookingsList
   } = useAppContext();
   const { user, isNewUser, clearNewUser } = useAuth();
   const { colors, isDarkMode } = useTheme();
@@ -90,6 +91,14 @@ const ProviderHomeScreen = ({ navigation }) => {
   const findJobsRef = useRef(null);
   const myJobsRef = useRef(null);
   const providerMainScrollRef = useRef(null);
+
+  const isNavigatingRef = useRef(false);
+  const handleSafeNavigate = (route, params) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    navigation.navigate(route, params);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  };
 
   const [myJobs, setMyJobs] = useState([]);
 
@@ -358,6 +367,8 @@ const ProviderHomeScreen = ({ navigation }) => {
     );
   }
 
+
+
   return (
     <>
       <StatusBar style="light" backgroundColor="#14B8A6" />
@@ -435,6 +446,10 @@ const ProviderHomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
 
+        <View style={{ marginBottom: 16, marginTop: -6, zIndex: -1 }}>
+          <NewsTicker />
+        </View>
+
         {/* ÔöÇÔöÇ 3. PREMIUM BALANCE STATS CARD ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
         <LinearGradient
           ref={topUpRef}
@@ -507,19 +522,23 @@ const ProviderHomeScreen = ({ navigation }) => {
               thumbColor="#FFF"
             />
           </View>
-
           {/* Bottom Section: Quick Nav Grid */}
           <View style={styles.quickNavGridContainer}>
-            {/* Find Jobs */}
-            <TouchableOpacity ref={findJobsRef} style={styles.quickNavCard} onPress={() => navigation.navigate('Find Jobs')}>
+            {/* Bookings */}
+            <TouchableOpacity ref={findJobsRef} style={styles.quickNavCard} onPress={() => handleSafeNavigate('BookingsList')}>
               <View style={[styles.quickNavIconWrap, { backgroundColor: '#E6FDF3' }]}>
-                <MaterialCommunityIcons name="briefcase" size={24} color="#0D9488" />
+                <MaterialCommunityIcons name="calendar-check-outline" size={24} color="#0D9488" />
+                {myBookingsList?.filter(b => b.status === 'PENDING').length > 0 && (
+                  <View style={styles.quickNavBadge}>
+                    <Text style={styles.quickNavBadgeText}>{myBookingsList.filter(b => b.status === 'PENDING').length}</Text>
+                  </View>
+                )}
               </View>
-              <Text style={[styles.quickNavCardLabel, { color: colors.text }]}>{t('home.findJobs')}</Text>
+              <Text style={[styles.quickNavCardLabel, { color: colors.text }]}>Bookings</Text>
             </TouchableOpacity>
 
             {/* Messages */}
-            <TouchableOpacity ref={myJobsRef} style={styles.quickNavCard} onPress={() => navigation.navigate('Messages')}>
+            <TouchableOpacity ref={myJobsRef} style={styles.quickNavCard} onPress={() => handleSafeNavigate('Messages')}>
               <View style={[styles.quickNavIconWrap, { backgroundColor: '#F3E8FF' }]}>
                 <MaterialCommunityIcons name="message-text" size={24} color="#7C3AED" />
                 {unreadCount > 0 && (
@@ -532,7 +551,12 @@ const ProviderHomeScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             {/* Wallet */}
-            <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' })}>
+            <TouchableOpacity style={styles.quickNavCard} onPress={() => {
+              if (isNavigatingRef.current) return;
+              isNavigatingRef.current = true;
+              navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' });
+              setTimeout(() => { isNavigatingRef.current = false; }, 500);
+            }}>
               <View style={[styles.quickNavIconWrap, { backgroundColor: '#FEF3C7' }]}>
                 <MaterialCommunityIcons name="wallet" size={24} color="#D97706" />
               </View>
@@ -540,7 +564,7 @@ const ProviderHomeScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             {/* My Stats */}
-            <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.navigate('Stats')}>
+            <TouchableOpacity style={styles.quickNavCard} onPress={() => handleSafeNavigate('Stats')}>
               <View style={[styles.quickNavIconWrap, { backgroundColor: '#DBEAFE' }]}>
                 <MaterialCommunityIcons name="chart-bar" size={24} color="#2563EB" />
               </View>

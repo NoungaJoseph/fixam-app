@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, Linking, Share, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +18,13 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const { favoriteProviderIds, toggleFavoriteProvider } = useAppContext();
   const { user } = useAuth();
   const provider = route.params?.provider || null;
+  const isNavigatingRef = useRef(false);
+  const handleSafeNavigate = (route, params) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    navigation.navigate(route, params);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  };
   const providerUserId = provider?.user?.id || provider?.userId;
   const insets = useSafeAreaInsets();
   const [pastHeader, setPastHeader] = React.useState(false);
@@ -631,7 +638,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                 setShowVerificationModal(true);
                 return;
               }
-              navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
+              handleSafeNavigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
             }}
           >
             <MaterialCommunityIcons name="calendar-check" size={22} color="#FFF" style={{ marginRight: 6 }} />

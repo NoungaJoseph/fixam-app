@@ -186,10 +186,12 @@ export const AppProvider = ({ children }) => {
 
       const offJobApproved = on('job:approved', () => {
         fetchAppData(true);
+        fetchNotifications();
       });
 
       const offJobUpdated = on('job:updated', () => {
         fetchAppData(true);
+        fetchNotifications();
       });
 
       const offApplicationCount = on('job:application-count', ({ jobId, applicationCount }) => {
@@ -201,6 +203,7 @@ export const AppProvider = ({ children }) => {
       });
       const offBookingUpdate = on('booking:update', () => {
         fetchAppData(true);
+        fetchNotifications();
       });
 
       return () => {
@@ -234,8 +237,8 @@ export const AppProvider = ({ children }) => {
 
     if (!hasLoadedData) {
       setIsInitialLoad(true);
+      setIsLoading(true);
     }
-    setIsLoading(true);
     
     try {
       const res = await api.get('/dashboard');
@@ -271,30 +274,40 @@ export const AppProvider = ({ children }) => {
       
       setTransactions(data.transactions || []);
 
+      let nextMyTasks = myTasksList;
+      let nextMyBookings = myBookingsList;
+      let nextMyReviews = myReviews;
+
       if (user?.role?.toUpperCase() === 'CLIENT') {
         fetchFavoriteProviders();
         try {
-          const [jobsRes, bookingsRes] = await Promise.all([
+          const [jobsRes, bookingsRes] = await Promise.allSettled([
             api.get('/jobs/client'),
             api.get('/bookings/mine?role=CLIENT')
           ]);
-          setMyTasksList(jobsRes.data?.data || []);
-          setMyBookingsList(bookingsRes.data?.data || []);
+          nextMyTasks = jobsRes.status === 'fulfilled' ? (jobsRes.value.data?.data || []) : nextMyTasks;
+          nextMyBookings = bookingsRes.status === 'fulfilled' ? (bookingsRes.value.data?.data || []) : nextMyBookings;
+          setMyTasksList(nextMyTasks);
+          setMyBookingsList(nextMyBookings);
         } catch (e) {
           console.log('[Client Tasks Fetch Error]', e.message);
         }
       } else if (user?.role?.toUpperCase() === 'PROVIDER') {
         try {
-          const [jobsRes, bookingsRes, reviewsRes] = await Promise.all([
+          const [jobsRes, bookingsRes, reviewsRes] = await Promise.allSettled([
             api.get('/jobs/my-jobs'),
             api.get('/bookings/mine?role=PROVIDER'),
             api.get(`/reviews/users/${user.id}`)
           ]);
-          setMyTasksList(jobsRes.data?.data || []);
-          setMyBookingsList(bookingsRes.data?.data || []);
-          setMyReviews(reviewsRes.data?.data || []);
+          nextMyTasks = jobsRes.status === 'fulfilled' ? (jobsRes.value.data?.data || []) : nextMyTasks;
+          nextMyBookings = bookingsRes.status === 'fulfilled' ? (bookingsRes.value.data?.data || []) : nextMyBookings;
+          nextMyReviews = reviewsRes.status === 'fulfilled' ? (reviewsRes.value.data?.data || []) : nextMyReviews;
+          
+          setMyTasksList(nextMyTasks);
+          setMyBookingsList(nextMyBookings);
+          setMyReviews(nextMyReviews);
         } catch (e) {
-          console.log('[Provider Jobs Fetch Error]', e.message);
+          console.log('[Provider Tasks Fetch Error]', e.message);
         }
       }
 
@@ -306,9 +319,9 @@ export const AppProvider = ({ children }) => {
         walletDetails: data.wallet || null,
         conversations: normalizedConv,
         transactions: data.transactions || [],
-        myTasks: myTasksList,
-        myBookings: myBookingsList,
-        myReviews: myReviews
+        myTasks: nextMyTasks,
+        myBookings: nextMyBookings,
+        myReviews: nextMyReviews
       }));
 
       lastFetchRef.current = now;
@@ -355,8 +368,8 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  // unreadCount = number of distinct conversations that have ≥1 unread message.
-  // If 3 different people each text you 10 messages → badge shows 3, not 30.
+  // unreadCount = number of distinct conversations that have >= 1 unread message.
+  // If 3 different people each text you 10 messages -> badge shows 3, not 30.
   const unreadCount = useMemo(() => {
     return conversations.filter(c => c.unreadCount > 0).length;
   }, [conversations]);

@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  TextInput, Image, Dimensions, Platform, RefreshControl, ActivityIndicator,
-  Animated, Easing, FlatList
+  TextInput, Image, Dimensions, Platform, RefreshControl, ActivityIndicator
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -18,6 +17,7 @@ import UserAvatar from '../../components/UserAvatar';
 import WelcomeModal from '../../components/Common/WelcomeModal';
 import ProviderTour from '../../components/Common/ProviderTour';
 import { POPULAR_SERVICE_CATALOG, POPULAR_SERVICE_IMAGES } from '../../data/popularServices';
+import NewsTicker from '../../components/NewsTicker';
 
 const { width } = Dimensions.get('window');
 
@@ -57,87 +57,6 @@ const LEARN_CARDS = [
     colors: ['#F59E0B', '#FBBF24']
   }
 ];
-const MarqueeServices = ({ services, colors, isDarkMode, navigation, t }) => {
-  const flatListRef = useRef(null);
-  const scrollOffset = useRef(0);
-  const isDragging = useRef(false);
-  const timerRef = useRef(null);
-
-  const extendedServices = useMemo(() => Array(100).fill(services).flat(), [services]);
-
-  const startAutoScroll = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      if (!isDragging.current && flatListRef.current) {
-        scrollOffset.current += 1.0;
-        flatListRef.current.scrollToOffset({ offset: scrollOffset.current, animated: false });
-      }
-    }, 20);
-  }, []);
-
-  const stopAutoScroll = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-  }, []);
-
-  useEffect(() => {
-    startAutoScroll();
-    return stopAutoScroll;
-  }, [startAutoScroll, stopAutoScroll]);
-
-  const handleScroll = (event) => {
-    if (isDragging.current) {
-      scrollOffset.current = event.nativeEvent.contentOffset.x;
-    }
-  };
-
-  const renderItem = ({ item, index }) => (
-    <TouchableOpacity
-      style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF', marginRight: 10 }]}
-      onPress={() => navigation.navigate('ProviderList', { category: item.name })}
-      activeOpacity={0.84}
-    >
-      <View style={styles.popularIconPanel}>
-        <Image source={POPULAR_SERVICE_IMAGES[item.imageName]} style={styles.popularImage} resizeMode="cover" />
-        <LinearGradient colors={['rgba(15,23,42,0.04)', 'rgba(15,23,42,0.22)']} style={StyleSheet.absoluteFill} />
-      </View>
-      <Text style={[styles.popularCardText, { color: colors.text }]} numberOfLines={2}>
-        {translateService(item.name)}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  return (
-    <View style={{ paddingVertical: 8 }}>
-      <FlatList
-        ref={flatListRef}
-        data={extendedServices}
-        keyExtractor={(item, index) => `${index}-${item.name}`}
-        renderItem={renderItem}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingLeft: 18 }}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        onScrollBeginDrag={() => {
-          isDragging.current = true;
-          stopAutoScroll();
-        }}
-        onScrollEndDrag={() => {
-          isDragging.current = false;
-          startAutoScroll();
-        }}
-        onMomentumScrollEnd={() => {
-          isDragging.current = false;
-          startAutoScroll();
-        }}
-        getItemLayout={(data, index) => ({ length: 142, offset: 142 * index, index })}
-        initialNumToRender={10}
-        windowSize={5}
-        removeClippedSubviews={false}
-      />
-    </View>
-  );
-};
 
 const HomeScreen = ({ navigation }) => {
   const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad, hasLoadedData } = useAppContext();
@@ -320,6 +239,8 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </LinearGradient>
 
+      <NewsTicker />
+
       <ScrollView
         ref={clientMainScrollRef}
         showsVerticalScrollIndicator={false}
@@ -362,13 +283,31 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <MarqueeServices 
-            services={POPULAR_SERVICES} 
-            colors={colors} 
-            isDarkMode={isDarkMode} 
-            navigation={navigation} 
-            t={t}
-          />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
+            {POPULAR_SERVICES.map(service => (
+              <TouchableOpacity
+                key={service.name}
+                style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}
+                onPress={() => navigation.navigate('ProviderList', { category: service.name })}
+                activeOpacity={0.84}
+              >
+                <View style={styles.popularIconPanel}>
+                  <Image
+                    source={POPULAR_SERVICE_IMAGES[service.imageName]}
+                    style={styles.popularImage}
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={['rgba(15,23,42,0.04)', 'rgba(15,23,42,0.22)']}
+                    style={StyleSheet.absoluteFill}
+                  />
+                </View>
+                <Text style={[styles.popularCardText, { color: colors.text }]} numberOfLines={2}>
+                  {translateService(service.name)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </LinearGradient>
 
         {/* ═══ 2. WALLET BALANCE CARD ═══ */}

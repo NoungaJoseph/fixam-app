@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,6 +9,21 @@ import api from '../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
+
+const formatAddressLabel = (address) => {
+  if (!address) return '';
+  const parts = [
+    address.street || address.name,
+    address.district,
+    address.subregion,
+    address.city,
+  ]
+    .filter(Boolean)
+    .map((part) => String(part).trim())
+    .filter(Boolean);
+
+  return [...new Set(parts)].join(', ');
+};
 
 const BookingFormScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
@@ -27,6 +42,14 @@ const BookingFormScreen = ({ route, navigation }) => {
   });
   const [submitting, setSubmitting] = useState(false);
   const { walletBalance } = useAppContext();
+
+  const isNavigatingRef = useRef(false);
+  const handleSafeGoBack = () => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    navigation.goBack();
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  };
 
   const getCoinCost = () => {
     switch(form.urgencyLevel) {
@@ -79,21 +102,18 @@ const BookingFormScreen = ({ route, navigation }) => {
       try {
         const addressResult = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (addressResult && addressResult.length > 0) {
-          const addr = addressResult[0];
-          const name = addr.name || '';
-          const street = addr.street || '';
-          const city = addr.city || addr.subregion || '';
-          const region = addr.region || '';
-          const addressParts = [name, street, city, region].filter(Boolean);
-          const formattedAddress = addressParts.join(', ') || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-          setForm(prev => ({ ...prev, location: formattedAddress, latitude, longitude }));
-          return;
+          const formattedAddress = formatAddressLabel(addressResult[0]);
+          if (formattedAddress) {
+            setForm(prev => ({ ...prev, location: formattedAddress, latitude, longitude }));
+            return;
+          }
         }
       } catch (err) {
-        console.log("Reverse geocode failed, using coordinates instead");
+        console.log('Reverse geocode failed:', err.message);
       }
-      
-      setForm(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, latitude, longitude }));
+
+      setForm(prev => ({ ...prev, latitude, longitude }));
+      Alert.alert(t('jobs.locationRequired') || 'Location required', t('jobs.enterStreetQuarter') || 'We could not find your street or quarter. Please type it in the location field.');
     } catch (error) {
       Alert.alert(t('common.error') || 'Error', t('jobs.locationFailed') || 'Could not fetch your location.');
     } finally {
@@ -137,7 +157,7 @@ const BookingFormScreen = ({ route, navigation }) => {
         notes: form.notes || '',
       });
       Alert.alert(t('bookings.sent'), t('bookings.sentBody'));
-      navigation.goBack();
+      handleSafeGoBack();
       return res.data;
     } catch (error) {
       const message = error.response?.data?.message || t('errors.bookingFailed');
@@ -156,7 +176,7 @@ const BookingFormScreen = ({ route, navigation }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}>
+            <TouchableOpacity onPress={handleSafeGoBack} style={[styles.backBtn, { backgroundColor: colors.card }]}>
               <MaterialCommunityIcons name="chevron-left" size={28} color={colors.accent} />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
@@ -268,10 +288,10 @@ const BookingFormScreen = ({ route, navigation }) => {
 
             <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.summaryTitle, { color: colors.text }]}>{t('bookings.bookingSummary', 'Booking Summary')}</Text>
-              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>Duration: {t(`bookings.${form.bookingDuration.toLowerCase()}Option`, form.bookingDuration)}</Text>
-              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>Type: {t(`bookings.${form.urgencyLevel.toLowerCase()}Urgency`, form.urgencyLevel)}</Text>
-              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>Date: {form.bookingDate || 'Not selected'}</Text>
-              <Text style={[styles.summaryCost, { color: colors.accent }]}>Cost: {getCoinCost()} coins will be deducted</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>{t('bookings.durationLabel', 'Duration:')} {t(`bookings.${form.bookingDuration.toLowerCase()}Option`, form.bookingDuration)}</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>{t('bookings.typeLabel', 'Type:')} {t(`bookings.${form.urgencyLevel.toLowerCase()}Urgency`, form.urgencyLevel)}</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>{t('bookings.dateLabel', 'Date:')} {form.bookingDate || t('bookings.notSelected', 'Not selected')}</Text>
+              <Text style={[styles.summaryCost, { color: colors.accent }]}>{t('bookings.costLabel', 'Cost:')} {getCoinCost()} {t('bookings.coinsDeducted', 'coins will be deducted')}</Text>
             </View>
 
             <TouchableOpacity onPress={submit} disabled={submitting} style={[styles.submitBtn, { opacity: submitting ? 0.65 : 1, marginTop: 12 }]}>

@@ -66,7 +66,7 @@ const CallModal = () => {
     <Modal visible={true} transparent animationType="slide">
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <MaterialCommunityIcons name={activeCall?.type === 'VIDEO' ? "video" : "phone"} size={24} color={colors.accent} />
+          <MaterialCommunityIcons name="phone" size={24} color={colors.accent} />
           <Text style={[styles.status, { color: colors.textSecondary }]}>
             {incomingCall ? 'Incoming Call...' : activeCall ? 'On Call' : 'Calling...'}
           </Text>

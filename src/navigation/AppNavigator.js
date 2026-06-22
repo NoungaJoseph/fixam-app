@@ -79,12 +79,12 @@ const AppNavigator = () => {
         <RootStack.Screen 
           name="Call" 
           component={CallScreen}
-          options={{ headerShown: false, presentation: 'modal' }}
+          options={{ headerShown: false, presentation: 'fullScreenModal' }}
         />
         <RootStack.Screen 
           name="IncomingCall" 
           component={IncomingCallScreen}
-          options={{ headerShown: false, presentation: 'modal' }}
+          options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }}
         />
       </RootStack.Navigator>
     </NavigationContainer>

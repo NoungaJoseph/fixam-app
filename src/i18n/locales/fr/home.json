@@ -122,6 +122,17 @@
       "deliverDesc": "Confirmez les attentes,\npuis terminez le travail",
       "paymentTitle": "Paiement après\nla prestation",
       "paymentDesc": "Le client paie lorsque\nle service est terminé"
+    },
+    "sports": {
+      "upcoming": "À venir",
+      "live": "DIRECT",
+      "group": "Groupe",
+      "table": "Classement",
+      "news": "INFO",
+      "waiting": "En attente des données de match...",
+      "welcome": "Bienvenue sur Fixam Sports !",
+      "sportsBadge": "SPORTS",
+      "newsBadge": "INFO"
     }
   }
 }

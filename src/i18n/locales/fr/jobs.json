@@ -18,6 +18,7 @@
     "bookings": "Réservations",
     "postedTasks": "Vos missions publiées",
     "postedTasksSubtitle": "Suivez la validation, modifiez les demandes en attente et gérez vos missions.",
+    "bookingRequestsSubtitle": "Consulter les demandes de réservation directes",
     "allTasks": "Toutes",
     "pending": "En attente",
     "inProgress": "En cours",

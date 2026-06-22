@@ -43,6 +43,21 @@ const WalletScreen = ({ navigation }) => {
         </TouchableOpacity>
       </LinearGradient>
 
+        {/* Refer Card */}
+        <TouchableOpacity 
+          style={[styles.offerCard, { borderTopColor: colors.border, borderBottomColor: colors.border, marginBottom: 20 }]}
+          onPress={() => navigation.navigate('Invitation')}
+        >
+          <View style={styles.offerIconWrap}>
+            <MaterialCommunityIcons name="gift-outline" size={24} color={colors.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.offerTitle, { color: colors.text }]}>{t('payments.earnFreeCoins')}</Text>
+            <Text style={[styles.offerSubtitle, { color: colors.textSecondary }]}>{t('payments.inviteEarn')}</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+
         {/* Transaction History Header */}
         <View style={styles.historyHeaderRow}>
           <Text style={[styles.historyTitle, { color: colors.text }]}>{t('payments.recentTransactions')}</Text>
@@ -89,21 +104,6 @@ const WalletScreen = ({ navigation }) => {
             ))
           )}
         </View>
-
-        {/* Refer Card */}
-        <TouchableOpacity 
-          style={[styles.offerCard, { borderTopColor: colors.border, borderBottomColor: colors.border }]}
-          onPress={() => navigation.navigate('Invitation')}
-        >
-          <View style={styles.offerIconWrap}>
-            <MaterialCommunityIcons name="gift-outline" size={24} color={colors.accent} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.offerTitle, { color: colors.text }]}>{t('payments.earnFreeCoins')}</Text>
-            <Text style={[styles.offerSubtitle, { color: colors.textSecondary }]}>{t('payments.inviteEarn')}</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
 
       </ScrollView>
     </SafeAreaView>
@@ -162,3 +162,4 @@ const styles = StyleSheet.create({
 });
 
 export default WalletScreen;
+

@@ -1,62 +1,104 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, View, Text, TouchableOpacity, Vibration } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
+import * as Haptics from 'expo-haptics';
 import { useSocket } from '../../context/SocketContext';
 import UserAvatar from '../../components/UserAvatar';
 import { getMediaUrl } from '../../services/api';
-import { Audio } from 'expo-av';
 
 const IncomingCallScreen = ({ route, navigation }) => {
-  const { callId, caller, callType } = route.params || {};
+  const { callId, caller, callType = 'AUDIO' } = route.params || {};
   const { emit, on } = useSocket();
-  const [sound, setSound] = React.useState();
+  const soundRef = useRef(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  const stopRinging = async () => {
+    Vibration.cancel();
+    if (soundRef.current) {
+      await soundRef.current.stopAsync().catch(() => {});
+      await soundRef.current.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    }
+  };
 
   useEffect(() => {
-    async function playRingtone() {
-      // Create a simple looping sound or load an asset
-      // For now we try to load a default sound or generic tone
-      // Since we don't have an asset, we'll skip actual Audio.Sound creation
-      // unless provided, but we set up the skeleton.
-      // const { sound } = await Audio.Sound.createAsync(require('../../../assets/ringtone.mp3'));
-      // setSound(sound);
-      // await sound.setIsLoopingAsync(true);
-      // await sound.playAsync();
-    }
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [pulseAnim]);
+
+  useEffect(() => {
+    let hapticInterval;
+    let mounted = true;
+
+    const playRingtone = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: false,
+        });
+
+        const { sound } = await Audio.Sound.createAsync(
+          require('../../assets/sounds/ringtone.wav'),
+          { isLooping: true, volume: 1.0, shouldPlay: true }
+        );
+
+        if (!mounted) {
+          await sound.unloadAsync();
+          return;
+        }
+
+        soundRef.current = sound;
+        Vibration.vibrate([0, 900, 500, 900], true);
+        hapticInterval = setInterval(() => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        }, 1200);
+      } catch (error) {
+        console.warn('[Call] Failed to play ringtone:', error);
+        Vibration.vibrate([0, 900, 500, 900], true);
+      }
+    };
+
     playRingtone();
 
     return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
+      mounted = false;
+      if (hapticInterval) clearInterval(hapticInterval);
+      stopRinging();
     };
   }, []);
 
   useEffect(() => {
     const offEnded = on('call:ended', (data) => {
       if (data.callId === callId) {
-        if (sound) sound.unloadAsync();
-        navigation.goBack();
+        stopRinging().finally(() => navigation.goBack());
       }
     });
 
-    return () => {
-      offEnded?.();
-    };
-  }, [on, callId, navigation, sound]);
+    return () => offEnded?.();
+  }, [callId, navigation, on]);
 
   const handleAccept = () => {
-    if (sound) sound.unloadAsync();
+    stopRinging();
     emit('call:accept', { callId });
     navigation.replace('Call', {
       callId,
       otherUser: caller,
       isOutgoing: false,
-      callType
+      callType,
     });
   };
 
   const handleDecline = () => {
-    if (sound) sound.unloadAsync();
+    stopRinging();
     emit('call:reject', { callId });
     navigation.goBack();
   };
@@ -64,13 +106,14 @@ const IncomingCallScreen = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.topSection}>
-        <UserAvatar 
-          uri={getMediaUrl(caller?.avatar)} 
-          name={caller?.name || 'User'} 
-          size={140} 
-          style={styles.avatar} 
+        <Animated.View style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]} />
+        <UserAvatar
+          uri={getMediaUrl(caller?.avatar)}
+          name={caller?.name || 'Fixam User'}
+          size={140}
+          style={styles.avatar}
         />
-        <Text style={styles.nameText}>{caller?.name || 'User'}</Text>
+        <Text style={styles.nameText}>{caller?.name || 'Fixam User'}</Text>
         <Text style={styles.statusText}>Incoming {callType === 'VIDEO' ? 'Video' : 'Audio'} Call</Text>
       </View>
 
@@ -90,65 +133,37 @@ const IncomingCallScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-    justifyContent: 'space-between',
-    paddingVertical: 80,
-  },
-  topSection: {
-    alignItems: 'center',
-    marginTop: 80,
+  container: { flex: 1, backgroundColor: '#111827', justifyContent: 'space-between', paddingVertical: 80 },
+  topSection: { alignItems: 'center', marginTop: 80 },
+  pulseRing: {
+    position: 'absolute',
+    width: 176,
+    height: 176,
+    borderRadius: 88,
+    backgroundColor: 'rgba(20,184,166,0.2)',
+    top: -18,
   },
   avatar: {
     width: 140,
     height: 140,
     borderRadius: 70,
     marginBottom: 24,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.24)',
   },
-  nameText: {
-    color: '#FFF',
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  statusText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 20,
-  },
+  nameText: { color: '#FFF', fontSize: 30, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
+  statusText: { color: 'rgba(255,255,255,0.75)', fontSize: 18, fontWeight: '600' },
   bottomSection: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 40,
-    marginBottom: 40,
+    paddingHorizontal: 42,
+    marginBottom: 42,
   },
-  actionBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  declineBtn: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#EF4444',
-    marginBottom: 10,
-  },
-  acceptBtn: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#10B981',
-    marginBottom: 10,
-  },
-  btnText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 8,
-  },
+  actionBtn: { alignItems: 'center', justifyContent: 'center' },
+  declineBtn: { width: 78, height: 78, borderRadius: 39, backgroundColor: '#EF4444', marginBottom: 10 },
+  acceptBtn: { width: 78, height: 78, borderRadius: 39, backgroundColor: '#10B981', marginBottom: 10 },
+  btnText: { color: '#FFF', fontSize: 15, fontWeight: '700', marginTop: 8 },
 });
 
 export default IncomingCallScreen;

@@ -1,257 +1,381 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, SafeAreaView, Platform } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  SafeAreaView,
+  Alert,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { RTCView } from 'react-native-webrtc';
+import InCallManager from 'react-native-incall-manager';
 import { useSocket } from '../../context/SocketContext';
-import { useAuth } from '../../context/AuthContext';
 import UserAvatar from '../../components/UserAvatar';
 import { getMediaUrl } from '../../services/api';
-import { WebView } from 'react-native-webview';
-import { Audio } from 'expo-av';
+import {
+  attachLocalStream,
+  createPeerConnection,
+  getLocalStream,
+  toIceCandidate,
+  toSessionDescription,
+} from '../../services/webrtc.service';
+
+const getDisplayName = (person) => person?.fullName || person?.name || person?.phone || 'Fixam User';
 
 const CallScreen = ({ route, navigation }) => {
-  const { callId: initialCallId, otherUser, isOutgoing, callType } = route.params || {};
+  const { callId: initialCallId, otherUser = {}, isOutgoing = false, callType = 'AUDIO' } = route.params || {};
   const { emit, on } = useSocket();
-  const { user } = useAuth();
-  
-  const [callId, setCallId] = useState(initialCallId);
+  const [callId, setCallId] = useState(initialCallId || null);
   const [status, setStatus] = useState(isOutgoing ? 'Calling...' : 'Connecting...');
   const [isMuted, setIsMuted] = useState(false);
-  const [isSpeaker, setIsSpeaker] = useState(false);
+  const [isSpeaker, setIsSpeaker] = useState(callType === 'VIDEO');
   const [duration, setDuration] = useState(0);
-  const [hasPermissions, setHasPermissions] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [hasConnectedMedia, setHasConnectedMedia] = useState(false);
+  const pcRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const pendingCandidatesRef = useRef([]);
+  const callIdRef = useRef(initialCallId || null);
+  const isMutedRef = useRef(false);
+  const isSpeakerRef = useRef(callType === 'VIDEO');
   const timerRef = useRef(null);
+  const hasStartedRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const targetUserId = otherUser?.id;
+  const isVideoCall = callType === 'VIDEO';
 
   useEffect(() => {
-    (async () => {
-      try {
-        const audioStatus = await Audio.requestPermissionsAsync();
-        setHasPermissions(audioStatus.status === 'granted');
-      } catch (e) {
-        console.warn('Failed to get audio permissions', e);
-      }
-    })();
+    callIdRef.current = callId;
+  }, [callId]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
+
+  useEffect(() => {
+    isSpeakerRef.current = isSpeaker;
+  }, [isSpeaker]);
+
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
-  useEffect(() => {
-    // Pulse animation
-    if (status === 'Calling...' || status === 'RINGING') {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.2,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-      pulseAnim.stopAnimation();
+  const startTimer = useCallback(() => {
+    if (!timerRef.current) {
+      timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
     }
-  }, [status, pulseAnim]);
+  }, []);
+
+  const cleanupMedia = useCallback(() => {
+    stopTimer();
+    InCallManager.stop();
+    pcRef.current?.close?.();
+    pcRef.current = null;
+    pendingCandidatesRef.current = [];
+    localStreamRef.current?.getTracks?.().forEach((track) => track.stop());
+    localStreamRef.current = null;
+    setLocalStream(null);
+    setRemoteStream(null);
+  }, [stopTimer]);
+
+  const sendSignal = useCallback((signal) => {
+    if (!targetUserId) return;
+    emit('call:signal', {
+      callId: callIdRef.current,
+      targetUserId,
+      signal,
+    });
+  }, [emit, targetUserId]);
+
+  const flushPendingCandidates = useCallback(async (pc) => {
+    while (pendingCandidatesRef.current.length) {
+      const candidate = pendingCandidatesRef.current.shift();
+      await pc.addIceCandidate(toIceCandidate(candidate));
+    }
+  }, []);
+
+  const ensurePeerConnection = useCallback(async () => {
+    if (pcRef.current) return pcRef.current;
+
+    const pc = createPeerConnection(sendSignal, (stream) => {
+      setRemoteStream(stream);
+      setHasConnectedMedia(true);
+      setStatus('Connected');
+      startTimer();
+    });
+    pcRef.current = pc;
+
+    const stream = await getLocalStream(isVideoCall);
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    attachLocalStream(pc, stream);
+    InCallManager.start({ media: isVideoCall ? 'video' : 'audio' });
+    InCallManager.setSpeakerphoneOn(isSpeakerRef.current);
+    InCallManager.setMicrophoneMute(isMutedRef.current);
+
+    return pc;
+  }, [isVideoCall, sendSignal, startTimer]);
+
+  const startOutgoingMedia = useCallback(async () => {
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+    try {
+      setStatus('Connecting...');
+      const pc = await ensurePeerConnection();
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      sendSignal({ type: 'offer', sdp: offer });
+    } catch (error) {
+      console.error('[Call] Failed to start outgoing media:', error);
+      Alert.alert('Call failed', 'Could not start your microphone or camera.');
+      cleanupMedia();
+      navigation.goBack();
+    }
+  }, [cleanupMedia, ensurePeerConnection, navigation, sendSignal]);
+
+  const handleSignal = useCallback(async ({ callId: signalCallId, signal }) => {
+    if (!signal) return;
+    if (signalCallId && callIdRef.current && signalCallId !== callIdRef.current) return;
+
+    try {
+      const pc = await ensurePeerConnection();
+
+      if (signal.type === 'offer') {
+        await pc.setRemoteDescription(toSessionDescription(signal.sdp));
+        await flushPendingCandidates(pc);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        sendSignal({ type: 'answer', sdp: answer });
+        setStatus('Connected');
+        startTimer();
+        return;
+      }
+
+      if (signal.type === 'answer') {
+        await pc.setRemoteDescription(toSessionDescription(signal.sdp));
+        await flushPendingCandidates(pc);
+        setStatus('Connected');
+        startTimer();
+        return;
+      }
+
+      if (signal.type === 'ice-candidate' && signal.candidate) {
+        if (pc.remoteDescription) {
+          await pc.addIceCandidate(toIceCandidate(signal.candidate));
+        } else {
+          pendingCandidatesRef.current.push(signal.candidate);
+        }
+      }
+    } catch (error) {
+      console.error('[Call] Signal handling failed:', error);
+    }
+  }, [ensurePeerConnection, flushPendingCandidates, sendSignal, startTimer]);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.16, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    );
+
+    if (status !== 'Connected') loop.start();
+    return () => loop.stop();
+  }, [pulseAnim, status]);
+
+  useEffect(() => {
+    if (!isOutgoing) {
+      ensurePeerConnection().catch((error) => {
+        console.error('[Call] Failed to prepare receiver media:', error);
+        Alert.alert('Call failed', 'Could not start your microphone or camera.');
+        navigation.goBack();
+      });
+    }
+  }, [ensurePeerConnection, isOutgoing, navigation]);
 
   useEffect(() => {
     const offInitiated = on('call:initiated', (data) => {
       setCallId(data.callId);
-      setStatus(data.status);
+      setStatus(data.status || 'RINGING');
     });
 
-    const offAccepted = on('call:accepted', () => {
-      setStatus('Connected');
-      startTimer();
+    const offAccepted = on('call:accepted', (data) => {
+      if (data?.callId && callIdRef.current && data.callId !== callIdRef.current) return;
+      startOutgoingMedia();
     });
 
-    const offRejected = on('call:rejected', () => {
+    const offRejected = on('call:rejected', (data) => {
+      if (data?.callId && callIdRef.current && data.callId !== callIdRef.current) return;
       setStatus('Call Declined');
-      setTimeout(() => navigation.goBack(), 2000);
+      cleanupMedia();
+      setTimeout(() => navigation.goBack(), 900);
     });
 
-    const offEnded = on('call:ended', () => {
+    const offEnded = on('call:ended', (data) => {
+      if (data?.callId && callIdRef.current && data.callId !== callIdRef.current) return;
       setStatus('Call Ended');
-      stopTimer();
-      setTimeout(() => navigation.goBack(), 2000);
+      cleanupMedia();
+      setTimeout(() => navigation.goBack(), 900);
     });
+
+    const offSignal = on('call:signal', handleSignal);
 
     return () => {
       offInitiated?.();
       offAccepted?.();
       offRejected?.();
       offEnded?.();
-      stopTimer();
+      offSignal?.();
+      cleanupMedia();
     };
-  }, [on, navigation]);
+  }, [cleanupMedia, handleSignal, navigation, on, startOutgoingMedia]);
 
   useEffect(() => {
-    if (!isOutgoing && status === 'Connecting...') {
-      setStatus('Connected');
-      startTimer();
-    }
-  }, [isOutgoing, status]);
+    InCallManager.setMicrophoneMute(isMuted);
+  }, [isMuted]);
 
-  const startTimer = () => {
-    if (!timerRef.current) {
-      timerRef.current = setInterval(() => {
-        setDuration((prev) => prev + 1);
-      }, 1000);
-    }
-  };
-
-  const stopTimer = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
+  useEffect(() => {
+    InCallManager.setSpeakerphoneOn(isSpeaker);
+  }, [isSpeaker]);
 
   const formatDuration = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   const handleEndCall = () => {
-    if (callId) {
-      emit('call:end', { callId });
-    }
-    stopTimer();
+    if (callIdRef.current) emit('call:end', { callId: callIdRef.current });
     setStatus('Call Ended');
-    setTimeout(() => navigation.goBack(), 1000);
+    cleanupMedia();
+    navigation.goBack();
   };
 
-  if (status === 'Connected') {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
-        <SafeAreaView style={{ flex: 1 }}>
-          <WebView
-            source={{ uri: 'https://whereby.com/fixam-demo' }}
-            allowsInlineMediaPlayback={true}
-            mediaPlaybackRequiresUserAction={false}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            style={{ flex: 1 }}
-          />
-          <TouchableOpacity 
-            style={styles.floatingEndBtn} 
-            onPress={handleEndCall}
-          >
-            <MaterialCommunityIcons name="phone-hangup" size={32} color="#FFF" />
-          </TouchableOpacity>
-        </SafeAreaView>
-      </View>
-    );
-  }
+  const remoteUrl = remoteStream?.toURL?.();
+  const localUrl = localStream?.toURL?.();
+  const name = getDisplayName(otherUser);
 
   return (
     <View style={styles.container}>
-      <View style={styles.topSection}>
-        <Animated.View style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]} />
-        <UserAvatar 
-          uri={getMediaUrl(otherUser?.avatar)} 
-          name={otherUser?.fullName || 'User'} 
-          size={120} 
-          style={styles.avatar} 
-        />
-        <Text style={styles.nameText}>{otherUser?.fullName || 'User'}</Text>
-        <Text style={styles.statusText}>
-          {status === 'Connected' ? formatDuration(duration) : status}
-        </Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        {isVideoCall && remoteUrl ? (
+          <RTCView streamURL={remoteUrl} style={styles.remoteVideo} objectFit="cover" />
+        ) : (
+          <View style={styles.audioStage}>
+            <Animated.View style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]} />
+            <UserAvatar uri={getMediaUrl(otherUser?.avatar)} name={name} size={132} style={styles.avatar} />
+            <Text style={styles.nameText}>{name}</Text>
+            <Text style={styles.statusText}>{status === 'Connected' ? formatDuration(duration) : status}</Text>
+          </View>
+        )}
 
-      <View style={styles.bottomSection}>
-        <TouchableOpacity 
-          style={[styles.controlBtn, isMuted && styles.controlBtnActive]} 
-          onPress={() => setIsMuted(!isMuted)}
-        >
-          <MaterialCommunityIcons 
-            name={isMuted ? "microphone-off" : "microphone"} 
-            size={28} 
-            color="#FFF" 
-          />
-        </TouchableOpacity>
+        {isVideoCall && localUrl ? (
+          <RTCView streamURL={localUrl} style={styles.localVideo} objectFit="cover" mirror />
+        ) : null}
 
-        <TouchableOpacity 
-          style={[styles.endCallBtn]} 
-          onPress={handleEndCall}
-        >
-          <MaterialCommunityIcons name="phone-hangup" size={36} color="#FFF" />
-        </TouchableOpacity>
+        {isVideoCall ? (
+          <View style={styles.videoOverlay}>
+            <Text style={styles.videoName}>{name}</Text>
+            <Text style={styles.videoStatus}>{status === 'Connected' ? formatDuration(duration) : status}</Text>
+          </View>
+        ) : null}
 
-        <TouchableOpacity 
-          style={[styles.controlBtn, isSpeaker && styles.controlBtnActive]} 
-          onPress={() => setIsSpeaker(!isSpeaker)}
-        >
-          <MaterialCommunityIcons 
-            name={isSpeaker ? "volume-high" : "volume-medium"} 
-            size={28} 
-            color="#FFF" 
-          />
-        </TouchableOpacity>
-      </View>
+        {!hasConnectedMedia && status === 'Connected' ? (
+          <Text style={styles.connectingHint}>Waiting for media...</Text>
+        ) : null}
+
+        <View style={styles.controls}>
+          <TouchableOpacity
+            style={[styles.controlBtn, isMuted && styles.controlBtnActive]}
+            onPress={() => setIsMuted((value) => !value)}
+          >
+            <MaterialCommunityIcons name={isMuted ? 'microphone-off' : 'microphone'} size={28} color="#FFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.endCallBtn} onPress={handleEndCall}>
+            <MaterialCommunityIcons name="phone-hangup" size={34} color="#FFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.controlBtn, isSpeaker && styles.controlBtnActive]}
+            onPress={() => setIsSpeaker((value) => !value)}
+          >
+            <MaterialCommunityIcons name={isSpeaker ? 'volume-high' : 'volume-medium'} size={28} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-    justifyContent: 'space-between',
-    paddingVertical: 60,
-  },
-  topSection: {
-    alignItems: 'center',
-    marginTop: 60,
-  },
+  container: { flex: 1, backgroundColor: '#111827' },
+  safeArea: { flex: 1 },
+  audioStage: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   pulseRing: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    top: -10,
+    width: 164,
+    height: 164,
+    borderRadius: 82,
+    backgroundColor: 'rgba(20, 184, 166, 0.2)',
   },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    marginBottom: 24,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.24)',
   },
-  nameText: {
-    color: '#FFF',
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  nameText: { color: '#FFF', fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  statusText: { color: 'rgba(255,255,255,0.72)', fontSize: 18, marginTop: 10, fontWeight: '600' },
+  remoteVideo: { ...StyleSheet.absoluteFillObject },
+  localVideo: {
+    position: 'absolute',
+    top: 64,
+    right: 18,
+    width: 112,
+    height: 156,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#000',
   },
-  statusText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 18,
+  videoOverlay: { position: 'absolute', top: 64, left: 20, right: 150 },
+  videoName: { color: '#FFF', fontSize: 22, fontWeight: '800' },
+  videoStatus: { color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 4, fontWeight: '600' },
+  connectingHint: {
+    position: 'absolute',
+    top: 110,
+    alignSelf: 'center',
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  bottomSection: {
+  controls: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 42,
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
     alignItems: 'center',
-    paddingHorizontal: 30,
-    marginBottom: 40,
+    justifyContent: 'center',
+    gap: 28,
   },
   controlBtn: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  controlBtnActive: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
-  },
+  controlBtnActive: { backgroundColor: 'rgba(20,184,166,0.72)' },
   endCallBtn: {
     width: 76,
     height: 76,
@@ -259,29 +383,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
   },
-  floatingEndBtn: {
-    position: 'absolute',
-    bottom: 40,
-    alignSelf: 'center',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#EF4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 8,
-    zIndex: 10,
-  }
 });
 
 export default CallScreen;

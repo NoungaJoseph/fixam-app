@@ -218,7 +218,7 @@ const ChatListScreen = ({ navigation }) => {
           avatar: avatarUri,
           otherParticipant: other,
           isSupportConversation: isSupport || item.isSystem,
-          task: item.activeTask || item.task || item.job || item.activeJob,
+          task: item.activeTask || item.task || item.job || item.activeJob || item.booking,
         })}
         onLongPress={() => {
           const isArchived = archivedIds.includes(item.id);

@@ -8,6 +8,7 @@ import api from '../../services/api';
 import { useAppContext } from '../../context/AppContext';
 import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 const TABS = [
   { key: 'All Jobs', label: 'All Jobs', icon: 'all-inclusive' },
@@ -39,11 +40,17 @@ const CATEGORY_ICONS = {
   BOOKING: 'calendar-check-outline',
 };
 
+const hasUserReviewed = (item, userId) => {
+  if (!userId) return false;
+  return (item.rawJob?.reviews || []).some((review) => review.reviewerId === userId);
+};
+
 const MyTasksListScreen = ({ navigation }) => {
   const { isDarkMode, colors } = useTheme();
   const { transactions, notificationCount, myTasksList, myBookingsList } = useAppContext();
   const { on } = useSocket();
   const { t, locale } = useLanguage();
+  const { user } = useAuth();
   const [jobs, setJobs] = useState(myTasksList || []);
   const [bookings, setBookings] = useState(myBookingsList || []);
   const [activeTab, setActiveTab] = useState('All Jobs');
@@ -94,6 +101,8 @@ const MyTasksListScreen = ({ navigation }) => {
       description: job.description,
       category: job.category,
       image: job.photos?.[0] || job.image || null,
+      updatedAt: job.updatedAt ? new Date(job.updatedAt).getTime() : 0,
+      createdAt: job.createdAt ? new Date(job.createdAt).getTime() : 0,
       rawJob: job,
     };
   });
@@ -109,10 +118,12 @@ const MyTasksListScreen = ({ navigation }) => {
     description: booking.notes,
     category: 'booking',
     image: booking.image || null,
+    updatedAt: booking.updatedAt ? new Date(booking.updatedAt).getTime() : 0,
+    createdAt: booking.createdAt ? new Date(booking.createdAt).getTime() : 0,
     rawJob: booking,
     isBooking: true,
   }));
-  const mapped = [...mappedBookings, ...mappedJobs];
+  const mapped = [...mappedBookings, ...mappedJobs].sort((a, b) => b.updatedAt - a.updatedAt);
 
   const totalJobs = mapped.length;
   const bookedCount = mapped.filter(j => j.status === 'Booked').length;
@@ -161,6 +172,7 @@ const MyTasksListScreen = ({ navigation }) => {
     const statusLabel = t(`jobs.statusLabels.${item.status}`);
     const darkBg = isDarkMode ? 'rgba(255,255,255,0.06)' : cfg.bg;
     const canChat = ['Booked', 'Active'].includes(item.status);
+    const reviewed = hasUserReviewed(item, user?.id);
     return (
       <TouchableOpacity
         style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}
@@ -256,7 +268,7 @@ const MyTasksListScreen = ({ navigation }) => {
               {loadingJobId === item.rawJob.id ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryBtnText}>{t('jobs.markCompleted')}</Text>}
             </TouchableOpacity>
           )}
-          {item.status === 'Completed' && (
+          {item.status === 'Completed' && !reviewed && (
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
               onPress={() => navigation.navigate('ReviewTask', { task: item.rawJob, provider: { id: item.isBooking ? item.rawJob.providerId : item.rawJob.assignments?.[0]?.provider?.userId, fullName: item.client } })}
@@ -264,6 +276,12 @@ const MyTasksListScreen = ({ navigation }) => {
               <MaterialCommunityIcons name="star-outline" size={13} color="#FFF" />
               <Text style={styles.primaryBtnText}>{t('jobs.rateProvider', 'Rate Provider')}</Text>
             </TouchableOpacity>
+          )}
+          {item.status === 'Completed' && reviewed && (
+            <View style={[styles.reviewedPill, { backgroundColor: isDarkMode ? 'rgba(34,197,94,0.14)' : '#F0FDF4' }]}>
+              <MaterialCommunityIcons name="star-check" size={14} color="#16A34A" />
+              <Text style={styles.reviewedText}>{t('jobs.reviewSubmitted', 'Review submitted')}</Text>
+            </View>
           )}
         </View>
       </TouchableOpacity>
@@ -469,6 +487,8 @@ const styles = StyleSheet.create({
   chatBtnText: { fontSize: 13, fontWeight: '700' },
   primaryBtn: { flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 38, borderRadius: 0 },
   primaryBtnText: { color: '#FFF', fontSize: 13, fontWeight: '800' },
+  reviewedPill: { flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 38, borderRadius: 0 },
+  reviewedText: { color: '#16A34A', fontSize: 13, fontWeight: '800' },
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 80, gap: 12 },

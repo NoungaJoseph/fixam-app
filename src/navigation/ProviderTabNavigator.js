@@ -16,6 +16,7 @@ import FindJobsScreen from '../screens/Provider/FindJobsScreen';
 import TaskDetailsScreen from '../screens/Provider/TaskDetailsScreen';
 import TaskDiscoveryScreen from '../screens/Provider/TaskDiscoveryScreen';
 import MyJobsScreen from '../screens/Provider/MyJobsScreen';
+import BookingsScreen from '../screens/Provider/BookingsScreen';
 import CoinSystemScreen from '../screens/Provider/CoinSystemScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
 import ChatListScreen from '../screens/Chat/ChatListScreen';
@@ -318,6 +319,7 @@ const ProviderTabNavigator = () => {
       <Drawer.Screen name="TaskDetails" component={TaskDetailsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="LiveTaskMap" component={LiveTaskMapScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="BookingForm" component={BookingFormScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="BookingsList" component={BookingsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Chat" component={ChatScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ReviewTask" component={ReviewTaskScreen} options={{ drawerItemStyle: { display: 'none' } }} />
 

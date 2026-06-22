@@ -41,7 +41,15 @@ class NotificationService {
       case 'NEW_BOOKING':
       case 'BOOKING_CONFIRMED':
       case 'BOOKING_SENT':
-        nav.navigate('Bookings');
+        if (data.bookingId || data.jobId) {
+          nav.navigate('JobStatus', { 
+            job: { id: data.bookingId || data.jobId }, 
+            jobId: data.bookingId || data.jobId,
+            isBooking: true 
+          });
+        } else {
+          nav.navigate('HomeMain');
+        }
         break;
 
       case 'NEW_APPLICATION':
@@ -49,18 +57,32 @@ class NotificationService {
       case 'JOB_COMPLETED':
       case 'JOB_APPROVED':
       case 'JOB_REJECTED':
-        nav.navigate('Tasks');
         if (data.jobId) {
-          setTimeout(() => {
-            nav.navigate('JobStatus', {
-              jobId: data.jobId
-            });
-          }, 100);
+          nav.navigate('JobStatus', { 
+            job: { id: data.jobId },
+            jobId: data.jobId 
+          });
+        } else {
+          nav.navigate('HomeMain');
         }
         break;
 
       case 'COINS_ADDED':
         nav.navigate('Wallet');
+        break;
+
+      case 'INCOMING_CALL':
+      case 'CALL':
+        nav.navigate('IncomingCall', {
+          callId: data.callId,
+          caller: {
+            id: data.callerId,
+            name: data.callerName || 'Fixam User',
+            avatar: data.callerAvatar || '',
+          },
+          callType: data.callType || 'AUDIO',
+          conversationId: data.conversationId,
+        });
         break;
 
       default:
@@ -138,7 +160,9 @@ class NotificationService {
     // Foreground message handler — show in-app toast or update badge
     messaging().onMessage(async (remoteMessage) => {
       console.log('[FCM] Foreground message arrived:', JSON.stringify(remoteMessage));
-      // Foreground taps are handled by in-app UI; no navigation here.
+      if (remoteMessage?.data?.type === 'INCOMING_CALL' || remoteMessage?.data?.type === 'CALL') {
+        this.handleNotificationNavigation(remoteMessage.data);
+      }
     });
 
     // App was in BACKGROUND and user tapped the notification

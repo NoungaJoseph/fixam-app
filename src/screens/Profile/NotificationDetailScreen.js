@@ -57,6 +57,24 @@ const NotificationDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const goToBooking = async (bookingId) => {
+    if (!bookingId) return;
+    setLoadingAction(true);
+    try {
+      const res = await api.get(`/bookings/${bookingId}`);
+      const booking = res.data.data;
+      if (user?.role === 'PROVIDER') {
+        navigation.navigate('TaskDetails', { task: booking, taskId: booking.id, isBooking: true });
+      } else {
+        navigation.navigate('JobStatus', { job: booking, isBooking: true });
+      }
+    } catch (error) {
+      Alert.alert(t('common.error'), error.response?.data?.message || t('common.tryAgain'));
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
   const actionConfig = (() => {
     const data = notification?.data || {};
     const notifType = data.type || type;
@@ -79,7 +97,7 @@ const NotificationDetailScreen = ({ route, navigation }) => {
         return {
           label: 'View Booking',
           onPress: () => {
-            navigation.navigate('Bookings', { bookingId: data.bookingId });
+            if (data.bookingId) goToBooking(data.bookingId);
           }
         };
 
@@ -87,12 +105,7 @@ const NotificationDetailScreen = ({ route, navigation }) => {
         return {
           label: 'View Applicants',
           onPress: () => {
-            if (data.jobId) {
-              navigation.navigate('Tasks');
-              setTimeout(() => {
-                navigation.navigate('JobStatus', { jobId: data.jobId });
-              }, 100);
-            }
+            if (data.jobId) goToJob(data.jobId, 'TaskDetails');
           }
         };
 
@@ -102,12 +115,7 @@ const NotificationDetailScreen = ({ route, navigation }) => {
         return {
           label: 'View Task',
           onPress: () => {
-            if (data.jobId) {
-              navigation.navigate('Tasks');
-              setTimeout(() => {
-                navigation.navigate('JobStatus', { jobId: data.jobId });
-              }, 100);
-            }
+            if (data.jobId) goToJob(data.jobId, 'TaskDetails');
           }
         };
 
@@ -156,7 +164,7 @@ const NotificationDetailScreen = ({ route, navigation }) => {
         <View style={styles.header}>
           <TouchableOpacity
             style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => navigation.navigate('Notifications')}
+            onPress={() => navigation.goBack()}
           >
             <MaterialCommunityIcons name="arrow-left" size={20} color={colors.text} />
           </TouchableOpacity>

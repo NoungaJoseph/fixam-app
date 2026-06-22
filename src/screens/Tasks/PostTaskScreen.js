@@ -85,6 +85,21 @@ const formatTimeInput = (date) => {
   return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 };
 
+const formatAddressLabel = (address) => {
+  if (!address) return '';
+  const parts = [
+    address.street || address.name,
+    address.district,
+    address.subregion,
+    address.city,
+  ]
+    .filter(Boolean)
+    .map((part) => String(part).trim())
+    .filter(Boolean);
+
+  return [...new Set(parts)].join(', ');
+};
+
 const normalizeTaskStatus = (job) => {
   if (job.approvalStatus === 'REJECTED') return 'CANCELLED';
   if (job.approvalStatus === 'PENDING_APPROVAL') return 'PENDING';
@@ -233,21 +248,17 @@ const PostTaskScreen = ({ route, navigation }) => {
       try {
         const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (geocode && geocode.length > 0) {
-          const address = geocode[0];
-          const parts = [
-            address.name !== address.street ? address.name : '',
-            address.street,
-            address.district || address.subregion,
-            address.city || address.region
-          ].filter(Boolean);
-          const uniqueParts = [...new Set(parts)];
-          const locationString = uniqueParts.join(', ');
-          setLocation(locationString || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          const locationString = formatAddressLabel(geocode[0]);
+          if (locationString) {
+            setLocation(locationString);
+            return;
+          }
+          Alert.alert(t('jobs.locationRequired'), t('jobs.enterStreetQuarter', 'We could not find your street or quarter. Please type it in the location field.'));
         } else {
-          setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          Alert.alert(t('jobs.locationRequired'), t('jobs.enterStreetQuarter', 'We could not find your street or quarter. Please type it in the location field.'));
         }
       } catch (geocodeError) {
-        setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        Alert.alert(t('jobs.locationRequired'), t('jobs.enterStreetQuarter', 'We could not find your street or quarter. Please type it in the location field.'));
       }
     } catch (error) {
       Alert.alert(t('common.error'), t('jobs.locationFailed'));

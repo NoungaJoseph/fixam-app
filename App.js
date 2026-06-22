@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { theme } from './src/services/theme';
 import { AuthProvider } from './src/context/AuthContext';
 import { SocketProvider } from './src/context/SocketContext';
-import { AppProvider } from './src/context/AppContext';
+import { AppProvider, useAppContext } from './src/context/AppContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { useAuth } from './src/context/AuthContext';
@@ -94,6 +94,7 @@ const useMaintenanceCheck = () => {
 const AppChrome = () => {
   const { isDarkMode } = useTheme();
   const { user, token, isRestoring, logout } = useAuth();
+  const { fetchAppData, fetchConversations } = useAppContext();
   const [locked, setLocked] = useState(false);
   const backgroundAtRef = useRef(null);
 
@@ -125,12 +126,17 @@ const AppChrome = () => {
         backgroundAtRef.current = Date.now();
         return;
       }
-      if (state === 'active' && user && token && backgroundAtRef.current) {
-        const elapsed = Date.now() - backgroundAtRef.current;
-        backgroundAtRef.current = null;
-        if (elapsed > 30000) {
-          const biometricEnabled = await SecureStore.getItemAsync('biometric_enabled');
-          if (biometricEnabled === 'true') setLocked(true);
+      if (state === 'active' && user && token) {
+        fetchAppData(true);
+        fetchConversations();
+        
+        if (backgroundAtRef.current) {
+          const elapsed = Date.now() - backgroundAtRef.current;
+          backgroundAtRef.current = null;
+          if (elapsed > 30000) {
+            const biometricEnabled = await SecureStore.getItemAsync('biometric_enabled');
+            if (biometricEnabled === 'true') setLocked(true);
+          }
         }
       }
     });

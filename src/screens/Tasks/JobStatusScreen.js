@@ -32,19 +32,31 @@ const JobStatusScreen = ({ route, navigation }) => {
 
   React.useEffect(() => {
     if (!route.params?.job?.id) return;
-    if (route.params?.isBooking || route.params?.job?.isBooking) return;
 
     let isMounted = true;
-    api.get(`/jobs/${route.params.job.id}`)
-      .then((res) => {
-        if (isMounted && res.data?.data) setJob(res.data.data);
-      })
-      .catch(() => {});
+    
+    if (isBooking) {
+      api.get(`/bookings/check?id=${route.params.job.id}`)
+        .then((res) => {
+          if (isMounted && res.data?.data) {
+            setJob(res.data.data);
+          }
+        })
+        .catch(() => {});
+    } else {
+      api.get(`/jobs/${route.params.job.id}`)
+        .then((res) => {
+          if (isMounted && res.data?.data) {
+            setJob(res.data.data);
+          }
+        })
+        .catch(() => {});
+    }
 
     return () => {
       isMounted = false;
     };
-  }, [route.params?.job?.id]);
+  }, [route.params?.job?.id, isBooking]);
 
 
   const chooseProvider = (assignment) => {
@@ -189,6 +201,9 @@ const JobStatusScreen = ({ route, navigation }) => {
 
             <Detail icon="map-marker-radius" label={t('jobs.location')} value={job.location || t('jobs.onSite')} colors={colors} isDarkMode={isDarkMode} />
             <Detail icon="calendar-clock" label={t('jobs.scheduled')} value={isBooking ? `${new Date(job.bookingDate).toLocaleDateString()} ${job.bookingTime}` : (job.scheduledTime ? new Date(job.scheduledTime).toLocaleString() : t('jobs.asap'))} colors={colors} isDarkMode={isDarkMode} />
+            {isBooking && job.urgencyLevel && (
+              <Detail icon="alert-circle-outline" label={t('jobs.urgency', 'Urgency')} value={job.urgencyLevel} colors={colors} isDarkMode={isDarkMode} />
+            )}
             <Detail icon="text-box-outline" label={t('jobs.description')} value={(isBooking ? job.notes : job.description) || t('jobs.noAdditionalDetails')} colors={colors} isDarkMode={isDarkMode} />
           </View>
 

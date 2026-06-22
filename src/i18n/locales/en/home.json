@@ -122,6 +122,17 @@
       "deliverDesc": "Confirm expectations,\nthen complete the work",
       "paymentTitle": "Pay on delivery\nworkflow",
       "paymentDesc": "Clients pay when the\nservice is completed"
+    },
+    "sports": {
+      "upcoming": "Upcoming",
+      "live": "LIVE",
+      "group": "Group",
+      "table": "Table",
+      "news": "NEWS",
+      "waiting": "Waiting for match data...",
+      "welcome": "Welcome to Fixam Sports!",
+      "sportsBadge": "SPORTS",
+      "newsBadge": "NEWS"
     }
   }
 }

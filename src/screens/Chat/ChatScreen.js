@@ -289,21 +289,6 @@ const ChatScreen = ({ route, navigation }) => {
     });
   };
 
-  const handleAudioCall = () => {
-    emit('call:initiate', {
-      receiverId: receiverId,
-      callType: 'AUDIO',
-      conversationId: activeConvIdRef.current
-    });
-    
-    navigation.navigate('Call', {
-      callId: null,
-      otherUser: participantDetails.otherParticipant || { id: receiverId, fullName: userName, avatar: avatarUri },
-      isOutgoing: true,
-      callType: 'AUDIO'
-    });
-  };
-
   const handleSend = async (content = input, type = 'TEXT') => {
     const trimmedContent = type === 'TEXT' ? content.trim() : content;
     if (!trimmedContent) return;
@@ -462,11 +447,6 @@ const ChatScreen = ({ route, navigation }) => {
             <Text style={[styles.trackCompactCaption, { color: colors.textSecondary }]} numberOfLines={1}>
               {user?.role === 'PROVIDER' ? 'Track client' : 'Track provider'}
             </Text>
-          </TouchableOpacity>
-        )}
-        {!isSupportConversation && (
-          <TouchableOpacity onPress={handleAudioCall} style={{ marginLeft: 12 }}>
-            <Ionicons name="call-outline" size={24} color={colors.primary} />
           </TouchableOpacity>
         )}
       </View>

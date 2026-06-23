@@ -123,7 +123,19 @@ const MyTasksListScreen = ({ navigation }) => {
     rawJob: booking,
     isBooking: true,
   }));
-  const mapped = [...mappedBookings, ...mappedJobs].sort((a, b) => b.updatedAt - a.updatedAt);
+  const statusWeight = {
+    'Requests': 1,
+    'Booked': 2,
+    'Active': 3,
+    'Completed': 4,
+    'Cancelled': 5
+  };
+  const mapped = [...mappedBookings, ...mappedJobs].sort((a, b) => {
+    const weightA = statusWeight[a.status] || 99;
+    const weightB = statusWeight[b.status] || 99;
+    if (weightA !== weightB) return weightA - weightB;
+    return b.createdAt - a.createdAt;
+  });
 
   const totalJobs = mapped.length;
   const bookedCount = mapped.filter(j => j.status === 'Booked').length;
@@ -136,11 +148,10 @@ const MyTasksListScreen = ({ navigation }) => {
 
   const filtered = activeTab === 'All Jobs' ? mapped : mapped.filter(j => j.status === activeTab);
 
-  const handleUpdateStatus = async (jobId, status) => {
+  const handleUpdateStatus = async (jobId, status, isBooking = false) => {
     setLoadingJobId(jobId);
     try {
-      const target = mapped.find((item) => item.id === jobId);
-      if (target?.isBooking) {
+      if (isBooking) {
         await api.patch(`/bookings/${jobId}/status`, { status });
       } else {
         await api.put(`/jobs/${jobId}/status`, { status });
@@ -174,50 +185,51 @@ const MyTasksListScreen = ({ navigation }) => {
     const canChat = ['Booked', 'Active'].includes(item.status);
     const reviewed = hasUserReviewed(item, user?.id);
     return (
-      <TouchableOpacity
-        style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}
-        onPress={() => navigation.navigate('JobStatus', { job: item.rawJob, isBooking: item.isBooking })}
-        activeOpacity={0.85}
-      >
-        <View style={styles.jobRow}>
-          {item.image ? (
-            <Image source={{ uri: item.image }} style={styles.jobImg} />
-          ) : (
-            <View style={[styles.jobImgFallback, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.16)' : '#E6FDF3' }]}>
-              <MaterialCommunityIcons
-                name={CATEGORY_ICONS[String(item.category || '').toUpperCase()] || 'briefcase-outline'}
-                size={42}
-                color={colors.accent}
-              />
-            </View>
-          )}
-          <View style={styles.jobContent}>
-            <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
-            <View style={styles.metaRow}>
-              <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.textSecondary} />
-              <Text style={[styles.metaText, { color: colors.textSecondary }]} numberOfLines={1}>{item.location}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
-              <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.time}</Text>
-            </View>
-            <View style={styles.jobFooter}>
-              <View style={[styles.budgetBox, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#F0FDFA' }]}>
-                <Text style={[styles.budgetText, { color: colors.accent }]}>
-                  {item.budget.toLocaleString()} FCFA
-                </Text>
-                <Text style={[styles.estimatedText, { color: colors.textSecondary }]}>{t('jobs.estimated')}</Text>
+      <View style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate(item.isBooking ? 'BookingStatus' : 'JobStatus', { jobId: item.id, isBooking: item.isBooking, job: item.rawJob })}
+          activeOpacity={0.85}
+        >
+          <View style={styles.jobRow}>
+            {item.image ? (
+              <Image source={{ uri: item.image }} style={styles.jobImg} />
+            ) : (
+              <View style={[styles.jobImgFallback, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.16)' : '#E6FDF3' }]}>
+                <MaterialCommunityIcons
+                  name={CATEGORY_ICONS[String(item.category || '').toUpperCase()] || 'briefcase-outline'}
+                  size={42}
+                  color={colors.accent}
+                />
               </View>
-              <View>
-                <View style={[styles.statusBadge, { backgroundColor: darkBg }]}>
-                  <MaterialCommunityIcons name={cfg.icon} size={11} color={cfg.color} />
-                  <Text style={[styles.statusText, { color: cfg.color }]}>{statusLabel}</Text>
+            )}
+            <View style={styles.jobContent}>
+              <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
+              <View style={styles.metaRow}>
+                <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.textSecondary} />
+                <Text style={[styles.metaText, { color: colors.textSecondary }]} numberOfLines={1}>{item.location}</Text>
+              </View>
+              <View style={styles.metaRow}>
+                <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
+                <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.time}</Text>
+              </View>
+              <View style={styles.jobFooter}>
+                <View style={[styles.budgetBox, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#F0FDFA' }]}>
+                  <Text style={[styles.budgetText, { color: colors.accent }]}>
+                    {item.budget.toLocaleString()} FCFA
+                  </Text>
+                  <Text style={[styles.estimatedText, { color: colors.textSecondary }]}>{t('jobs.estimated')}</Text>
                 </View>
-                <Text style={[styles.statusSub, { color: colors.textSecondary }]}>{item.time}</Text>
+                <View>
+                  <View style={[styles.statusBadge, { backgroundColor: darkBg }]}>
+                    <MaterialCommunityIcons name={cfg.icon} size={11} color={cfg.color} />
+                    <Text style={[styles.statusText, { color: cfg.color }]}>{statusLabel}</Text>
+                  </View>
+                  <Text style={[styles.statusSub, { color: colors.textSecondary }]}>{item.time}</Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={[styles.actionRow, { borderTopColor: colors.border }]}>
           {canChat ? (
@@ -249,7 +261,7 @@ const MyTasksListScreen = ({ navigation }) => {
               style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
               onPress={() => Alert.alert(t('jobs.startJob'), t('jobs.startJobBody'), [
                 { text: t('common.cancel'), style: 'cancel' },
-                { text: t('jobs.start'), onPress: () => handleUpdateStatus(item.rawJob.id, 'IN_PROGRESS') },
+                { text: t('jobs.start'), onPress: () => handleUpdateStatus(item.rawJob.id, 'IN_PROGRESS', item.isBooking) },
               ])}
               disabled={loadingJobId === item.rawJob.id}
             >
@@ -261,7 +273,7 @@ const MyTasksListScreen = ({ navigation }) => {
               style={[styles.primaryBtn, { backgroundColor: '#22C55E' }]}
               onPress={() => Alert.alert(t('jobs.markComplete'), t('jobs.markCompleteBody'), [
                 { text: t('common.cancel'), style: 'cancel' },
-                { text: t('jobs.complete'), onPress: () => handleUpdateStatus(item.rawJob.id, 'COMPLETED') },
+                { text: t('jobs.complete'), onPress: () => handleUpdateStatus(item.rawJob.id, 'COMPLETED', item.isBooking) },
               ])}
               disabled={loadingJobId === item.rawJob.id}
             >
@@ -284,7 +296,7 @@ const MyTasksListScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 

@@ -10,8 +10,6 @@ import notificationService from '../services/notificationService';
 
 import { createStackNavigator } from '@react-navigation/stack';
 import { useSocket } from '../context/SocketContext';
-import CallScreen from '../screens/Call/CallScreen';
-import IncomingCallScreen from '../screens/Call/IncomingCallScreen';
 
 const RootStack = createStackNavigator();
 
@@ -36,22 +34,7 @@ const AppNavigator = () => {
   }, [setCurrentRouteName]);
 
   React.useEffect(() => {
-    if (!on) return;
-    const offIncoming = on('call:incoming', (data) => {
-      navigationRef.current?.navigate('IncomingCall', {
-        callId: data.callId,
-        caller: {
-          id: data.callerId,
-          name: data.callerName,
-          avatar: data.callerAvatar
-        },
-        callType: data.callType
-      });
-    });
-    
-    return () => {
-      offIncoming?.();
-    };
+    // Keep useEffect if needed for other socket events later, else empty
   }, [on]);
 
   if (isRestoring) {
@@ -76,16 +59,7 @@ const AppNavigator = () => {
             )
           )}
         </RootStack.Screen>
-        <RootStack.Screen 
-          name="Call" 
-          component={CallScreen}
-          options={{ headerShown: false, presentation: 'fullScreenModal' }}
-        />
-        <RootStack.Screen 
-          name="IncomingCall" 
-          component={IncomingCallScreen}
-          options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }}
-        />
+
       </RootStack.Navigator>
     </NavigationContainer>
   );

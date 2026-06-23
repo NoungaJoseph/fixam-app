@@ -71,20 +71,6 @@ class NotificationService {
         nav.navigate('Wallet');
         break;
 
-      case 'INCOMING_CALL':
-      case 'CALL':
-        nav.navigate('IncomingCall', {
-          callId: data.callId,
-          caller: {
-            id: data.callerId,
-            name: data.callerName || 'Fixam User',
-            avatar: data.callerAvatar || '',
-          },
-          callType: data.callType || 'AUDIO',
-          conversationId: data.conversationId,
-        });
-        break;
-
       default:
         nav.navigate('Notifications');
         break;
@@ -160,9 +146,7 @@ class NotificationService {
     // Foreground message handler — show in-app toast or update badge
     messaging().onMessage(async (remoteMessage) => {
       console.log('[FCM] Foreground message arrived:', JSON.stringify(remoteMessage));
-      if (remoteMessage?.data?.type === 'INCOMING_CALL' || remoteMessage?.data?.type === 'CALL') {
-        this.handleNotificationNavigation(remoteMessage.data);
-      }
+      // Handled globally or by toast
     });
 
     // App was in BACKGROUND and user tapped the notification

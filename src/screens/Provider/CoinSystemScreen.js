@@ -23,10 +23,14 @@ const CoinSystemScreen = ({ navigation }) => {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
   const [selectedPkg, setSelectedPkg] = useState('p2');
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleContinue = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
     const pkg = PACKAGES.find(p => p.id === selectedPkg);
     navigation.navigate('CoinPaymentForm', { package: pkg });
+    setTimeout(() => setIsNavigating(false), 1000);
   };
 
   const translateTransactionDescription = (tx) => {
@@ -216,6 +220,7 @@ const CoinSystemScreen = ({ navigation }) => {
             style={styles.continueBtn}
             onPress={handleContinue}
             activeOpacity={0.9}
+            disabled={isNavigating}
           >
             <MaterialCommunityIcons name="lock" size={18} color="#FFF" style={{ marginRight: 6 }} />
             <Text style={styles.continueBtnText}>{t('wallet.continueToPayment')}</Text>

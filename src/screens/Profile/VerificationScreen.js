@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -35,14 +36,16 @@ const VerificationScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const { user } = useAuth();
+  const isFocused = useIsFocused();
   const [selectedDoc, setSelectedDoc] = useState(null);
 
   React.useEffect(() => {
+    if (!isFocused) return;
     const status = user?.providerProfile?.verification;
     if (status === 'PENDING' || status === 'VERIFIED') {
       navigation.goBack();
     }
-  }, [user]);
+  }, [user, isFocused]);
 
   const handleContinue = () => {
     if (!selectedDoc) {

@@ -152,7 +152,7 @@ const SettingsScreen = ({ navigation, route }) => {
               icon="check-decagram-outline"
               title={t('settings.verification')}
               desc={t('settings.verificationDesc')}
-              onPress={() => navigation.navigate('Verification')}
+              onPress={(verStatus === 'PENDING' || verStatus === 'VERIFIED') ? null : () => navigation.navigate('Verification')}
               right={
                 <View style={[styles.statusPill, { backgroundColor: verBg }]}>
                   <Text style={[styles.statusPillText, { color: verColor }]}>{verLabel}</Text>

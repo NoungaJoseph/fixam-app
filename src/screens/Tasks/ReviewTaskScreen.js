@@ -24,6 +24,13 @@ const ReviewTaskScreen = ({ route, navigation }) => {
       return;
     }
 
+    if (route.params?.onOptimisticSubmit) {
+      route.params.onOptimisticSubmit(task.id, provider.id, rating, comment);
+      navigation.goBack();
+      return;
+    }
+
+    // Fallback for non-optimistic usage
     setLoading(true);
     try {
       await api.post(`/reviews`, {

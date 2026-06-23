@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Animated, ScrollView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Animated, ScrollView, Platform, BackHandler } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
@@ -17,12 +17,18 @@ const VerificationSuccessScreen = ({ navigation }) => {
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 6 }),
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
+
+    const onBackPress = () => {
+      navigation.navigate('MainTabs', { screen: 'Settings' });
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backHandler.remove();
   }, []);
 
   // Navigate back to the main app Settings tab (shows navbar at bottom)
   const goBackToSettings = () => {
-    // Just pop the stack to avoid flickering
-    navigation.goBack();
+    navigation.navigate('MainTabs', { screen: 'Settings' });
   };
 
   return (
@@ -89,13 +95,6 @@ const VerificationSuccessScreen = ({ navigation }) => {
             >
               <MaterialCommunityIcons name="check" size={20} color="#FFF" />
               <Text style={styles.doneBtnText}>{t('verification.goToSettings')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.secondaryBtn, { borderColor: colors.border }]}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>{t('verification.viewSubmission')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </ScrollView>

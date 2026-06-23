@@ -341,9 +341,9 @@ const ProviderHomeScreen = ({ navigation }) => {
 
         {/* Bottom Row */}
         <View style={styles.jobBottomRow}>
-          <View style={styles.locationRow}>
+          <View style={[styles.locationRow, { flex: 1, marginRight: 12 }]}>
             <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.textSecondary} />
-            <Text style={[styles.locationText, { color: colors.textSecondary }]}>{job.location || '4.1070, 9.7619'}</Text>
+            <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{job.location || '4.1070, 9.7619'}</Text>
           </View>
           <TouchableOpacity style={styles.applyBtn} onPress={() => navigation.navigate('TaskDetails', { taskId: job.id })}>
             <Text style={styles.applyBtnText}>{t('home.apply')}</Text>
@@ -1368,6 +1368,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 16,
     fontWeight: '700',
+    flexShrink: 1,
   },
   applyBtn: {
     backgroundColor: '#2563EB',

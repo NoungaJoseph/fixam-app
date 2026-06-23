@@ -70,7 +70,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
 
         if (status === 'success') {
           await fetchAppData?.();
-          navigation.navigate('CoinPaymentSuccess', {
+          navigation.replace('CoinPaymentSuccess', {
             coins: response.data.coins,
             package: pkg,
           });
@@ -78,7 +78,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
         }
 
         if (status === 'failed') {
-          navigation.navigate('CoinPaymentFailed', {
+          navigation.replace('CoinPaymentFailed', {
             message: response.data.message,
             package: pkg,
           });
@@ -167,14 +167,14 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
       if (response.data.reference) {
         pollPaymentStatus(response.data.reference);
       } else {
-        navigation.navigate('CoinPaymentFailed', {
+        navigation.replace('CoinPaymentFailed', {
           message: 'Payment reference was not returned. Please try again.',
           package: pkg,
         });
       }
     } catch (error) {
       console.log('Payment submission error:', error);
-      navigation.navigate('CoinPaymentFailed', {
+      navigation.replace('CoinPaymentFailed', {
         message: error.response?.data?.message || t('payments.submitPaymentFailed'),
         package: pkg,
       });

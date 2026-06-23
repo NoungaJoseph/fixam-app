@@ -164,6 +164,47 @@ const MyTasksListScreen = ({ navigation }) => {
     }
   };
 
+  const handleOptimisticReview = async (jobId, targetUserId, rating, comment, isBooking = false) => {
+    const updateState = (prevState) => prevState.map(item => {
+      if (item.id === jobId || item.rawJob?.id === jobId) {
+        return {
+          ...item,
+          rawJob: {
+            ...item.rawJob,
+            reviews: [...(item.rawJob?.reviews || []), { reviewerId: user.id, optimistic: true }]
+          }
+        };
+      }
+      return item;
+    });
+
+    if (isBooking) setBookings(updateState);
+    else setJobs(updateState);
+
+    try {
+      await api.post(`/reviews`, { jobId, targetUserId, rating, comment });
+      // In background, fetch fresh data silently to ensure consistency
+      fetchMyJobs();
+    } catch (error) {
+      const revertState = (prevState) => prevState.map(item => {
+        if (item.id === jobId || item.rawJob?.id === jobId) {
+          return {
+            ...item,
+            rawJob: {
+              ...item.rawJob,
+              reviews: (item.rawJob?.reviews || []).filter(r => !r.optimistic)
+            }
+          };
+        }
+        return item;
+      });
+      if (isBooking) setBookings(revertState);
+      else setJobs(revertState);
+
+      Alert.alert('Error', error.response?.data?.message || 'Failed to submit review');
+    }
+  };
+
   const StatCard = ({ icon, value, label, sub, color, bg }) => {
     const iconBg = isDarkMode ? 'rgba(255,255,255,0.08)' : (bg || '#F0FDFA');
     return (
@@ -283,7 +324,11 @@ const MyTasksListScreen = ({ navigation }) => {
           {item.status === 'Completed' && !reviewed && (
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              onPress={() => navigation.navigate('ReviewTask', { task: item.rawJob, provider: { id: item.isBooking ? item.rawJob.providerId : item.rawJob.assignments?.[0]?.provider?.userId, fullName: item.client } })}
+              onPress={() => navigation.navigate('ReviewTask', { 
+                task: item.rawJob, 
+                provider: { id: item.isBooking ? item.rawJob.providerId : item.rawJob.assignments?.[0]?.provider?.userId, fullName: item.client },
+                onOptimisticSubmit: (jobId, targetUserId, rating, comment) => handleOptimisticReview(jobId, targetUserId, rating, comment, item.isBooking)
+              })}
             >
               <MaterialCommunityIcons name="star-outline" size={13} color="#FFF" />
               <Text style={styles.primaryBtnText}>{t('jobs.rateProvider', 'Rate Provider')}</Text>

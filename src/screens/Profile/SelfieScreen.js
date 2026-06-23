@@ -11,13 +11,11 @@ import { useLanguage } from '../../context/LanguageContext';
 
 const SelfieScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
-  const { uploadFile } = useAuth();
+  const { uploadFile, refreshUser } = useAuth();
   const { t } = useLanguage();
   const [selfieImage, setSelfieImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const params = route.params || {};
-
-
 
   const takeSelfie = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -72,6 +70,14 @@ const SelfieScreen = ({ navigation, route }) => {
         const url = await uploadOne(item.uri, item.type);
         await api.post('/providers/verify', { type: item.type, url });
       }
+      
+      // Update the user state so the verification status becomes PENDING
+      try {
+        await refreshUser();
+      } catch (err) {
+        console.error('Failed to refresh user profile:', err);
+      }
+
       navigation.navigate('VerificationSuccess');
     } catch (error) {
       Alert.alert(t('verification.submitFailed'), error.response?.data?.message || t('verification.submitFailedDesc'));
@@ -88,7 +94,7 @@ const SelfieScreen = ({ navigation, route }) => {
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.navigate('DocUpload', { docType: params.docType, frontImage: params.frontImage, backImage: params.backImage })} style={[styles.backBtn, { backgroundColor: colors.card }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}>
             <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('verification.takeSelfie')}</Text>

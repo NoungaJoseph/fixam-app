@@ -195,7 +195,7 @@ const MyJobsScreen = ({ navigation }) => {
     return (
       <View style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('JobStatus', { jobId: item.id, isBooking: item.isBooking, job: item.rawJob })}
+          onPress={() => navigation.navigate('TaskDetails', { task: item.rawJob, isBooking: item.isBooking })}
           activeOpacity={0.85}
         >
           <View style={styles.jobRow}>

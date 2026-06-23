@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 const DOCS = [
   {
@@ -33,7 +34,15 @@ const DOCS = [
 const VerificationScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [selectedDoc, setSelectedDoc] = useState(null);
+
+  React.useEffect(() => {
+    const status = user?.providerProfile?.verification;
+    if (status === 'PENDING' || status === 'VERIFIED') {
+      navigation.goBack();
+    }
+  }, [user]);
 
   const handleContinue = () => {
     if (!selectedDoc) {

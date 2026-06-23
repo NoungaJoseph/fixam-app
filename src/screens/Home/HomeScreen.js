@@ -314,7 +314,7 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity
           ref={topUpRef}
           style={[styles.walletCard, { backgroundColor: isDarkMode ? '#134E4A' : '#0D9488' }]}
-          onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'TopUp' })}
+          onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet')}
           activeOpacity={0.85}
         >
           {/* Left Column: Wallet Balance & Top Up stacked */}
@@ -329,7 +329,7 @@ const HomeScreen = ({ navigation }) => {
             
             <TouchableOpacity
               style={styles.topUpBtn}
-              onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'TopUp' })}
+              onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet')}
             >
               <Text style={styles.topUpText}>{t('home.topUp')}</Text>
               <MaterialCommunityIcons name="plus" size={14} color="#0D9488" />

@@ -44,7 +44,6 @@ const useMaintenanceCheck = () => {
   const [appReady, setAppReady] = React.useState(false);
   const [maintenance, setMaintenance] = React.useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = React.useState('');
-  const intervalRef = React.useRef(null);
 
   const checkStatus = React.useCallback(async () => {
     try {
@@ -59,18 +58,6 @@ const useMaintenanceCheck = () => {
       const inMaintenance = response?.data?.appMaintenanceEnabled === true;
       setMaintenance(inMaintenance);
       setMaintenanceMsg(response?.data?.message || '');
-
-      if (inMaintenance) {
-        // Poll every 5 minutes while in maintenance
-        if (!intervalRef.current) {
-          intervalRef.current = setInterval(checkStatus, 5 * 60 * 1000);
-        }
-      } else {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-      }
     } catch (err) {
       console.log('[System Status Error]', err?.message || err);
       // Timeout or network error — fail open, proceed normally
@@ -82,10 +69,20 @@ const useMaintenanceCheck = () => {
 
   React.useEffect(() => {
     checkStatus();
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+
+    // Check every 30 seconds for immediate updates (100% realtime feel)
+    const interval = setInterval(checkStatus, 30 * 1000);
+
+    // Also check immediately when the app is brought to the foreground
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkStatus();
       }
+    });
+
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
     };
   }, [checkStatus]);
 

@@ -52,7 +52,7 @@ const useMaintenanceCheck = () => {
       const response = await Promise.race([
         axios.get(`${API_URL}/system/status`),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('timeout')), 3000)
+          setTimeout(() => reject(new Error('timeout')), 10000)
         ),
       ]);
 
@@ -71,7 +71,8 @@ const useMaintenanceCheck = () => {
           intervalRef.current = null;
         }
       }
-    } catch (_) {
+    } catch (err) {
+      console.log('[System Status Error]', err?.message || err);
       // Timeout or network error — fail open, proceed normally
       setMaintenance(false);
     } finally {

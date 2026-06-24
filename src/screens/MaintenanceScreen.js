@@ -9,6 +9,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../services/theme';
+import i18n from '../i18n';
 
 const MaintenanceScreen = ({ message }) => {
   const insets = useSafeAreaInsets();
@@ -34,7 +35,7 @@ const MaintenanceScreen = ({ message }) => {
     return () => { pulse.stop(); blink.stop(); };
   }, [pulseAnim, blinkAnim]);
 
-  const displayMessage = message || 'We are improving Fixam for you. Back soon!';
+  const displayMessage = message || i18n.t('common:maintenanceDefaultMessage', { defaultValue: 'We are improving Fixam for you. Back soon!' });
   const paddingTop = (insets?.top || 0) + 24;
   const paddingBottom = (insets?.bottom || 0) + 24;
 
@@ -43,14 +44,14 @@ const MaintenanceScreen = ({ message }) => {
       <Animated.View style={[styles.iconWrapper, { transform: [{ scale: pulseAnim }] }]}>
         <MaterialCommunityIcons name="tools" size={80} color="#FFFFFF" />
       </Animated.View>
-      <Text style={styles.title}>We'll be right back</Text>
+      <Text style={styles.title}>{i18n.t('common:maintenanceTitle', { defaultValue: "We'll be right back" })}</Text>
       <Text style={styles.message}>{displayMessage}</Text>
       <View style={styles.divider} />
       <Text style={styles.brand}>FIXAM</Text>
       <View style={styles.spacer} />
       <View style={styles.statusRow}>
         <Animated.View style={[styles.dot, { opacity: blinkAnim }]} />
-        <Text style={styles.statusText}>Checking status…</Text>
+        <Text style={styles.statusText}>{i18n.t('common:maintenanceStatus', { defaultValue: 'Checking status…' })}</Text>
       </View>
     </View>
   );

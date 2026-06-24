@@ -33,7 +33,10 @@
     "recent": "Récent",
     "notAvailable": "N/D",
     "contactSupport": "Contacter le support",
-    "close": "Fermer"
+    "close": "Fermer",
+    "maintenanceTitle": "Nous serons bientôt de retour",
+    "maintenanceStatus": "Vérification du statut…",
+    "maintenanceDefaultMessage": "Nous améliorons Fixam pour vous. De retour bientôt !"
   },
   "tabs": {
     "home": "Accueil",

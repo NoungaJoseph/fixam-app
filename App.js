@@ -56,7 +56,7 @@ const useMaintenanceCheck = () => {
         ),
       ]);
 
-      const inMaintenance = response?.data?.maintenance === true;
+      const inMaintenance = response?.data?.appMaintenanceEnabled === true;
       setMaintenance(inMaintenance);
       setMaintenanceMsg(response?.data?.message || '');
 

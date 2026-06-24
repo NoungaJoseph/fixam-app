@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api, { getMediaUrl } from '../services/api';
 import { useAuth } from './AuthContext';
@@ -105,6 +106,27 @@ export const AppProvider = ({ children }) => {
     } else {
       fetchProviders();
     }
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active' && token) {
+        fetchAppData(true);
+        fetchNotifications();
+        fetchConversations();
+      }
+    });
+
+    const pollInterval = setInterval(() => {
+      if (token) {
+        fetchNotifications();
+        fetchConversations();
+        fetchAppData(false);
+      }
+    }, 30 * 1000);
+
+    return () => {
+      subscription.remove();
+      clearInterval(pollInterval);
+    };
   }, [token, user?.role]);
 
   useEffect(() => {

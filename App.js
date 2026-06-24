@@ -50,7 +50,7 @@ const useMaintenanceCheck = () => {
     try {
       const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
       const response = await Promise.race([
-        axios.get(`${API_URL}/api/system/status`),
+        axios.get(`${API_URL}/system/status`),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('timeout')), 3000)
         ),

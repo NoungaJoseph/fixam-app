@@ -13,6 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { translateService, translateStatus } from '../../i18n/translate';
 
@@ -116,10 +117,19 @@ const formatCardDate = (job) => {
   return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
 };
 
+const calculateJobCoinCost = (budget) => {
+  const amount = Number(budget || 0);
+  if (amount > 10000) {
+    return Math.max(2, Math.ceil((amount - 10000) / 25000) + 1);
+  }
+  return 1;
+};
+
 const PostTaskScreen = ({ route, navigation }) => {
   const { isDarkMode, colors } = useTheme();
-  const { jobs, fetchAppData } = useAppContext();
+  const { jobs, fetchAppData, walletBalance } = useAppContext();
   const { t, locale } = useLanguage();
+  const { user } = useAuth();
   
   const [step, setStep] = useState('details'); // 'details', 'review', 'success'
   const [taskMode, setTaskMode] = useState(route?.params?.startOnPost ? 'post' : 'tasks');
@@ -348,6 +358,37 @@ const PostTaskScreen = ({ route, navigation }) => {
   };
 
   const handlePublish = async () => {
+    if (!editingJob) {
+      // 1. Verification Check
+      const verificationStatus = String(
+        user?.providerProfile?.verification || user?.verification || 'UNVERIFIED'
+      ).toUpperCase();
+
+      if (verificationStatus !== 'VERIFIED') {
+        const errorMsg = verificationStatus === 'PENDING'
+          ? t('eligibility.verificationPending', 'Your account verification is pending approval. You cannot post a task yet.')
+          : t('eligibility.verificationRequiredAction', 'Your account must be verified before you can post a task.');
+        Alert.alert(t('common.error', 'Error'), errorMsg);
+        return;
+      }
+
+      // 2. Insufficient Coins Check
+      const finalBudget = budgetMode === 'range' ? parseInt(budgetMax || 0) : parseInt(budget || 0);
+      const coinCost = calculateJobCoinCost(finalBudget);
+      const balance = walletBalance || 0;
+
+      if (balance < coinCost) {
+        Alert.alert(
+          t('common.error', 'Error'),
+          t('eligibility.insufficientCredits', 'You do not have enough coins to post this task. Please top up your wallet and try again.') + 
+          `\n\n` + 
+          t('jobs.costLabel', 'Cost') + `: ${coinCost} ` + t('payments.coins', 'coins') + `\n` + 
+          t('home.walletBalance', 'Balance') + `: ${balance} ` + t('payments.coins', 'coins')
+        );
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const scheduledDateTime = new Date(

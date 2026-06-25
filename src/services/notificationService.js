@@ -1,11 +1,13 @@
 import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import api from './api';
 
 class NotificationService {
   constructor() {
     this._navigationRef = null;
     this._unsubscribeOpened = null;
+    this._localResponseSubscription = null;
     this._initialized = false;
   }
 
@@ -147,7 +149,38 @@ class NotificationService {
     // Foreground message handler — show in-app toast or update badge
     messaging().onMessage(async (remoteMessage) => {
       console.log('[FCM] Foreground message arrived:', JSON.stringify(remoteMessage));
-      // Handled globally or by toast
+      
+      const { notification, data } = remoteMessage;
+      if (notification) {
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: notification.title || 'New Notification',
+              body: notification.body || '',
+              data: data || {},
+              android: {
+                channelId: 'default',
+              }
+            },
+            trigger: null, // show immediately
+          });
+        } catch (scheduleErr) {
+          console.error('[NotificationService] Local schedule error:', scheduleErr);
+        }
+      }
+    });
+
+    // Clean up previous local notification tap listener if it exists
+    if (this._localResponseSubscription) {
+      this._localResponseSubscription.remove();
+    }
+    // Listen for notification taps on local notifications
+    this._localResponseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      console.log('[Local Notification] Tapped:', JSON.stringify(data));
+      if (data) {
+        this.handleNotificationNavigation(data);
+      }
     });
 
     // App was in BACKGROUND and user tapped the notification

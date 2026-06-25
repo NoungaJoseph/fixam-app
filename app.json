@@ -12,7 +12,8 @@
       "backgroundColor": "#14B8A6"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fixam.app"
     },
     "android": {
       "package": "com.fixam.app",

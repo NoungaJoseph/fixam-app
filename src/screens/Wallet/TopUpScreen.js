@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { DrawerActions } from '@react-navigation/native';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Image, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -34,6 +35,10 @@ const TopUpScreen = ({ navigation }) => {
     setTimeout(() => setIsNavigating(false), 1000);
   };
 
+  const openWalletMenu = () => {
+    navigation.dispatch(DrawerActions.openDrawer());
+  };
+
   // Branded Payment Provider Logos
   const paymentLogos = [
     { name: 'MTN MoMo', uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/MTN_Logo.svg/320px-MTN_Logo.svg.png' },
@@ -61,16 +66,10 @@ const TopUpScreen = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity 
-            onPress={() => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else if (navigation.openDrawer) {
-                navigation.openDrawer();
-              }
-            }} 
+            onPress={openWalletMenu} 
             style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#F1F5F9' }]}
           >
-            <MaterialCommunityIcons name={navigation.canGoBack() ? "arrow-left" : "menu"} size={22} color={isDarkMode ? '#FFF' : '#0F172A'} />
+            <MaterialCommunityIcons name="menu" size={22} color={isDarkMode ? '#FFF' : '#0F172A'} />
           </TouchableOpacity>
           
           <Text style={[styles.headerTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('wallet.topUpCoins')}</Text>

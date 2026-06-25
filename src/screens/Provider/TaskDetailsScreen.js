@@ -15,6 +15,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
 import VerificationRequiredModal from '../../components/VerificationRequiredModal';
+import { getVerificationMessageKey, isIdentityVerified, translateApiError } from '../../utils/eligibilityMessages';
 
 const formatDate = (value, locale = 'en') => {
   if (!value) return null;
@@ -38,13 +39,14 @@ const CATEGORY_ICONS = {
 const TaskDetailsScreen = ({ route, navigation }) => {
   const { isDarkMode, colors } = useTheme();
   const task = route.params?.task || route.params?.job || {};
-  const { walletBalance, appliedJobIds, markJobApplied, favoriteJobIds, toggleFavoriteJob } = useAppContext();
+  const { walletBalance, appliedJobIds, markJobApplied, favoriteJobIds, toggleFavoriteJob, isProviderOnline } = useAppContext();
   const { user } = useAuth();
   const { on } = useSocket();
   const { t, locale } = useLanguage();
   const insets = useSafeAreaInsets();
   const [showConfirm, setShowConfirm] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
   const [applicationCount, setApplicationCount] = useState(task.assignments?.length || task.proposals || 0);
   const [applied, setApplied] = useState(false);
   const coinCost = 1;
@@ -96,9 +98,17 @@ const TaskDetailsScreen = ({ route, navigation }) => {
       Alert.alert(t('jobs.alreadyApplied'), t('jobs.alreadyAppliedBody'));
       return;
     }
-    const isVerified = user?.providerProfile?.verification === 'VERIFIED' || user?.providerProfile?.verification === 'PENDING';
-    if (!isVerified) {
+    if (user?.isBlocked) {
+      Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
+      return;
+    }
+    if (!isIdentityVerified(user)) {
+      setVerificationMessage(t(getVerificationMessageKey(user, 'apply')));
       setShowVerificationModal(true);
+      return;
+    }
+    if (!isProviderOnline) {
+      Alert.alert(t('eligibility.providerOfflineTitle'), t('eligibility.providerOffline'));
       return;
     }
 
@@ -136,7 +146,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         ]);
       }
     } catch (error) {
-      const message = error.response?.data?.message || t('common.tryAgain');
+      const message = translateApiError(error, t);
       Alert.alert(t('jobs.couldNotApply'), message);
     }
   };
@@ -155,7 +165,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         task,
       });
     } catch (error) {
-      Alert.alert(t('common.error'), error.response?.data?.message || t('messages.sendFailed'));
+      Alert.alert(t('common.error'), translateApiError(error, t, 'messages.sendFailed'));
     }
   };
 
@@ -365,7 +375,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
       <VerificationRequiredModal 
         visible={showVerificationModal} 
         onClose={() => setShowVerificationModal(false)}
-        message={t('verification.jobRequired')}
+        message={verificationMessage || t('verification.jobRequired')}
         isProvider={true}
       />
     </SafeAreaView>

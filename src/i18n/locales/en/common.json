@@ -197,6 +197,16 @@
     "goToSettings": "Back to Settings",
     "viewSubmission": "View Submission Details"
   },
+  "eligibility": {
+    "verificationRequiredAction": "Please verify your identity before using this feature.",
+    "verificationPending": "Your identity verification is still under review. You can use this feature once your account is approved.",
+    "verificationRejected": "Your last verification was not approved. Please submit clearer documents before using this feature.",
+    "providerOfflineTitle": "Go online first",
+    "providerOffline": "Turn on Online mode before applying for tasks or accepting bookings.",
+    "insufficientCredits": "You do not have enough credits for this action. Please top up your wallet and try again.",
+    "accountBlocked": "Your account is currently restricted. Please contact support for help.",
+    "notAvailable": "This item is no longer available. Please refresh and try another option."
+  },
   "errors": {
     "registrationFailed": "Failed to complete registration. Please try again.",
     "network": "Network error. Please try again.",

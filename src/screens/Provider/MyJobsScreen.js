@@ -9,6 +9,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { translateApiError } from '../../utils/eligibilityMessages';
 
 const TABS = [
   { key: 'All Jobs', label: 'All Jobs', icon: 'all-inclusive' },
@@ -51,44 +52,21 @@ const MyJobsScreen = ({ navigation }) => {
   const { on } = useSocket();
   const { t, locale } = useLanguage();
   const { user } = useAuth();
-  const [jobs, setJobs] = useState(myTasksList || []);
-  const [bookings, setBookings] = useState(myBookingsList || []);
   const [activeTab, setActiveTab] = useState('All Jobs');
   const [loadingJobId, setLoadingJobId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [reviewedJobIds, setReviewedJobIds] = useState([]);
 
-  const fetchMyJobs = useCallback(async () => {
-    try {
-      const [jobsRes, bookingsRes] = await Promise.allSettled([
-        api.get('/jobs/my-jobs'),
-        api.get('/bookings/mine?role=PROVIDER')
-      ]);
-      
-      if (jobsRes.status === 'fulfilled') {
-        setJobs(jobsRes.value.data?.data || []);
-      }
-      if (bookingsRes.status === 'fulfilled') {
-        setBookings(bookingsRes.value.data?.data || []);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  const { fetchAppData } = useAppContext();
 
-  useEffect(() => {
-    if (myTasksList?.length) setJobs(myTasksList);
-    if (myBookingsList?.length) setBookings(myBookingsList);
-  }, [myTasksList, myBookingsList]);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchAppData(true);
+    setRefreshing(false);
+  }, [fetchAppData]);
 
-  useEffect(() => {
-    const unsub = navigation.addListener('focus', fetchMyJobs);
-    fetchMyJobs();
-    return unsub;
-  }, [fetchMyJobs, navigation]);
-
-  useEffect(() => {
-    const off = on('booking:update', fetchMyJobs);
-    return () => off?.();
-  }, [fetchMyJobs, on]);
+  const jobs = myTasksList || [];
+  const bookings = myBookingsList || [];
 
   const mappedJobs = jobs.map(job => {
     let statusVal = 'Active';
@@ -163,9 +141,9 @@ const MyJobsScreen = ({ navigation }) => {
       } else {
         await api.put(`/jobs/${jobId}/status`, { status });
       }
-      await fetchMyJobs();
-    } catch {
-      alert(t('jobs.updateFailed'));
+      // AppContext handles the real-time sync
+    } catch (error) {
+      Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.updateFailed'));
     } finally {
       setLoadingJobId(null);
     }
@@ -191,7 +169,7 @@ const MyJobsScreen = ({ navigation }) => {
     const statusLabel = t(`jobs.statusLabels.${item.status}`);
     const darkBg = isDarkMode ? 'rgba(255,255,255,0.06)' : cfg.bg;
     const canChat = ['Booked', 'Active'].includes(item.status);
-    const reviewed = hasUserReviewed(item, user?.id);
+    const reviewed = hasUserReviewed(item, user?.id) || reviewedJobIds.includes(item.id);
     return (
       <View style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}>
         <TouchableOpacity
@@ -291,7 +269,11 @@ const MyJobsScreen = ({ navigation }) => {
           {item.status === 'Completed' && !reviewed && (
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              onPress={() => navigation.navigate('ReviewTask', { task: item.rawJob, provider: { id: item.rawJob.clientId, fullName: item.client } })}
+              onPress={() => navigation.navigate('ReviewTask', { 
+                task: item.rawJob, 
+                provider: { id: item.rawJob.clientId, fullName: item.client },
+                onReviewSubmitted: (jobId) => setReviewedJobIds(prev => [...prev, jobId])
+              })}
             >
               <MaterialCommunityIcons name="star-outline" size={13} color="#FFF" />
               <Text style={styles.primaryBtnText}>{t('jobs.rateClient')}</Text>
@@ -382,6 +364,8 @@ const MyJobsScreen = ({ navigation }) => {
         renderItem={renderJob}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         ListEmptyComponent={
           <View style={styles.empty}>
             <MaterialCommunityIcons name="clipboard-text-outline" size={64} color={colors.border} />

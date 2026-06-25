@@ -190,6 +190,35 @@ const HomeScreen = ({ navigation }) => {
     return { ...card, step: copy[0], title: copy[1], desc: copy[2] };
   });
 
+  const clientCity = useMemo(() => {
+    const loc = user?.location;
+    if (!loc) return 'douala'; // Default fallback town
+    const normalized = loc.toLowerCase();
+    if (normalized.includes('douala')) return 'douala';
+    if (normalized.includes('yaounde') || normalized.includes('yaoundé')) return 'yaounde';
+    if (normalized.includes('buea')) return 'buea';
+    if (normalized.includes('limbe')) return 'limbe';
+    if (normalized.includes('bamenda')) return 'bamenda';
+    if (normalized.includes('bafoussam')) return 'bafoussam';
+    if (normalized.includes('kribi')) return 'kribi';
+    
+    // Fallback to the first word before comma or space
+    const parts = normalized.split(/[\s,]+/);
+    return parts[0] || 'douala';
+  }, [user?.location]);
+
+  const recommendedProviders = useMemo(() => {
+    return (providers || [])
+      .filter(p => {
+        const area = (p.serviceArea || '').toLowerCase();
+        if (clientCity === 'yaounde') {
+          return area.includes('yaounde') || area.includes('yaoundé');
+        }
+        return area.includes(clientCity);
+      })
+      .slice(0, 5);
+  }, [providers, clientCity]);
+
   if (isInitialLoad) {
     return (
       <>
@@ -492,7 +521,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         {/* ═══ 7. RECOMMENDED PROFESSIONALS ═══ */}
-        {providers.length > 0 && (
+        {recommendedProviders.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.recommendedProfessionals')}</Text>
@@ -501,7 +530,7 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.proScroll}>
-              {providers.slice(0, 10).map(p => (
+              {recommendedProviders.map(p => (
                 <TouchableOpacity
                   key={p.id}
                   style={[styles.proCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}

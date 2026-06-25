@@ -34,14 +34,11 @@ const LiveTaskMapScreen = ({ navigation, route }) => {
 
   const chatUser = providerUser || task.client;
   const openChat = () => {
-    navigation.getParent()?.navigate('Messages', {
-      screen: 'Chat',
-      params: {
-        receiverId: chatUser?.id || task.clientId,
-        userName: chatUser?.fullName || chatUser?.name || 'Task contact',
-        avatar: chatUser?.avatar,
-        task,
-      },
+    navigation.navigate('Chat', {
+      receiverId: chatUser?.id || task.clientId,
+      userName: chatUser?.fullName || chatUser?.name || 'Task contact',
+      avatar: chatUser?.avatar,
+      task,
     });
   };
 

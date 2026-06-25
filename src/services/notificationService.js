@@ -6,6 +6,7 @@ class NotificationService {
   constructor() {
     this._navigationRef = null;
     this._unsubscribeOpened = null;
+    this._initialized = false;
   }
 
   /**
@@ -180,6 +181,9 @@ class NotificationService {
    * Should be called right after successful login or app startup if authenticated.
    */
   async initialize() {
+    if (this._initialized) return;
+    this._initialized = true;
+
     const hasPermission = await this.requestUserPermission();
     if (hasPermission) {
       await this.getFCMToken();

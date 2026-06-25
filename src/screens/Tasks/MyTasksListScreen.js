@@ -9,6 +9,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { translateApiError } from '../../utils/eligibilityMessages';
 
 const TABS = [
   { key: 'All Jobs', label: 'All Jobs', icon: 'all-inclusive' },
@@ -47,41 +48,24 @@ const hasUserReviewed = (item, userId) => {
 
 const MyTasksListScreen = ({ navigation }) => {
   const { isDarkMode, colors } = useTheme();
-  const { transactions, notificationCount, myTasksList, myBookingsList } = useAppContext();
+  const { transactions, notificationCount, myTasksList, myBookingsList, fetchAppData } = useAppContext();
   const { on } = useSocket();
   const { t, locale } = useLanguage();
   const { user } = useAuth();
-  const [jobs, setJobs] = useState(myTasksList || []);
-  const [bookings, setBookings] = useState(myBookingsList || []);
   const [activeTab, setActiveTab] = useState('All Jobs');
   const [loadingJobId, setLoadingJobId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [reviewedJobIds, setReviewedJobIds] = useState([]);
 
-  const fetchMyJobs = useCallback(async () => {
-    try {
-      const res = await api.get('/jobs/client');
-      const bookingRes = await api.get('/bookings/mine?role=CLIENT').catch(() => ({ data: { data: [] } }));
-      setJobs(res.data.data || []);
-      setBookings(bookingRes.data?.data || []);
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    }
-  }, []);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchAppData(true);
+    setRefreshing(false);
+  }, [fetchAppData]);
 
-  useEffect(() => {
-    if (myTasksList?.length) setJobs(myTasksList);
-    if (myBookingsList?.length) setBookings(myBookingsList);
-  }, [myTasksList, myBookingsList]);
-
-  useEffect(() => {
-    const unsub = navigation.addListener('focus', fetchMyJobs);
-    fetchMyJobs();
-    return unsub;
-  }, [fetchMyJobs, navigation]);
-
-  useEffect(() => {
-    const off = on('booking:update', fetchMyJobs);
-    return () => off?.();
-  }, [fetchMyJobs, on]);
+  // Use tasks specific to this user/role directly from AppContext
+  const jobs = myTasksList || [];
+  const bookings = myBookingsList || [];
 
   const mappedJobs = jobs.map(job => {
     let statusVal = 'Active';
@@ -156,52 +140,20 @@ const MyTasksListScreen = ({ navigation }) => {
       } else {
         await api.put(`/jobs/${jobId}/status`, { status });
       }
-      await fetchMyJobs();
-    } catch {
-      alert(t('jobs.updateFailed'));
+      // AppContext will automatically catch the socket event and refresh the data
+    } catch (error) {
+      Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.updateFailed'));
     } finally {
       setLoadingJobId(null);
     }
   };
 
   const handleOptimisticReview = async (jobId, targetUserId, rating, comment, isBooking = false) => {
-    const updateState = (prevState) => prevState.map(item => {
-      if (item.id === jobId || item.rawJob?.id === jobId) {
-        return {
-          ...item,
-          rawJob: {
-            ...item.rawJob,
-            reviews: [...(item.rawJob?.reviews || []), { reviewerId: user.id, optimistic: true }]
-          }
-        };
-      }
-      return item;
-    });
-
-    if (isBooking) setBookings(updateState);
-    else setJobs(updateState);
-
+    // Optimistic UI updates handled by socket events shortly after
     try {
       await api.post(`/reviews`, { jobId, targetUserId, rating, comment });
-      // In background, fetch fresh data silently to ensure consistency
-      fetchMyJobs();
     } catch (error) {
-      const revertState = (prevState) => prevState.map(item => {
-        if (item.id === jobId || item.rawJob?.id === jobId) {
-          return {
-            ...item,
-            rawJob: {
-              ...item.rawJob,
-              reviews: (item.rawJob?.reviews || []).filter(r => !r.optimistic)
-            }
-          };
-        }
-        return item;
-      });
-      if (isBooking) setBookings(revertState);
-      else setJobs(revertState);
-
-      Alert.alert('Error', error.response?.data?.message || 'Failed to submit review');
+      Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.reviewSubmitFailed'));
     }
   };
 
@@ -224,7 +176,7 @@ const MyTasksListScreen = ({ navigation }) => {
     const statusLabel = t(`jobs.statusLabels.${item.status}`);
     const darkBg = isDarkMode ? 'rgba(255,255,255,0.06)' : cfg.bg;
     const canChat = ['Booked', 'Active'].includes(item.status);
-    const reviewed = hasUserReviewed(item, user?.id);
+    const reviewed = hasUserReviewed(item, user?.id) || reviewedJobIds.includes(item.id);
     return (
       <View style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}>
         <TouchableOpacity
@@ -327,7 +279,7 @@ const MyTasksListScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('ReviewTask', { 
                 task: item.rawJob, 
                 provider: { id: item.isBooking ? item.rawJob.providerId : item.rawJob.assignments?.[0]?.provider?.userId, fullName: item.client },
-                onOptimisticSubmit: (jobId, targetUserId, rating, comment) => handleOptimisticReview(jobId, targetUserId, rating, comment, item.isBooking)
+                onReviewSubmitted: (jobId) => setReviewedJobIds(prev => [...prev, jobId])
               })}
             >
               <MaterialCommunityIcons name="star-outline" size={13} color="#FFF" />
@@ -419,6 +371,8 @@ const MyTasksListScreen = ({ navigation }) => {
         renderItem={renderJob}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         ListEmptyComponent={
           <View style={styles.empty}>
             <MaterialCommunityIcons name="clipboard-text-outline" size={64} color={colors.border} />

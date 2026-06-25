@@ -200,6 +200,16 @@
     "goToSettings": "Retour aux paramètres",
     "viewSubmission": "Voir les détails de la soumission"
   },
+  "eligibility": {
+    "verificationRequiredAction": "Veuillez vérifier votre identité avant d'utiliser cette fonctionnalité.",
+    "verificationPending": "Votre vérification d'identité est encore en cours d'examen. Vous pourrez utiliser cette fonctionnalité après validation.",
+    "verificationRejected": "Votre dernière vérification n'a pas été approuvée. Veuillez envoyer des documents plus clairs avant d'utiliser cette fonctionnalité.",
+    "providerOfflineTitle": "Passez d'abord en ligne",
+    "providerOffline": "Activez le mode En ligne avant de postuler aux missions ou d'accepter des réservations.",
+    "insufficientCredits": "Vous n'avez pas assez de crédits pour cette action. Rechargez votre portefeuille puis réessayez.",
+    "accountBlocked": "Votre compte est actuellement restreint. Veuillez contacter le support.",
+    "notAvailable": "Cet élément n'est plus disponible. Actualisez puis choisissez une autre option."
+  },
   "errors": {
     "registrationFailed": "Impossible de finaliser l'inscription. Veuillez réessayer.",
     "network": "Problème de connexion. Veuillez réessayer.",

@@ -34,6 +34,18 @@ const AppNavigator = () => {
   }, [setCurrentRouteName]);
 
   React.useEffect(() => {
+    // Initialize FCM notifications only after user is authenticated.
+    // This ensures the JWT auth token is already set on the axios instance
+    // (via setAuthToken in AuthContext) before we try to sync the FCM token
+    // to the backend, preventing "Not authorized, token failed" errors.
+    if (user) {
+      notificationService.initialize().catch((err) => {
+        if (__DEV__) console.log('[FCM] Initialization error:', err.message);
+      });
+    }
+  }, [user]);
+
+  React.useEffect(() => {
     // Keep useEffect if needed for other socket events later, else empty
   }, [on]);
 

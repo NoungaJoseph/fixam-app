@@ -5,10 +5,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
+import { getVerificationMessageKey, isIdentityVerified, translateApiError } from '../../utils/eligibilityMessages';
 
 const formatAddressLabel = (address) => {
   if (!address) return '';
@@ -29,6 +31,7 @@ const BookingFormScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const { providerId, providerName, providerRate, task } = route.params || {};
+  const { user } = useAuth();
   const [form, setForm] = useState({
     bookingDate: '',
     bookingTime: '',
@@ -122,6 +125,15 @@ const BookingFormScreen = ({ route, navigation }) => {
   };
 
   const submit = async () => {
+    if (user?.isBlocked) {
+      Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
+      return;
+    }
+    if (!isIdentityVerified(user)) {
+      Alert.alert(t('verification.required'), t(getVerificationMessageKey(user, 'booking')));
+      return;
+    }
+
     if (!providerId || !form.bookingDate || !form.bookingTime || !form.location || !form.budget) {
       Alert.alert(t('errors.required'), t('validation.bookingRequired'));
       return;
@@ -160,7 +172,7 @@ const BookingFormScreen = ({ route, navigation }) => {
       handleSafeGoBack();
       return res.data;
     } catch (error) {
-      const message = error.response?.data?.message || t('errors.bookingFailed');
+      const message = translateApiError(error, t, 'errors.bookingFailed');
       Alert.alert(t('bookings.failed'), message);
     } finally {
       setSubmitting(false);

@@ -8,6 +8,22 @@ import api, { getMediaUrl } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { translateStatus } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
+import { translateApiError } from '../../utils/eligibilityMessages';
+
+const getProviderFromAssignment = (assignment) => {
+  if (!assignment) return null;
+  if (assignment.provider?.user) return assignment.provider;
+  if (assignment.provider) {
+    return {
+      ...assignment.provider,
+      user: assignment.provider.user || assignment.provider,
+    };
+  }
+  if (assignment.providerUser) {
+    return { user: assignment.providerUser };
+  }
+  return null;
+};
 
 const JobStatusScreen = ({ route, navigation }) => {
   const { isDarkMode, colors } = useTheme();
@@ -78,7 +94,7 @@ const JobStatusScreen = ({ route, navigation }) => {
                 { text: t('jobs.trackProvider'), onPress: () => navigation.navigate('LiveTaskMap', { task: res.data.data }) }
               ]);
             } catch (error) {
-              Alert.alert(t('jobs.couldNotChooseProvider'), error.response?.data?.message || t('common.tryAgain'));
+              Alert.alert(t('jobs.couldNotChooseProvider'), translateApiError(error, t));
             }
           }
         }
@@ -240,7 +256,7 @@ const JobStatusScreen = ({ route, navigation }) => {
                             mode: 'rate_provider',
                           });
                         } catch (err) {
-                          Alert.alert(t('common.error'), err.response?.data?.message || t('jobs.updateFailedClient'));
+                          Alert.alert(t('common.error'), translateApiError(err, t, 'jobs.updateFailedClient'));
                         }
                       }
                     }
@@ -271,7 +287,7 @@ const JobStatusScreen = ({ route, navigation }) => {
                             setJob({ ...job, status: 'CANCELLED' });
                             Alert.alert(t('common.success'), t('jobs.cancelledSuccess', 'Task cancelled successfully.'));
                           } catch (err) {
-                            Alert.alert(t('common.error'), err.response?.data?.message || t('jobs.updateFailedClient'));
+                            Alert.alert(t('common.error'), translateApiError(err, t, 'jobs.updateFailedClient'));
                           }
                         }
                       }

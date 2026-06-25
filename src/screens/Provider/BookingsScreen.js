@@ -8,6 +8,7 @@ import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { translateApiError } from '../../utils/eligibilityMessages';
 
 const statusMeta = {
   PENDING: { icon: 'clock-outline', color: '#F59E0B', label: 'Pending' },
@@ -74,7 +75,7 @@ const BookingsScreen = ({ navigation }) => {
       await api.patch(`/bookings/${bookingId}/status`, { status });
       await fetchBookings();
     } catch (error) {
-      Alert.alert(t('common.error'), error.response?.data?.message || t('jobs.updateFailed'));
+      Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.updateFailed'));
     } finally {
       setUpdatingId(null);
     }

@@ -11,6 +11,7 @@ import api, { getMediaUrl } from '../../services/api';
 import UserAvatar from '../../components/UserAvatar';
 import VerificationRequiredModal from '../../components/VerificationRequiredModal';
 import { StatusBar } from 'expo-status-bar';
+import { getVerificationMessageKey, isIdentityVerified, translateApiError } from '../../utils/eligibilityMessages';
 
 const ProviderProfileScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
@@ -33,6 +34,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [hasBooking, setHasBooking] = React.useState(false);
   const [existingBooking, setExistingBooking] = React.useState(null);
   const [showVerificationModal, setShowVerificationModal] = React.useState(false);
+  const [verificationMessage, setVerificationMessage] = React.useState('');
 
 
 
@@ -180,7 +182,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
       });
     } catch (error) {
       if (error.response?.status === 403) { Alert.alert(t('common.error'), t('profile.bookBeforeMessaging')); return; }
-      Alert.alert(t('common.error'), error.response?.data?.message || t('common.tryAgain'));
+      Alert.alert(t('common.error'), translateApiError(error, t));
     }
   };
 
@@ -630,11 +632,15 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         {/* Booking CTA */}
         <View style={styles.staticBookingContainer}>
           <TouchableOpacity
-            style={[styles.staticBookButton, { backgroundColor: colors.accent, opacity: providerUserId ? 1 : 0.55 }]}
-            disabled={!providerUserId}
-            onPress={() => {
-              const isVerified = user?.fullName && !user?.isBlocked;
-              if (!isVerified) {
+              style={[styles.staticBookButton, { backgroundColor: colors.accent, opacity: providerUserId ? 1 : 0.55 }]}
+              disabled={!providerUserId}
+              onPress={() => {
+              if (user?.isBlocked) {
+                Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
+                return;
+              }
+              if (!isIdentityVerified(user)) {
+                setVerificationMessage(t(getVerificationMessageKey(user, 'booking')));
                 setShowVerificationModal(true);
                 return;
               }
@@ -651,7 +657,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
       <VerificationRequiredModal 
         visible={showVerificationModal} 
         onClose={() => setShowVerificationModal(false)}
-        message={t('verification.bookingRequired')}
+        message={verificationMessage || t('verification.bookingRequired')}
         isProvider={false}
       />
 

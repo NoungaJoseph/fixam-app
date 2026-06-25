@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity,
-  ScrollView, StatusBar, TextInput, Modal, Alert
+  ScrollView, StatusBar, TextInput, Modal, Alert, ActivityIndicator
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 import api from '../../services/api';
+import { translateApiError } from '../../utils/eligibilityMessages';
 
 const ReviewTaskScreen = ({ route, navigation }) => {
   const { isDarkMode, colors } = useTheme();
+  const { t } = useLanguage();
   const { task, provider } = route.params;
   
   const [rating, setRating] = useState(0);
@@ -20,17 +23,10 @@ const ReviewTaskScreen = ({ route, navigation }) => {
 
   const handleSubmitReview = async () => {
     if (rating === 0) {
-      Alert.alert('Error', 'Please select a rating');
+      Alert.alert(t('common.error'), t('jobs.selectRating', 'Please select a rating.'));
       return;
     }
 
-    if (route.params?.onOptimisticSubmit) {
-      route.params.onOptimisticSubmit(task.id, provider.id, rating, comment);
-      navigation.goBack();
-      return;
-    }
-
-    // Fallback for non-optimistic usage
     setLoading(true);
     try {
       await api.post(`/reviews`, {
@@ -40,11 +36,17 @@ const ReviewTaskScreen = ({ route, navigation }) => {
         comment
       });
 
-      Alert.alert('Success', 'Thank you for your review!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+      if (route.params?.onReviewSubmitted) {
+        route.params.onReviewSubmitted(task.id);
+      } else if (route.params?.onOptimisticSubmit) {
+        route.params.onOptimisticSubmit(task.id, provider.id, rating, comment);
+      }
+
+      Alert.alert(t('common.success'), t('jobs.reviewThanks', 'Thank you for your review!'), [
+        { text: t('common.close'), onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to submit review');
+      Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.reviewSubmitFailed'));
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ const ReviewTaskScreen = ({ route, navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Rate & Review</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('jobs.rateReview', 'Rate & Review')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -85,52 +87,52 @@ const ReviewTaskScreen = ({ route, navigation }) => {
         {/* Provider Info */}
         <View style={[styles.providerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.providerHeader}>
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>You worked with</Text>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('jobs.youWorkedWith', 'You worked with')}</Text>
           </View>
           <View style={styles.providerInfo}>
             <View style={styles.providerAvatar}>
               <MaterialCommunityIcons name="account" size={40} color={colors.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.providerName, { color: colors.text }]}>{provider?.fullName || 'Professional'}</Text>
-              <Text style={[styles.providerRole, { color: colors.textSecondary }]}>{provider?.specialization || 'Service Provider'}</Text>
+              <Text style={[styles.providerName, { color: colors.text }]}>{provider?.fullName || t('common.provider')}</Text>
+              <Text style={[styles.providerRole, { color: colors.textSecondary }]}>{provider?.specialization || t('jobs.serviceProvider', 'Service Provider')}</Text>
             </View>
           </View>
         </View>
 
         {/* Task Info */}
         <View style={[styles.taskCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginBottom: 12 }]}>On task</Text>
-          <Text style={[styles.taskTitle, { color: colors.text }]}>{task?.title || 'Task'}</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginBottom: 12 }]}>{t('jobs.onTask', 'On task')}</Text>
+          <Text style={[styles.taskTitle, { color: colors.text }]}>{task?.title || t('jobs.task')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <MaterialCommunityIcons name="calendar-clock" size={14} color={colors.textSecondary} />
             <Text style={[styles.taskDate, { color: colors.textSecondary }]}>
-              {task?.completedAt ? new Date(task.completedAt).toLocaleDateString() : 'Recently completed'}
+              {task?.completedAt ? new Date(task.completedAt).toLocaleDateString() : t('jobs.recentlyCompleted', 'Recently completed')}
             </Text>
           </View>
         </View>
 
         {/* Rating Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>How would you rate this experience?</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.rateExperience', 'How would you rate this experience?')}</Text>
           <StarRating />
           {rating > 0 && (
             <Text style={[styles.ratingLabel, { color: colors.accent }]}>
-              {rating === 1 ? 'Poor' : rating === 2 ? 'Fair' : rating === 3 ? 'Good' : rating === 4 ? 'Very Good' : 'Excellent'}
+              {t(`jobs.ratingLabels.${rating}`, rating === 1 ? 'Poor' : rating === 2 ? 'Fair' : rating === 3 ? 'Good' : rating === 4 ? 'Very Good' : 'Excellent')}
             </Text>
           )}
         </View>
 
         {/* Comments Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Share your feedback (optional)</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.shareFeedbackOptional', 'Share your feedback (optional)')}</Text>
           <TextInput
             style={[styles.commentInput, { 
               color: colors.text, 
               borderColor: colors.border,
               backgroundColor: colors.background
             }]}
-            placeholder="Tell us more about your experience..."
+            placeholder={t('jobs.reviewPlaceholder', 'Tell us more about your experience...')}
             placeholderTextColor={colors.placeholder}
             value={comment}
             onChangeText={setComment}
@@ -142,9 +144,15 @@ const ReviewTaskScreen = ({ route, navigation }) => {
 
         {/* Quick Tags */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick feedback (tap to add)</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.quickFeedback', 'Quick feedback (tap to add)')}</Text>
           <View style={styles.tagsContainer}>
-            {['Professional', 'Punctual', 'Friendly', 'Quality Work', 'Recommended'].map(tag => (
+            {[
+              t('jobs.reviewTags.professional', 'Professional'),
+              t('jobs.reviewTags.punctual', 'Punctual'),
+              t('jobs.reviewTags.friendly', 'Friendly'),
+              t('jobs.reviewTags.qualityWork', 'Quality Work'),
+              t('jobs.reviewTags.recommended', 'Recommended'),
+            ].map(tag => (
               <TouchableOpacity
                 key={tag}
                 style={[
@@ -176,16 +184,20 @@ const ReviewTaskScreen = ({ route, navigation }) => {
             style={[styles.cancelBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={[styles.cancelBtnText, { color: colors.text }]}>Cancel</Text>
+            <Text style={[styles.cancelBtnText, { color: colors.text }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.submitBtn, { backgroundColor: colors.accent }]}
+            style={[styles.submitBtn, { backgroundColor: colors.accent, flexDirection: 'row', gap: 8 }]}
             onPress={handleSubmitReview}
             disabled={loading || rating === 0}
           >
-            <Text style={styles.submitBtnText}>
-              {loading ? 'Submitting...' : 'Submit Review'}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <Text style={styles.submitBtnText}>
+                {t('jobs.submitReview', 'Submit Review')}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>

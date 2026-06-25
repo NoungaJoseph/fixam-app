@@ -70,6 +70,11 @@ export const AppProvider = ({ children }) => {
   const [myReviews, setMyReviews] = useState([]);
   const markingNotificationsRef = React.useRef(new Set());
   const lastFetchRef = React.useRef(null);
+  const hasLoadedDataRef = React.useRef(false);
+
+  useEffect(() => {
+    hasLoadedDataRef.current = hasLoadedData;
+  }, [hasLoadedData]);
 
   useEffect(() => {
     if (user?.role?.toUpperCase() === 'PROVIDER') {
@@ -93,6 +98,7 @@ export const AppProvider = ({ children }) => {
             setMyBookingsList(data.myBookings || []);
             setMyReviews(data.myReviews || []);
             setHasLoadedData(true);
+            hasLoadedDataRef.current = true;
             setIsInitialLoad(false);
           }
         } catch (e) {
@@ -104,6 +110,9 @@ export const AppProvider = ({ children }) => {
         fetchNotifications();
       });
     } else {
+      hasLoadedDataRef.current = false;
+      setHasLoadedData(false);
+      setIsInitialLoad(true);
       fetchProviders();
     }
 
@@ -257,45 +266,59 @@ export const AppProvider = ({ children }) => {
       return;
     }
 
-    if (!hasLoadedData) {
+    const shouldShowInitialLoader = !hasLoadedDataRef.current;
+    if (shouldShowInitialLoader) {
       setIsInitialLoad(true);
       setIsLoading(true);
     }
     
     try {
-      const res = await api.get('/dashboard');
-      const data = res.data.data;
+      const config = force ? { headers: { 'Cache-Control': 'no-cache' } } : {};
+      const res = await api.get('/dashboard', config);
+      const data = res.data?.data;
       
-      const normalizedProviders = (data.providers || []).map(normalizeProvider);
-      setProviders(normalizedProviders);
-      
-      const bookingJobs = (data.bookings || []).map((booking) => normalizeJob({
-        id: booking.id,
-        clientId: booking.clientId,
-        title: booking.notes || 'Scheduled service booking',
-        description: booking.notes || 'Scheduled service booking',
-        location: booking.location,
-        budget: booking.budget,
-        budgetMin: booking.budget,
-        budgetMax: booking.budget,
-        scheduledTime: booking.bookingDate,
-        status: booking.status === 'ACCEPTED' ? 'ASSIGNED' : booking.status === 'COMPLETED' ? 'COMPLETED' : booking.status === 'CANCELLED' ? 'CANCELLED' : 'SCHEDULED',
-        approvalStatus: 'APPROVED',
-        provider: booking.provider,
-        isBooking: true,
-        booking,
-      }));
-      const normalizedJobs = [...(data.jobs || []).map(normalizeJob), ...bookingJobs];
-      setJobs(normalizedJobs);
-      
-      setWalletBalance(data.wallet?.balance || 0);
-      setWalletDetails(data.wallet || null);
-      
-      const normalizedConv = (data.conversations || []).map(normalizeConversation);
-      setConversations(normalizedConv);
-      
-      setTransactions(data.transactions || []);
+      let currentProviders = providers;
+      let currentJobs = jobs;
+      let currentWalletBalance = walletBalance;
+      let currentWalletDetails = walletDetails;
+      let currentConversations = conversations;
+      let currentTransactions = transactions;
 
+      if (res.status !== 304 && data) {
+        currentProviders = (data.providers || []).map(normalizeProvider);
+        setProviders(currentProviders);
+        
+        const bookingJobs = (data.bookings || []).map((booking) => normalizeJob({
+          id: booking.id,
+          clientId: booking.clientId,
+          title: booking.notes || 'Scheduled service booking',
+          description: booking.notes || 'Scheduled service booking',
+          location: booking.location,
+          budget: booking.budget,
+          budgetMin: booking.budget,
+          budgetMax: booking.budget,
+          scheduledTime: booking.bookingDate,
+          status: booking.status === 'ACCEPTED' ? 'ASSIGNED' : booking.status === 'COMPLETED' ? 'COMPLETED' : booking.status === 'CANCELLED' ? 'CANCELLED' : 'SCHEDULED',
+          approvalStatus: 'APPROVED',
+          provider: booking.provider,
+          isBooking: true,
+          booking,
+        }));
+        currentJobs = [...(data.jobs || []).map(normalizeJob), ...bookingJobs];
+        setJobs(currentJobs);
+        
+        currentWalletBalance = data.wallet?.balance || 0;
+        currentWalletDetails = data.wallet || null;
+        setWalletBalance(currentWalletBalance);
+        setWalletDetails(currentWalletDetails);
+        
+        currentConversations = (data.conversations || []).map(normalizeConversation);
+        setConversations(currentConversations);
+        
+        currentTransactions = data.transactions || [];
+        setTransactions(currentTransactions);
+      }
+      
       let nextMyTasks = myTasksList;
       let nextMyBookings = myBookingsList;
       let nextMyReviews = myReviews;
@@ -303,12 +326,13 @@ export const AppProvider = ({ children }) => {
       if (user?.role?.toUpperCase() === 'CLIENT') {
         fetchFavoriteProviders();
         try {
+          const config = force ? { headers: { 'Cache-Control': 'no-cache' } } : {};
           const [jobsRes, bookingsRes] = await Promise.allSettled([
-            api.get('/jobs/client'),
-            api.get('/bookings/mine?role=CLIENT')
+            api.get('/jobs/client', config),
+            api.get('/bookings/mine?role=CLIENT', config)
           ]);
-          nextMyTasks = jobsRes.status === 'fulfilled' ? (jobsRes.value.data?.data || []) : nextMyTasks;
-          nextMyBookings = bookingsRes.status === 'fulfilled' ? (bookingsRes.value.data?.data || []) : nextMyBookings;
+          nextMyTasks = (jobsRes.status === 'fulfilled' && jobsRes.value.status !== 304 && jobsRes.value.data?.data) ? jobsRes.value.data.data : nextMyTasks;
+          nextMyBookings = (bookingsRes.status === 'fulfilled' && bookingsRes.value.status !== 304 && bookingsRes.value.data?.data) ? bookingsRes.value.data.data : nextMyBookings;
           setMyTasksList(nextMyTasks);
           setMyBookingsList(nextMyBookings);
         } catch (e) {
@@ -316,14 +340,15 @@ export const AppProvider = ({ children }) => {
         }
       } else if (user?.role?.toUpperCase() === 'PROVIDER') {
         try {
+          const config = force ? { headers: { 'Cache-Control': 'no-cache' } } : {};
           const [jobsRes, bookingsRes, reviewsRes] = await Promise.allSettled([
-            api.get('/jobs/my-jobs'),
-            api.get('/bookings/mine?role=PROVIDER'),
-            api.get(`/reviews/users/${user.id}`)
+            api.get('/jobs/my-jobs', config),
+            api.get('/bookings/mine?role=PROVIDER', config),
+            api.get(`/reviews/users/${user.id}`, config)
           ]);
-          nextMyTasks = jobsRes.status === 'fulfilled' ? (jobsRes.value.data?.data || []) : nextMyTasks;
-          nextMyBookings = bookingsRes.status === 'fulfilled' ? (bookingsRes.value.data?.data || []) : nextMyBookings;
-          nextMyReviews = reviewsRes.status === 'fulfilled' ? (reviewsRes.value.data?.data || []) : nextMyReviews;
+          nextMyTasks = (jobsRes.status === 'fulfilled' && jobsRes.value.status !== 304 && jobsRes.value.data?.data) ? jobsRes.value.data.data : nextMyTasks;
+          nextMyBookings = (bookingsRes.status === 'fulfilled' && bookingsRes.value.status !== 304 && bookingsRes.value.data?.data) ? bookingsRes.value.data.data : nextMyBookings;
+          nextMyReviews = (reviewsRes.status === 'fulfilled' && reviewsRes.value.status !== 304 && reviewsRes.value.data?.data) ? reviewsRes.value.data.data : nextMyReviews;
           
           setMyTasksList(nextMyTasks);
           setMyBookingsList(nextMyBookings);
@@ -335,12 +360,12 @@ export const AppProvider = ({ children }) => {
 
       // Cache data
       await AsyncStorage.setItem(`fixam:dashboard:${user?.id}`, JSON.stringify({
-        providers: normalizedProviders,
-        jobs: normalizedJobs,
-        walletBalance: data.wallet?.balance || 0,
-        walletDetails: data.wallet || null,
-        conversations: normalizedConv,
-        transactions: data.transactions || [],
+        providers: currentProviders,
+        jobs: currentJobs,
+        walletBalance: currentWalletBalance,
+        walletDetails: currentWalletDetails,
+        conversations: currentConversations,
+        transactions: currentTransactions,
         myTasks: nextMyTasks,
         myBookings: nextMyBookings,
         myReviews: nextMyReviews
@@ -348,11 +373,14 @@ export const AppProvider = ({ children }) => {
 
       lastFetchRef.current = now;
       setHasLoadedData(true);
+      hasLoadedDataRef.current = true;
     } catch (error) {
       console.log('[AppData Fetch Error]:', error.message);
     } finally {
       setIsLoading(false);
-      setIsInitialLoad(false);
+      if (shouldShowInitialLoader) {
+        setIsInitialLoad(false);
+      }
     }
   };
 

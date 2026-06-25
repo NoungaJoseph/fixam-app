@@ -50,7 +50,15 @@ const VerificationRequiredModal = ({ visible, onClose, message, isProvider = fal
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.button, styles.cancelButton, { borderColor: colors.border }]} 
+              style={[
+                styles.button, 
+                styles.cancelButton, 
+                { 
+                  backgroundColor: isDarkMode ? '#1F2937' : '#F1F5F9',
+                  borderWidth: isDarkMode ? 1 : 0,
+                  borderColor: colors.border 
+                }
+              ]} 
               onPress={onClose}
             >
               <Text style={[styles.cancelText, { color: colors.text }]}>

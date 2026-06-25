@@ -376,20 +376,20 @@ const RegisterScreen = ({ navigation, route }) => {
 
       <Modal visible={showRegionPicker} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRegionPicker(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('register.selectRegion')}</Text>
+          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('register.selectRegion')}</Text>
             <ScrollView style={{ maxHeight: 300 }}>
               {Object.keys(cameroonRegions).map(region => (
                 <TouchableOpacity 
                   key={region} 
-                  style={styles.modalOption}
+                  style={[styles.modalOption, { borderBottomColor: colors.border }]}
                   onPress={() => {
                     setField('region', region);
                     setField('city', ''); // reset city when region changes
                     setShowRegionPicker(false);
                   }}
                 >
-                  <Text style={styles.modalOptionText}>{region}</Text>
+                  <Text style={[styles.modalOptionText, { color: colors.text }]}>{region}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -399,19 +399,19 @@ const RegisterScreen = ({ navigation, route }) => {
 
       <Modal visible={showCityPicker} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowCityPicker(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('register.selectCity')}</Text>
+          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('register.selectCity')}</Text>
             <ScrollView style={{ maxHeight: 300 }}>
               {!!formData.region && cameroonRegions[formData.region].map(city => (
                 <TouchableOpacity 
                   key={city} 
-                  style={styles.modalOption}
+                  style={[styles.modalOption, { borderBottomColor: colors.border }]}
                   onPress={() => {
                     setField('city', city);
                     setShowCityPicker(false);
                   }}
                 >
-                  <Text style={styles.modalOptionText}>{city}</Text>
+                  <Text style={[styles.modalOptionText, { color: colors.text }]}>{city}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>

@@ -139,7 +139,7 @@ const ProviderListScreen = ({ route, navigation }) => {
 
       <View style={styles.cardActions}>
         <TouchableOpacity
-          style={[styles.chatBtn, { backgroundColor: colors.primary }]}
+          style={[styles.chatBtn, { backgroundColor: colors.accent }]}
           onPress={() => navigation.navigate('ProviderProfile', { provider: item })}
         >
           <MaterialCommunityIcons name="briefcase-check" size={16} color="#FFF" />

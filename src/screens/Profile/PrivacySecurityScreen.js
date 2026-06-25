@@ -302,7 +302,14 @@ const PrivacySecurityScreen = ({ navigation }) => {
 
             <TouchableOpacity activeOpacity={1} onPress={() => otpInputRef.current?.focus()} style={styles.otpRow}>
               {[0, 1, 2, 3, 4, 5].map(i => (
-                <View key={i} style={[styles.otpBox, otp.length === i && styles.otpBoxActive]}>
+                <View 
+                  key={i} 
+                  style={[
+                    styles.otpBox, 
+                    { borderColor: colors.border },
+                    otp.length === i && { borderColor: colors.accent, borderWidth: 2 }
+                  ]}
+                >
                   <Text style={[styles.otpDigit, { color: colors.text }]}>{otp[i] || ''}</Text>
                 </View>
               ))}

@@ -357,12 +357,22 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
       <Modal visible={showConfirm} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('jobs.sendProposalQuestion')}</Text>
-            <Text style={styles.modalText}>{t('jobs.applyCoinNotice', { count: coinCost })}</Text>
+          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFFFFF' }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('jobs.sendProposalQuestion')}</Text>
+            <Text style={[styles.modalText, { color: colors.textSecondary }]}>{t('jobs.applyCoinNotice', { count: coinCost })}</Text>
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowConfirm(false)}>
-                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
+              <TouchableOpacity 
+                style={[
+                  styles.cancelBtn, 
+                  { 
+                    borderColor: colors.border, 
+                    backgroundColor: isDarkMode ? '#1F2937' : '#F1F5F9',
+                    borderWidth: isDarkMode ? 1 : 0
+                  }
+                ]} 
+                onPress={() => setShowConfirm(false)}
+              >
+                <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.confirmBtn} onPress={confirmAccept}>
                 <Text style={styles.confirmBtnText}>{t('jobs.yesApply')}</Text>

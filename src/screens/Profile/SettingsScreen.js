@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Switch, Alert, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Switch, Alert, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,6 +8,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { translateStatus } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
+import api from '../../services/api';
 
 const SettingsScreen = ({ navigation, route }) => {
   const { isDarkMode, colors, toggleTheme } = useTheme();

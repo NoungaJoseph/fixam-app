@@ -7,14 +7,29 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
 import api, { getMediaUrl } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import UserAvatar from '../../components/UserAvatar';
 
+const REMOTE_KEYWORDS = [
+  'web', 'design', 'software', 'development', 'programming', 'developer',
+  'graphic', 'logo', 'marketing', 'translation', 'writing', 'copywriter',
+  'seo', 'accounting', 'bookkeeping', 'virtual assistant', 'social media',
+  'freelancer', 'content creator', 'tutor', 'teacher', 'coding', 'editor',
+  'video editing'
+];
+
+const isRemoteSkill = (skillName) => {
+  if (!skillName) return false;
+  const s = skillName.toLowerCase().trim();
+  return REMOTE_KEYWORDS.some(keyword => s.includes(keyword));
+};
 
 const FILTERS = ['Rating', 'Price', 'Distance', 'Availability'];
 
 const ProviderListScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t, currentLanguage } = useLanguage();
+  const { user } = useAuth();
   const { providers, favoriteProviderIds, toggleFavoriteProvider } = useAppContext();
   const category = route.params?.category;
   const verifiedOnly = Boolean(route.params?.verifiedOnly);
@@ -74,11 +89,27 @@ const ProviderListScreen = ({ route, navigation }) => {
     if (verifiedOnly && p.verification !== 'VERIFIED') return false;
     if (favoritesOnly && !favoriteProviderIds?.includes(p.id)) return false;
 
+    // City locking filter for physical services
+    const isRemote = isRemoteSkill(category || search);
+    if (!isRemote) {
+      const clientCity = (user?.location || '').toLowerCase().trim();
+      const providerCity = (p.serviceArea || '').toLowerCase().trim();
+      if (clientCity && providerCity && !providerCity.includes(clientCity) && !clientCity.includes(providerCity)) {
+        return false;
+      }
+    }
+
     // Filter by Search terms
     if (!searchLower) return true;
     const searchTerms = searchLower.split(/\s+/).filter(t => t.length > 0);
     return searchTerms.every(term => combinedInfo.includes(term));
   }).sort((a, b) => {
+    // Sort by active profile boost first!
+    const isBoostedA = a.boostExpiresAt && new Date(a.boostExpiresAt) > new Date();
+    const isBoostedB = b.boostExpiresAt && new Date(b.boostExpiresAt) > new Date();
+    if (isBoostedA && !isBoostedB) return -1;
+    if (!isBoostedA && isBoostedB) return 1;
+
     if (activeFilter === 'Rating') {
       return Number(b.rating || 0) - Number(a.rating || 0);
     }

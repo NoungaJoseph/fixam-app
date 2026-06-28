@@ -30,6 +30,10 @@
     "coinsRequired": "coins required",
     "insufficientCoins": "Insufficient coins",
     "topUpWallet": "Top Up Wallet",
-    "bookNowCoins": "Book Now — {{coins}} coins"
+    "bookNowCoins": "Book Now — {{coins}} coins",
+    "confirmBookingTitle": "Confirm Booking Details",
+    "providerRate": "Provider Rate",
+    "coinCostDesc": "Booking Service Fee",
+    "heldCoinsNotice": "Credits will be securely held in escrow until the job is marked complete."
   }
 }

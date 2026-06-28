@@ -129,6 +129,8 @@
     "preferred": "Prefere",
     "proposals": "Propositions",
     "receivedCount": "{{count}} recue(s)",
+    "topBids": "Meilleures offres de candidature",
+    "noBidsYet": "Aucune candidature boostée pour le moment. Postulez avec une offre pour sécuriser la première place !",
     "whatNeedsDone": "Que faut-il faire ?",
     "photos": "Photos",
     "serviceType": "Type de service",

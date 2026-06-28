@@ -158,7 +158,17 @@ const JobStatusScreen = ({ route, navigation }) => {
                     >
                       <UserAvatar uri={providerUser.avatar} name={providerUser.fullName || t('common.provider')} size={56} radius={8} style={styles.applicationAvatar} />
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.applicationName, { color: colors.text }]}>{providerUser.fullName || 'Provider'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <Text style={[styles.applicationName, { color: colors.text }]}>{providerUser.fullName || 'Provider'}</Text>
+                          {assignment.boostCoins > 0 && (
+                            <View style={styles.boostBadge}>
+                              <MaterialCommunityIcons name="rocket-launch" size={10} color="#0D9488" />
+                              <Text style={styles.boostBadgeText}>
+                                {t('profile.boostedBadge', { coins: assignment.boostCoins })}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                         <View style={styles.ratingRow}>
                           <MaterialCommunityIcons name="star" size={14} color="#FBBF24" />
                           <Text style={[styles.applicationMeta, { color: colors.textSecondary }]}>
@@ -344,6 +354,21 @@ const styles = StyleSheet.create({
   applicationInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 20 },
   applicationAvatar: { width: 56, height: 56, borderRadius: 8 },
   applicationName: { fontSize: 17, fontWeight: '900' },
+  boostBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(13, 148, 136, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 3,
+  },
+  boostBadgeText: {
+    color: '#0D9488',
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
   applicationMeta: { fontSize: 13, fontWeight: '700' },
   applicationActionRow: { flexDirection: 'row', gap: 12 },

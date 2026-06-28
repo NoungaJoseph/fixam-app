@@ -133,6 +133,16 @@
       "welcome": "Bienvenue sur Fixam Sports !",
       "sportsBadge": "SPORTS",
       "newsBadge": "INFO"
-    }
+    },
+    "justNow": "À l'instant",
+    "minutesAgo": "Il y a {{count}} min",
+    "hoursAgo_one": "Il y a {{count}} heure",
+    "hoursAgo_other": "Il y a {{count}} heures",
+    "yesterday": "Hier",
+    "daysAgo": "Il y a {{count}} jours",
+    "weeksAgo_one": "Il y a {{count}} semaine",
+    "weeksAgo_other": "Il y a {{count}} semaines",
+    "monthsAgo_one": "Il y a {{count}} mois",
+    "monthsAgo_other": "Il y a {{count}} mois"
   }
 }

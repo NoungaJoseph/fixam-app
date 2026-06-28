@@ -86,6 +86,31 @@ const FindJobsScreen = ({ navigation }) => {
     return tags.slice(0, 3);
   };
 
+  const timeAgo = (dateStr) => {
+    if (!dateStr) return '';
+    const now = new Date();
+    const then = new Date(dateStr);
+    const diff = Math.floor((now - then) / 1000);
+    if (diff < 60) return t('home.justNow', 'Just now');
+    if (diff < 3600) {
+      const m = Math.floor(diff / 60);
+      return t('home.minutesAgo', { count: m, defaultValue: `${m} min ago` });
+    }
+    if (diff < 86400) {
+      const h = Math.floor(diff / 3600);
+      return t('home.hoursAgo', { count: h, defaultValue: `${h} hr${h > 1 ? 's' : ''} ago` });
+    }
+    const d = Math.floor(diff / 86400);
+    if (d === 1) return t('home.yesterday', 'Yesterday');
+    if (d < 7) return t('home.daysAgo', { count: d, defaultValue: `${d} days ago` });
+    if (d < 30) {
+      const w = Math.floor(d / 7);
+      return t('home.weeksAgo', { count: w, defaultValue: `${w} week${w > 1 ? 's' : ''} ago` });
+    }
+    const mo = Math.floor(d / 30);
+    return t('home.monthsAgo', { count: mo, defaultValue: `${mo} month${mo > 1 ? 's' : ''} ago` });
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       
@@ -199,9 +224,17 @@ const FindJobsScreen = ({ navigation }) => {
                     <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.textSecondary} />
                     <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{job.location || '4.1070, 9.7619'}</Text>
                   </View>
-                  <TouchableOpacity style={styles.applyBtn} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
-                    <Text style={styles.applyBtnText}>{t('home.apply')}</Text>
-                  </TouchableOpacity>
+                  <View style={styles.jobBottomRight}>
+                    {job.createdAt ? (
+                      <View style={[styles.timeChip, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+                        <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
+                        <Text style={[styles.timeChipText, { color: colors.textSecondary }]}>{timeAgo(job.createdAt)}</Text>
+                      </View>
+                    ) : null}
+                    <TouchableOpacity style={styles.applyBtn} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
+                      <Text style={styles.applyBtnText}>{t('home.apply')}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -345,6 +378,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  jobBottomRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  timeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  timeChipText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   locationRow: {
     flexDirection: 'row',

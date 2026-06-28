@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  Image, StatusBar, Modal, Alert, Share
+  Image, StatusBar, Modal, Alert, Share, TextInput, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -47,6 +47,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState('');
+  const [boostCoins, setBoostCoins] = useState('');
+  const [jobDetails, setJobDetails] = useState(task);
+  const [fetching, setFetching] = useState(true);
   const [applicationCount, setApplicationCount] = useState(task.assignments?.length || task.proposals || 0);
   const [applied, setApplied] = useState(false);
   const coinCost = 1;
@@ -88,6 +91,28 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     });
     return () => off?.();
   }, [on, task.id]);
+
+  React.useEffect(() => {
+    let active = true;
+    const fetchDetails = async () => {
+      try {
+        setFetching(true);
+        const res = await api.get(`/jobs/${task.id}`);
+        if (res.data?.success && active) {
+          setJobDetails(res.data.data);
+          setApplicationCount(res.data.data.assignments?.length || 0);
+        }
+      } catch (err) {
+        console.log('Error fetching job details:', err);
+      } finally {
+        if (active) setFetching(false);
+      }
+    };
+    if (task.id) {
+      fetchDetails();
+    }
+    return () => { active = false; };
+  }, [task.id]);
 
   const goToCoins = () => {
     navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' });
@@ -137,7 +162,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           { text: t('common.close') }
         ]);
       } else {
-        const res = await api.post(`/jobs/${task.id}/apply`);
+        const res = await api.post(`/jobs/${task.id}/apply`, { boostCoins: Number(boostCoins) || 0 });
         setApplied(true);
         await markJobApplied?.(task.id);
         setApplicationCount(res.data.applicationCount || applicationCount + 1);
@@ -270,6 +295,83 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             <Fact icon="star-cog-outline" label={t('jobs.proposals')} value={t('jobs.receivedCount', { count: applicationCount })} colors={colors} />
           </View>
 
+          {/* Top Bids Leaderboard */}
+          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24, marginBottom: 12 }]}>
+            {t('jobs.topBids', 'Top Application Bids')}
+          </Text>
+          
+          {fetching ? (
+            <ActivityIndicator size="small" color={colors.accent} style={{ marginVertical: 12 }} />
+          ) : !jobDetails.assignments || jobDetails.assignments.length === 0 ? (
+            <View style={[styles.emptyLeaderboard, { borderColor: colors.border }]}>
+              <MaterialCommunityIcons name="trophy-outline" size={24} color={colors.textSecondary} />
+              <Text style={[styles.emptyLeaderboardText, { color: colors.textSecondary }]}>
+                {t('jobs.noBidsYet', 'No applications boosted yet. Apply with a bid to secure the top spot!')}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.leaderboardContainer, { borderColor: colors.border, backgroundColor: colors.card, borderBlockColor: colors.border }]}>
+              {jobDetails.assignments.slice(0, 5).map((assignment, index) => {
+                const isOwn = assignment.provider?.userId === user?.id;
+                const displayName = isOwn ? (user?.fullName || 'You') : (assignment.provider?.user?.fullName || `Provider #${index + 1}`);
+                const avatarUri = isOwn ? getMediaUrl(user?.avatar) : null;
+                const isAnon = assignment.isAnonymous;
+                const bidAmount = assignment.boostCoins || 0;
+
+                return (
+                  <View key={assignment.id || index} style={[styles.leaderboardRow, { borderBottomColor: index < 4 ? colors.border : 'transparent' }]}>
+                    {/* Rank Badge */}
+                    <View style={styles.rankCol}>
+                      {index === 0 ? (
+                        <MaterialCommunityIcons name="crown" size={20} color="#F59E0B" />
+                      ) : (
+                        <Text style={[styles.rankText, { color: colors.textSecondary }]}>#{index + 1}</Text>
+                      )}
+                    </View>
+
+                    {/* Avatar */}
+                    <View style={[styles.leaderboardAvatar, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]}>
+                      {avatarUri ? (
+                        <Image source={{ uri: avatarUri }} style={styles.leaderboardAvatarImg} />
+                      ) : (
+                        <MaterialCommunityIcons name="account" size={18} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+                      )}
+                    </View>
+
+                    {/* Name (blurred if anonymous) */}
+                    <View style={styles.nameCol}>
+                      <Text 
+                        style={[
+                          styles.leaderboardName, 
+                          { color: colors.text },
+                          isAnon && {
+                            color: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)',
+                            textShadowColor: isDarkMode ? '#CBD5E1' : '#64748B',
+                            textShadowRadius: 7,
+                            textShadowOffset: { width: 0, height: 0 }
+                          }
+                        ]}
+                      >
+                        {displayName}
+                      </Text>
+                      {isOwn && (
+                        <View style={[styles.ownBadge, { backgroundColor: colors.accent + '20' }]}>
+                          <Text style={[styles.ownBadgeText, { color: colors.accent }]}>{t('common.you', 'You')}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Bid Coins */}
+                    <View style={[styles.bidBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+                      <MaterialCommunityIcons name="rocket-launch" size={14} color="#0D9488" style={{ marginRight: 4 }} />
+                      <Text style={[styles.bidText, { color: colors.text }]}>{bidAmount} {t('payments.coins', 'Coins')}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
           {task.description ? (
             <>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.description')}</Text>
@@ -359,7 +461,26 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFFFFF' }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('jobs.sendProposalQuestion')}</Text>
-            <Text style={[styles.modalText, { color: colors.textSecondary }]}>{t('jobs.applyCoinNotice', { count: coinCost })}</Text>
+            <Text style={[styles.modalText, { color: colors.textSecondary, marginBottom: 12 }]}>{t('jobs.applyCoinNotice', { count: coinCost })}</Text>
+            
+            <Text style={[styles.boostLabel, { color: colors.textSecondary }]}>
+              {t('profile.bidBoostTitle')}
+            </Text>
+            <TextInput
+              style={[styles.boostInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC' }]}
+              placeholder={t('profile.bidBoostPlaceholder')}
+              placeholderTextColor={colors.placeholder}
+              keyboardType="numeric"
+              value={boostCoins}
+              onChangeText={(val) => setBoostCoins(val.replace(/[^0-9]/g, ''))}
+            />
+            
+            <View style={[styles.totalCostBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#ECFDF5' }]}>
+              <Text style={[styles.totalCostText, { color: colors.accent }]}>
+                Total: {coinCost + (Number(boostCoins) || 0)} Credits
+              </Text>
+            </View>
+
             <View style={styles.modalActions}>
               <TouchableOpacity 
                 style={[
@@ -487,6 +608,24 @@ const styles = StyleSheet.create({
   confirmBtnText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
   cancelBtn: { height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0' },
   cancelBtnText: { color: '#64748B', fontSize: 15, fontWeight: '700' },
+  boostLabel: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', alignSelf: 'flex-start', marginBottom: 6 },
+  boostInput: { width: '100%', height: 48, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 14, fontWeight: '700', marginBottom: 12 },
+  totalCostBadge: { width: '100%', paddingVertical: 10, borderRadius: 12, alignItems: 'center', marginBottom: 20 },
+  totalCostText: { fontSize: 14, fontWeight: '800' },
+  emptyLeaderboard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 16, width: '100%', marginBottom: 16 },
+  emptyLeaderboardText: { fontSize: 13, lineHeight: 18, fontWeight: '600', flex: 1 },
+  leaderboardContainer: { borderWidth: 1.5, borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
+  leaderboardRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1 },
+  rankCol: { width: 32, alignItems: 'center', justifyContent: 'center' },
+  rankText: { fontSize: 14, fontWeight: '900' },
+  leaderboardAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 12, overflow: 'hidden' },
+  leaderboardAvatarImg: { width: '100%', height: '100%', borderRadius: 18 },
+  nameCol: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  leaderboardName: { fontSize: 15, fontWeight: '800' },
+  ownBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  ownBadgeText: { fontSize: 10, fontWeight: '900' },
+  bidBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  bidText: { fontSize: 13, fontWeight: '900' },
 });
 
 export default TaskDetailsScreen;

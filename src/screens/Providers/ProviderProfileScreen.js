@@ -36,6 +36,76 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [existingBooking, setExistingBooking] = React.useState(null);
   const [showVerificationModal, setShowVerificationModal] = React.useState(false);
   const [verificationMessage, setVerificationMessage] = React.useState('');
+  const [profileData, setProfileData] = React.useState(provider);
+  const [loadingProfile, setLoadingProfile] = React.useState(true);
+  const { refreshUser } = useAuth();
+
+  const fetchLatestProfile = async () => {
+    try {
+      const res = await api.get(`/providers/${provider.id}`);
+      if (res.data?.success && res.data?.data) {
+        setProfileData(res.data.data);
+      }
+    } catch (err) {
+      console.log('[ProviderProfileScreen] Error fetching profile:', err.message);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchLatestProfile();
+  }, [provider.id]);
+
+  const handleUnlockContact = () => {
+    Alert.alert(
+      t('profile.unlockConfirmTitle'),
+      t('profile.unlockConfirmDesc'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.done'),
+          onPress: async () => {
+            setLoadingProfile(true);
+            try {
+              const res = await api.post(`/providers/${provider.id}/unlock`);
+              if (res.data?.success) {
+                Alert.alert(t('profile.success'), t('profile.unlockSuccess'));
+                await fetchLatestProfile();
+                if (refreshUser) {
+                  await refreshUser();
+                }
+              }
+            } catch (err) {
+              const errMsg = err.response?.data?.message || err.message;
+              if (errMsg.includes('Insufficient') || errMsg.toLowerCase().includes('solde')) {
+                Alert.alert(t('common.error'), t('profile.insufficientCoins'));
+              } else {
+                Alert.alert(t('common.error'), errMsg);
+              }
+            } finally {
+              setLoadingProfile(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleCall = () => {
+    const phone = profileData?.user?.phone;
+    if (phone) {
+      Linking.openURL(`tel:${phone}`);
+    }
+  };
+
+  const handleWhatsApp = () => {
+    const phone = profileData?.user?.phone;
+    if (phone) {
+      const cleanPhone = phone.replace('+', '');
+      Linking.openURL(`whatsapp://send?phone=${cleanPhone}`);
+    }
+  };
 
 
 
@@ -368,6 +438,51 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* Contact Details Section */}
+        {user?.role === 'CLIENT' && (
+          <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
+              {t('profileDetail.phone')}
+            </Text>
+            
+            <View style={[styles.contactCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
+              {profileData?.phoneUnlocked ? (
+                <View>
+                  <View style={styles.unlockedPhoneRow}>
+                    <MaterialCommunityIcons name="phone-check" size={22} color="#0D9488" style={{ marginRight: 8 }} />
+                    <Text style={[styles.unlockedPhoneText, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
+                      {profileData?.user?.phone}
+                    </Text>
+                  </View>
+                  <View style={styles.contactButtonsRow}>
+                    <TouchableOpacity style={[styles.contactBtn, { backgroundColor: colors.accent }]} onPress={handleCall}>
+                      <MaterialCommunityIcons name="phone" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.contactBtnText}>{t('profile.makeCall')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.contactBtn, { backgroundColor: '#25D366' }]} onPress={handleWhatsApp}>
+                      <MaterialCommunityIcons name="whatsapp" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.contactBtnText}>{t('profile.openWhatsApp')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.lockedContactContainer}>
+                  <View style={styles.maskedPhoneRow}>
+                    <MaterialCommunityIcons name="phone-lock" size={22} color={isDarkMode ? '#64748B' : '#94A3B8'} style={{ marginRight: 8 }} />
+                    <Text style={[styles.maskedPhoneText, { color: isDarkMode ? '#64748B' : '#94A3B8' }]}>
+                      {profileData?.user?.phone || 'Contact Locked'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={[styles.unlockBtn, { backgroundColor: colors.accent }]} onPress={handleUnlockContact}>
+                    <MaterialCommunityIcons name="lock-open-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.unlockBtnText}>{t('profile.unlockContact')}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Expertise Section */}
         {skills.length > 0 && (
           <View style={styles.sectionContainer}>
@@ -652,7 +767,24 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                 setShowVerificationModal(true);
                 return;
               }
-              handleSafeNavigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
+              Alert.alert(
+                t('booking.confirmBookingTitle', 'Confirm Booking Details'),
+                `${t('booking.providerRate', 'Provider Rate')}: ${provider.rate ? `${provider.rate.toLocaleString()} FCFA` : t('profile.contactForPrice')}\n\n` +
+                `${t('booking.coinCostDesc', 'Booking Service Fee')}:\n` +
+                `• Normal Urgency: 1 Credit\n` +
+                `• Urgent: 2 Credits\n` +
+                `• Emergency: 3 Credits\n\n` +
+                `${t('booking.heldCoinsNotice', 'Credits will be securely held in escrow until the job is marked complete.')}`,
+                [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  { 
+                    text: t('common.continue', 'Continue'), 
+                    onPress: () => {
+                      handleSafeNavigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
+                    }
+                  }
+                ]
+              );
             }}
           >
             <MaterialCommunityIcons name="calendar-check" size={22} color="#FFF" style={{ marginRight: 6 }} />
@@ -1247,7 +1379,7 @@ const styles = StyleSheet.create({
   staticBookButton: {
     width: '100%',
     height: 54,
-    borderRadius: 16,
+    borderRadius: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1265,7 +1397,7 @@ const styles = StyleSheet.create({
   bookButton: {
     flex: 1,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 0,
     backgroundColor: '#0D9488',
     flexDirection: 'row',
     alignItems: 'center',
@@ -1288,6 +1420,70 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textDecorationLine: 'underline',
     marginTop: 8,
+  },
+  contactCard: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  unlockedPhoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    justifyContent: 'center',
+  },
+  unlockedPhoneText: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  contactButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  contactBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  lockedContactContainer: {
+    alignItems: 'center',
+  },
+  maskedPhoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    justifyContent: 'center',
+  },
+  maskedPhoneText: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  unlockBtn: {
+    width: '100%',
+    height: 48,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unlockBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
 

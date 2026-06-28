@@ -63,6 +63,22 @@ const TaskDiscoveryScreen = ({ navigation }) => {
     navigation.navigate('TaskDetails', { task });
   };
 
+  const timeAgo = (dateStr) => {
+    if (!dateStr) return '';
+    const now = new Date();
+    const then = new Date(dateStr);
+    const diff = Math.floor((now - then) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) { const m = Math.floor(diff / 60); return `${m} min ago`; }
+    if (diff < 86400) { const h = Math.floor(diff / 3600); return `${h} hr${h > 1 ? 's' : ''} ago`; }
+    const d = Math.floor(diff / 86400);
+    if (d === 1) return 'Yesterday';
+    if (d < 7) return `${d} days ago`;
+    if (d < 30) { const w = Math.floor(d / 7); return `${w} week${w > 1 ? 's' : ''} ago`; }
+    const mo = Math.floor(d / 30);
+    return `${mo} month${mo > 1 ? 's' : ''} ago`;
+  };
+
   const TaskCard = ({ task }) => (
     <TouchableOpacity
       onPress={() => handleTaskPress(task)}
@@ -106,12 +122,12 @@ const TaskDiscoveryScreen = ({ navigation }) => {
 
         <View style={styles.metaItem}>
           <MaterialCommunityIcons
-            name="calendar"
+            name="clock-outline"
             size={14}
             color={colors.textSecondary}
           />
           <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-            {new Date(task.createdAt).toLocaleDateString()}
+            {timeAgo(task.createdAt)}
           </Text>
         </View>
 

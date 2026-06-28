@@ -13,7 +13,7 @@ import UserAvatar from '../../components/UserAvatar';
 import api, { getMediaUrl } from '../../services/api';
 
 const DashboardScreen = ({ navigation }) => {
-  const { user, updateProfile, uploadFile } = useAuth();
+  const { user, updateProfile, uploadFile, refreshUser } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const [, forceUpdate] = useState(0);
@@ -51,6 +51,49 @@ const DashboardScreen = ({ navigation }) => {
     location: user?.location || '',
     password: '',
   });
+
+  const handleBoostSelect = (duration, coins) => {
+    const currentBalance = user?.wallet?.balance || 0;
+    if (currentBalance < coins) {
+      Alert.alert(
+        t('common.error', 'Error'),
+        t('profile.insufficientCoins', 'Insufficient coins. Please top up your wallet.')
+      );
+      return;
+    }
+
+    Alert.alert(
+      t('profile.boostConfirmTitle', 'Boost Profile?'),
+      t('profile.boostConfirmDesc', '{{coins}} coins will be deducted from your wallet balance.').replace('{{coins}}', coins.toString()),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: t('common.done', 'Done'), 
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const res = await api.post('/providers/boost', { duration });
+              if (res.data?.success) {
+                Alert.alert(t('profile.success', 'Success'), t('profile.boostSuccess', 'Profile boosted successfully!'));
+                if (refreshUser) {
+                  await refreshUser();
+                }
+              }
+            } catch (err) {
+              const errMsg = err.response?.data?.message || err.message;
+              if (errMsg.includes('Insufficient') || errMsg.toLowerCase().includes('solde')) {
+                Alert.alert(t('common.error', 'Error'), t('profile.insufficientCoins', 'Insufficient coins. Please top up your wallet.'));
+              } else {
+                Alert.alert(t('common.error', 'Error'), errMsg);
+              }
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   useEffect(() => {
     if (user) {
@@ -324,6 +367,60 @@ const DashboardScreen = ({ navigation }) => {
           </View>
 
           <ProfileModeDropdown colors={colors} user={user} isProviderMode={isProviderMode} switchToClient={switchToClient} switchToProvider={switchToProvider} navigation={navigation} />
+
+          {/* Boost Profile Card for Providers */}
+          {(user?.role === 'PROVIDER' || user?.providerProfile) && (
+            <View style={[styles.boostCard, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC', borderColor: colors.accent, borderWidth: 2, borderRadius: 0, marginTop: 12, marginHorizontal: 20 }]}>
+              <View style={styles.boostHeader}>
+                <MaterialCommunityIcons name="rocket-launch" size={24} color={colors.accent} style={{ marginRight: 10 }} />
+                <Text style={[styles.boostTitle, { color: colors.text }]}>
+                  {t('profile.boostTitle', 'Boost Profile')}
+                </Text>
+              </View>
+              <Text style={[styles.boostSubtitle, { color: colors.textSecondary }]}>
+                {t('profile.boostSubtitle', 'Get up to 5x more jobs by boosting your profile!')}
+              </Text>
+              
+              {user?.providerProfile?.boostExpiresAt && new Date(user.providerProfile.boostExpiresAt) > new Date() ? (
+                <View style={styles.boostActiveContainer}>
+                  <View style={[styles.boostActiveBadge, { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderRadius: 0 }]}>
+                    <Text style={[styles.boostActiveText, { color: '#10B981', fontWeight: '900' }]}>
+                      {t('profile.boostActiveUntil', { date: new Date(user.providerProfile.boostExpiresAt).toLocaleDateString() }).replace('{{date}}', new Date(user.providerProfile.boostExpiresAt).toLocaleDateString())}
+                    </Text>
+                  </View>
+                  <View style={styles.boostActionRow}>
+                    <TouchableOpacity 
+                      style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, marginTop: 12, borderRadius: 0 }]} 
+                      onPress={() => handleBoostSelect('1_WEEK', 3)}
+                    >
+                      <Text style={styles.boostBtnText}>
+                        {t('profile.extendBoost', 'Extend Boost')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.boostActionRow}>
+                  <TouchableOpacity 
+                    style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0 }]} 
+                    onPress={() => handleBoostSelect('1_WEEK', 3)}
+                  >
+                    <Text style={styles.boostBtnText}>
+                      {t('profile.boost1Week', 'Boost 1 Week (3 Coins)')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0 }]} 
+                    onPress={() => handleBoostSelect('1_MONTH', 10)}
+                  >
+                    <Text style={styles.boostBtnText}>
+                      {t('profile.boost1Month', 'Boost 1 Month (10 Coins)')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
 
           <Section colors={colors} title={form.experienceLevel || t('profileDetail.professionalProfile')} actionIcon="pencil-outline" onAction={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' })}>
             <Text style={[styles.rateText, { color: colors.text }]}>{rate}</Text>
@@ -643,6 +740,59 @@ const DashboardScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         </View>
+
+        {(user?.role === 'PROVIDER' || user?.providerProfile) && (
+          <View style={[styles.boostCard, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC', borderColor: colors.accent, borderWidth: 2, borderRadius: 0 }]}>
+            <View style={styles.boostHeader}>
+              <MaterialCommunityIcons name="rocket-launch" size={24} color={colors.accent} style={{ marginRight: 10 }} />
+              <Text style={[styles.boostTitle, { color: colors.text }]}>
+                {t('profile.boostTitle', 'Boost Profile')}
+              </Text>
+            </View>
+            <Text style={[styles.boostSubtitle, { color: colors.textSecondary }]}>
+              {t('profile.boostSubtitle', 'Get up to 5x more jobs by boosting your profile!')}
+            </Text>
+            
+            {user?.providerProfile?.boostExpiresAt && new Date(user.providerProfile.boostExpiresAt) > new Date() ? (
+              <View style={styles.boostActiveContainer}>
+                <View style={[styles.boostActiveBadge, { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderRadius: 0 }]}>
+                  <Text style={[styles.boostActiveText, { color: '#10B981', fontWeight: '900' }]}>
+                    {t('profile.boostActiveUntil', { date: new Date(user.providerProfile.boostExpiresAt).toLocaleDateString() }).replace('{{date}}', new Date(user.providerProfile.boostExpiresAt).toLocaleDateString())}
+                  </Text>
+                </View>
+                <View style={styles.boostActionRow}>
+                  <TouchableOpacity 
+                    style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, marginTop: 12, borderRadius: 0 }]} 
+                    onPress={() => handleBoostSelect('1_WEEK', 3)}
+                  >
+                    <Text style={styles.boostBtnText}>
+                      {t('profile.extendBoost', 'Extend Boost')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.boostActionRow}>
+                <TouchableOpacity 
+                  style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0 }]} 
+                  onPress={() => handleBoostSelect('1_WEEK', 3)}
+                >
+                  <Text style={styles.boostBtnText}>
+                    {t('profile.boost1Week', 'Boost 1 Week (3 Coins)')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0 }]} 
+                  onPress={() => handleBoostSelect('1_MONTH', 10)}
+                >
+                  <Text style={styles.boostBtnText}>
+                    {t('profile.boost1Month', 'Boost 1 Month (10 Coins)')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={styles.formSection}>
           <ProfileField label={t('profileDetail.fullName')} value={form.fullName} onChangeText={(v) => setForm({ ...form, fullName: v })} editable={editing} style={inputStyle} colors={colors} />
@@ -1010,6 +1160,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
+  },
+  boostCard: {
+    marginHorizontal: 20,
+    marginVertical: 14,
+    padding: 16,
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  boostHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  boostTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    textAlign: 'left',
+  },
+  boostSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'left',
+  },
+  boostActiveContainer: {
+    marginTop: 4,
+    alignItems: 'stretch',
+  },
+  boostActiveBadge: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boostActiveText: {
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  boostActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  boostBtn: {
+    flex: 1,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boostBtnText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'center',
   },
 });
 

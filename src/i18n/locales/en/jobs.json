@@ -129,6 +129,8 @@
     "preferred": "Preferred",
     "proposals": "Proposals",
     "receivedCount": "{{count}} received",
+    "topBids": "Top Application Bids",
+    "noBidsYet": "No applications boosted yet. Apply with a bid to secure the top spot!",
     "whatNeedsDone": "What needs to be done?",
     "photos": "Photos",
     "serviceType": "Service type",

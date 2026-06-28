@@ -30,6 +30,10 @@
     "coinsRequired": "pièces requises",
     "insufficientCoins": "Pièces insuffisantes",
     "topUpWallet": "Recharger le Portefeuille",
-    "bookNowCoins": "Réserver — {{coins}} pièces"
+    "bookNowCoins": "Réserver — {{coins}} pièces",
+    "confirmBookingTitle": "Confirmer les détails de la réservation",
+    "providerRate": "Tarif du prestataire",
+    "coinCostDesc": "Frais de service de réservation",
+    "heldCoinsNotice": "Les crédits seront conservés en toute sécurité sous séquestre jusqu'à ce que la mission soit marquée comme terminée."
   }
 }

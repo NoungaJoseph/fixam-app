@@ -1,4 +1,4 @@
-// metro.config.js
+const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
 
 /** @type {import('expo/metro-config').MetroConfig} */
@@ -11,11 +11,11 @@ if (config.watcher && config.watcher.unstable_workerThreads !== undefined) {
 
 // Exclude unnecessary file types and directories from being watched/bundled
 config.resolver.blockList = [
-  /[\\/\\\\]android[\\/\\\\]/,
-  /[\\/\\\\]ios[\\/\\\\]/,
-  /[\\/\\\\]\.git[\\/\\\\]/,
-  /[\\/\\\\]\.expo[\\/\\\\]/,
-  /[\\/\\\\]dist[\\/\\\\]/,
+  new RegExp(path.resolve(__dirname, 'android').replace(/\\/g, '\\\\') + '[\\/\\\\]?'),
+  new RegExp(path.resolve(__dirname, 'ios').replace(/\\/g, '\\\\') + '[\\/\\\\]?'),
+  new RegExp(path.resolve(__dirname, '.git').replace(/\\/g, '\\\\') + '[\\/\\\\]?'),
+  new RegExp(path.resolve(__dirname, '.expo').replace(/\\/g, '\\\\') + '[\\/\\\\]?'),
+  new RegExp(path.resolve(__dirname, 'dist').replace(/\\/g, '\\\\') + '[\\/\\\\]?'),
 ].concat(config.resolver.blockList || []);
 
 config.resolver.assetExts = config.resolver.assetExts

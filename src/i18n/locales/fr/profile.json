@@ -90,7 +90,11 @@
     "verificationDataPage": "Page d'information uniquement",
     "verificationSecurityNote": "Vos documents sont chiffrés et stockés en sécurité. Ils servent uniquement à la vérification d'identité et ne sont pas partagés avec des tiers.",
     "verificationSelectTitle": "Sélectionnez un document",
-    "verificationSelectBody": "Veuillez sélectionner un type de document d'identité pour continuer."
+    "verificationSelectBody": "Veuillez sélectionner un type de document d'identité pour continuer.",
+    "readMore": "Lire plus",
+    "allReviews": "Tous les avis",
+    "verifiedProvider": "Prestataire vérifié",
+    "noReviewsReceived": "Aucun avis reçu pour le moment."
   },
   "profileDetail": {
     "permissionError": "Erreur d'autorisation",

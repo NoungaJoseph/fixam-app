@@ -42,6 +42,7 @@ import HiddenProfileScreen from '../screens/Profile/HiddenProfileScreen';
 import ChangePasswordScreen from '../screens/Profile/ChangePasswordScreen';
 import HelpCenterScreen from '../screens/Profile/HelpCenterScreen';
 import InvitationScreen from '../screens/Profile/InvitationScreen';
+import ReviewsScreen from '../screens/Profile/ReviewsScreen';
 
 import TopUpScreen from '../screens/Wallet/TopUpScreen';
 import TopUpAmountScreen from '../screens/Wallet/TopUpAmountScreen';
@@ -136,6 +137,7 @@ const HIDE_TAB_ROUTES = [
   'CoinPaymentSuccess',
   'CoinPaymentFailed',
   'ReviewTask',
+  'Reviews',
 ];
 
 const BottomTabNavigator = () => {
@@ -322,6 +324,7 @@ const ProviderTabNavigator = () => {
       <Drawer.Screen name="BookingsList" component={BookingsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Chat" component={ChatScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ReviewTask" component={ReviewTaskScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="Reviews" component={ReviewsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
 
       <Drawer.Screen
         name="Wallet"

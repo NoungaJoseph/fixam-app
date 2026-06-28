@@ -4,6 +4,8 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, StatusBa
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { translateService } from '../../i18n/translate';
 import api, { getMediaUrl } from '../../services/api';
 import UserAvatar from '../../components/UserAvatar';
 
@@ -12,6 +14,7 @@ const FILTERS = ['Rating', 'Price', 'Distance', 'Availability'];
 
 const ProviderListScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
+  const { t, currentLanguage } = useLanguage();
   const { providers, favoriteProviderIds, toggleFavoriteProvider } = useAppContext();
   const category = route.params?.category;
   const verifiedOnly = Boolean(route.params?.verifiedOnly);
@@ -58,7 +61,11 @@ const ProviderListScreen = ({ route, navigation }) => {
     const catLower = category?.toLowerCase();
     
     const name = (p.user?.fullName || '').toLowerCase();
-    const skills = (p.skills || []).join(' ').toLowerCase();
+    const skills = (p.skills || []).flatMap(s => [
+      s.toLowerCase(),
+      translateService(s, { lng: 'en' }).toLowerCase(),
+      translateService(s, { lng: 'fr' }).toLowerCase()
+    ]).join(' ');
     const area = (p.serviceArea || '').toLowerCase();
     const combinedInfo = `${name} ${skills} ${area}`;
 
@@ -114,7 +121,7 @@ const ProviderListScreen = ({ route, navigation }) => {
         <View style={styles.cardInfo}>
           <Text style={[styles.provName, { color: colors.text }]}>{item.user?.fullName || 'No Name'}</Text>
           <Text style={[styles.provSkill, { color: colors.accent }]}>
-            {item.skills && item.skills.length > 0 ? item.skills[0] : 'Professional'}
+            {item.skills && item.skills.length > 0 ? translateService(item.skills[0]) : t('common.professional', 'Professional')}
           </Text>
           <View style={styles.locationRow}>
             <MaterialCommunityIcons name="map-marker-outline" size={13} color={colors.textSecondary} />
@@ -162,7 +169,7 @@ const ProviderListScreen = ({ route, navigation }) => {
             <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {favoritesOnly ? 'Favorite Pros' : verifiedOnly ? 'Verified Pros' : category && category !== 'all' ? `${category} Pros` : 'Discover Pros'}
+            {favoritesOnly ? t('favorites.title') : verifiedOnly ? t('auth.verifiedPros') : category && category !== 'all' ? (currentLanguage === 'fr' ? `Pros - ${translateService(category)}` : `${translateService(category)} Pros`) : t('favorites.discoverPros')}
           </Text>
           <TouchableOpacity
             style={[styles.filterBtn, { backgroundColor: showFilters ? colors.accent : colors.card }]}

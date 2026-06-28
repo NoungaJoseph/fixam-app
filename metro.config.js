@@ -9,7 +9,15 @@ if (config.watcher && config.watcher.unstable_workerThreads !== undefined) {
   delete config.watcher.unstable_workerThreads;
 }
 
-// Exclude unnecessary file types from bundle
+// Exclude unnecessary file types and directories from being watched/bundled
+config.resolver.blockList = [
+  /[\\/\\\\]android[\\/\\\\]/,
+  /[\\/\\\\]ios[\\/\\\\]/,
+  /[\\/\\\\]\.git[\\/\\\\]/,
+  /[\\/\\\\]\.expo[\\/\\\\]/,
+  /[\\/\\\\]dist[\\/\\\\]/,
+].concat(config.resolver.blockList || []);
+
 config.resolver.assetExts = config.resolver.assetExts
   .filter(ext => ext !== 'svg')  // use react-native-svg instead
   

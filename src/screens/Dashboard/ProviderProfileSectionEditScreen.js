@@ -5,20 +5,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { translateService } from '../../i18n/translate';
 
-const LOCAL_SKILLS = [
-  'Plumbing', 'Electrical wiring', 'Carpentry', 'Painting', 'Tiling', 'Masonry', 'Welding', 'Roofing', 'Ceiling installation', 'POP design',
-  'AC repair', 'Fridge repair', 'Washing machine repair', 'Generator repair', 'Solar installation', 'Inverter installation', 'CCTV installation', 'Satellite dish installation', 'Smart lock installation', 'Door repair',
-  'Window repair', 'Aluminium fabrication', 'Glass installation', 'Furniture assembly', 'Cabinet making', 'Upholstery', 'Pest control', 'Fumigation', 'House cleaning', 'Office cleaning',
-  'Laundry', 'Dry cleaning', 'Gardening', 'Landscaping', 'Tree trimming', 'Pool cleaning', 'Water tank cleaning', 'Borehole repair', 'Pump repair', 'Drainage cleaning',
-  'Septic tank service', 'Car wash', 'Auto mechanic', 'Auto electrician', 'Panel beating', 'Car painting', 'Tyre service', 'Battery service', 'Motorcycle repair', 'Tricycle repair',
-  'Phone repair', 'Laptop repair', 'Printer repair', 'Network setup', 'Software installation', 'Data recovery', 'Graphic design', 'Web design', 'Social media management', 'Photography',
-  'Videography', 'Video editing', 'Event decoration', 'Catering', 'Cake baking', 'Hair styling', 'Barbing', 'Makeup artistry', 'Tailoring', 'Fashion design',
-  'Shoe repair', 'Bag repair', 'Security guard', 'Private driver', 'Delivery service', 'Moving service', 'Errand service', 'Home nursing', 'Child care', 'Elder care',
-  'Fitness training', 'Music lessons', 'Math tutoring', 'English tutoring', 'French tutoring', 'Computer tutoring', 'CV writing', 'Translation', 'Legal documentation', 'Accounting',
-  'Bookkeeping', 'Tax filing', 'Real estate agent', 'Property inspection', 'Interior decoration', 'Appliance installation', 'Cooker repair', 'Microwave repair', 'TV repair', 'Sound system repair',
-  'Gate automation', 'Fence installation', 'Floor polishing', 'Wallpaper installation', 'Curtain installation', 'Blinds installation', 'Locksmith', 'Key cutting', 'Signage', 'Printing'
-];
+import { LOCAL_SKILLS, normalizeSkill } from '../../constants/skills';
 
 const SOCIALS = [
   ['linkedin', 'LinkedIn'],
@@ -48,19 +37,26 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
   const filteredSkills = useMemo(() => {
     if (!needle) return [];
     return LOCAL_SKILLS
-      .filter(skill => skill.toLowerCase().includes(needle) && !skills.includes(skill))
+      .filter(skill => {
+        if (skills.includes(skill)) return false;
+        const englishVal = skill.toLowerCase();
+        const frenchVal = translateService(skill, { lng: 'fr' }).toLowerCase();
+        return englishVal.includes(needle) || frenchVal.includes(needle);
+      })
       .slice(0, 12);
   }, [needle, skills]);
 
   const toggleSkill = (skill) => {
-    setSkills(prev => prev.includes(skill) ? prev.filter(item => item !== skill) : [...prev, skill]);
+    const normalized = normalizeSkill(skill);
+    setSkills(prev => prev.includes(normalized) ? prev.filter(item => item !== normalized) : [...prev, normalized]);
     setSkillSearch('');
   };
 
   const addCustomSkill = () => {
     const next = customSkill.trim();
     if (!next) return;
-    setSkills(prev => prev.includes(next) ? prev : [...prev, next]);
+    const normalized = normalizeSkill(next);
+    setSkills(prev => prev.includes(normalized) ? prev : [...prev, normalized]);
     setCustomSkill('');
     setSkillSearch('');
   };
@@ -147,7 +143,7 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
                 <View style={[styles.resultsBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
                   {filteredSkills.map(skill => (
                     <TouchableOpacity key={skill} style={[styles.resultRow, { borderBottomColor: colors.border }]} onPress={() => toggleSkill(skill)}>
-                      <Text style={[styles.skillText, { color: colors.text }]}>{skill}</Text>
+                      <Text style={[styles.skillText, { color: colors.text }]}>{translateService(skill)}</Text>
                       <View style={[styles.miniPlus, outlineBtn]}>
                         <MaterialCommunityIcons name="plus" size={18} color={colors.text} />
                       </View>
@@ -174,7 +170,7 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
                   <View style={styles.skillWrap}>
                     {skills.map(skill => (
                       <TouchableOpacity key={skill} style={[styles.skillChip, { borderColor: colors.border, backgroundColor: isDarkMode ? '#222' : '#F4F4F4' }]} onPress={() => toggleSkill(skill)}>
-                        <Text style={[styles.skillText, { color: colors.text }]}>{skill}</Text>
+                        <Text style={[styles.skillText, { color: colors.text }]}>{translateService(skill)}</Text>
                         <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
                       </TouchableOpacity>
                     ))}

@@ -90,7 +90,11 @@
     "verificationDataPage": "Data page only",
     "verificationSecurityNote": "Your documents are encrypted and stored securely. They are only used for identity verification and will not be shared with third parties.",
     "verificationSelectTitle": "Select a Document",
-    "verificationSelectBody": "Please select an identity document type to continue."
+    "verificationSelectBody": "Please select an identity document type to continue.",
+    "readMore": "Read More",
+    "allReviews": "All Reviews",
+    "verifiedProvider": "Verified Provider",
+    "noReviewsReceived": "No reviews received yet."
   },
   "profileDetail": {
     "permissionError": "Permission Error",

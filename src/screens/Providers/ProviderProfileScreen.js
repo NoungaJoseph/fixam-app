@@ -8,6 +8,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import api, { getMediaUrl } from '../../services/api';
+import { translateService } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
 import VerificationRequiredModal from '../../components/VerificationRequiredModal';
 import { StatusBar } from 'expo-status-bar';
@@ -383,7 +384,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                     ]}
                   >
                     <MaterialCommunityIcons name={itemStyles.icon} size={15} color={isDarkMode ? '#2563EB' : itemStyles.text} style={{ marginRight: 5 }} />
-                    <Text style={[styles.skillTagText, { color: isDarkMode ? '#FFF' : itemStyles.text }]}>{skill}</Text>
+                    <Text style={[styles.skillTagText, { color: isDarkMode ? '#FFF' : itemStyles.text }]}>{translateService(skill)}</Text>
                   </View>
                 );
               })}
@@ -521,7 +522,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           <View style={styles.reviewsHeaderRow}>
             <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('profile.recentReviews')}</Text>
             {reviews.length > 0 && (
-              <TouchableOpacity onPress={() => navigation.navigate('HelpCenter' /* or proper reviews navigation */)}>
+              <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: providerUserId, role: 'PROVIDER' })}>
                 <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
               </TouchableOpacity>
             )}
@@ -535,66 +536,73 @@ const ProviderProfileScreen = ({ route, navigation }) => {
               </Text>
             </View>
           ) : (
-            reviews.slice(0, 3).map((review, i) => {
-              const reviewerName = review.job?.client?.fullName || t('profile.verifiedClient');
-              const reviewerAvatarUri = getMediaUrl(review.job?.client?.avatar);
-              const reviewDateText = review.createdAt
-                ? new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                : t('common.recent');
+            <>
+              {reviews.slice(0, 2).map((review, i) => {
+                const reviewerName = review.reviewer?.fullName || review.job?.client?.fullName || t('profile.verifiedClient');
+                const reviewerAvatarUri = getMediaUrl(review.reviewer?.avatar || review.job?.client?.avatar);
+                const reviewDateText = review.createdAt
+                  ? new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : t('common.recent');
 
-              return (
-                <View
-                  key={review.id || i}
-                  style={[styles.reviewCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9', marginBottom: 12 }]}
-                >
-                  <View style={styles.reviewTopRow}>
-                    <UserAvatar uri={reviewerAvatarUri} name={reviewerName} size={44} radius={14} style={styles.reviewAvatar} />
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <View style={styles.reviewerNameRow}>
-                        <Text style={[styles.reviewerName, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{reviewerName}</Text>
-                        <View style={[styles.verifiedClientBadge, { backgroundColor: isDarkMode ? '#1E3A8A40' : '#EFF6FF' }]}>
-                          <Text style={styles.verifiedClientText}>{t('profile.verifiedClient')}</Text>
+                return (
+                  <View
+                    key={review.id || i}
+                    style={[styles.reviewCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9', marginBottom: 12 }]}
+                  >
+                    <View style={styles.reviewTopRow}>
+                      <UserAvatar uri={reviewerAvatarUri} name={reviewerName} size={44} radius={14} style={styles.reviewAvatar} />
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <View style={styles.reviewerNameRow}>
+                          <Text style={[styles.reviewerName, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{reviewerName}</Text>
+                          <View style={[styles.verifiedClientBadge, { backgroundColor: isDarkMode ? '#1E3A8A40' : '#EFF6FF' }]}>
+                            <Text style={styles.verifiedClientText}>{t('profile.verifiedClient')}</Text>
+                          </View>
+                        </View>
+                        <View style={styles.reviewRatingRow}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <MaterialCommunityIcons
+                              key={star}
+                              name={star <= (review.rating || 5) ? "star" : "star-outline"}
+                              size={14}
+                              color="#F59E0B"
+                              style={{ marginRight: 2 }}
+                            />
+                          ))}
+                          <Text style={[styles.reviewRatingText, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
+                            {(review.rating || 5).toFixed(1)}
+                          </Text>
                         </View>
                       </View>
-                      <View style={styles.reviewRatingRow}>
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <MaterialCommunityIcons
-                            key={star}
-                            name={star <= (review.rating || 5) ? "star" : "star-outline"}
-                            size={14}
-                            color="#F59E0B"
-                            style={{ marginRight: 2 }}
-                          />
-                        ))}
-                        <Text style={[styles.reviewRatingText, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
-                          {(review.rating || 5).toFixed(1)}
-                        </Text>
-                      </View>
+                      <Text style={styles.reviewDate}>{reviewDateText}</Text>
                     </View>
-                    <Text style={styles.reviewDate}>{reviewDateText}</Text>
+                    <Text style={[styles.reviewComment, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
+                      {review.comment || t('profile.reviewFallback')}
+                    </Text>
                   </View>
-                  <Text style={[styles.reviewComment, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
-                    {review.comment || t('profile.reviewFallback')}
-                  </Text>
-                </View>
-              );
-            })
-          )}
+                );
+              })}
 
-          {/* Dynamic Dots Indicator based on review list count */}
-          {reviews.length > 1 && (
-            <View style={styles.dotsContainer}>
-              {reviews.slice(0, 3).map((_, idx) => (
-                <View
-                  key={idx}
-                  style={[
-                    styles.dot,
-                    idx === 0 ? styles.dotActive : null,
-                    { backgroundColor: idx === 0 ? '#0D9488' : (isDarkMode ? '#475569' : '#CBD5E1') }
-                  ]}
-                />
-              ))}
-            </View>
+              {reviews.length > 1 && (
+                <View style={styles.dotsContainer}>
+                  {reviews.slice(0, 2).map((_, idx) => (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.dot,
+                        idx === 0 ? styles.dotActive : null,
+                        { backgroundColor: idx === 0 ? '#0D9488' : (isDarkMode ? '#475569' : '#CBD5E1') }
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+
+              <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: providerUserId, role: 'PROVIDER' })}>
+                <Text style={[styles.moreText, { color: colors.accent, textAlign: 'center', marginTop: 8 }]}>
+                  {t('profile.readMore')}
+                </Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
 
@@ -1274,6 +1282,12 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '800',
+  },
+  moreText: {
+    fontSize: 14,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
+    marginTop: 8,
   },
 });
 

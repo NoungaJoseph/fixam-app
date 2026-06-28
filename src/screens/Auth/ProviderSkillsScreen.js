@@ -5,8 +5,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { translateService } from '../../i18n/translate';
 
-import { ALL_SKILLS } from '../../constants/skills';
+import { ALL_SKILLS, normalizeSkill } from '../../constants/skills';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => `${i + 1}`);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -34,9 +35,13 @@ const ProviderSkillsScreen = ({ navigation, route }) => {
 
   const filteredSkills = useMemo(() => {
     if (!search.trim()) return [];
-    return ALL_SKILLS.filter(skill =>
-      skill.toLowerCase().includes(search.toLowerCase()) && !selectedSkills.includes(skill)
-    ).slice(0, 8);
+    const needle = search.trim().toLowerCase();
+    return ALL_SKILLS.filter(skill => {
+      if (selectedSkills.includes(skill)) return false;
+      const englishVal = skill.toLowerCase();
+      const frenchVal = translateService(skill, { lng: 'fr' }).toLowerCase();
+      return englishVal.includes(needle) || frenchVal.includes(needle);
+    }).slice(0, 8);
   }, [search, selectedSkills]);
 
   const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -64,10 +69,11 @@ const ProviderSkillsScreen = ({ navigation, route }) => {
   };
 
   const toggleSkill = (skill) => {
-    if (selectedSkills.includes(skill)) {
-      setSelectedSkills(selectedSkills.filter(item => item !== skill));
+    const normalized = normalizeSkill(skill);
+    if (selectedSkills.includes(normalized)) {
+      setSelectedSkills(selectedSkills.filter(item => item !== normalized));
     } else {
-      setSelectedSkills([...selectedSkills, skill]);
+      setSelectedSkills([...selectedSkills, normalized]);
       setSearch('');
     }
   };
@@ -152,7 +158,7 @@ const ProviderSkillsScreen = ({ navigation, route }) => {
                 <TouchableOpacity key={skill} style={[styles.resultItem, { borderBottomColor: colors.border }]} onPress={() => toggleSkill(skill)}>
                   <View style={styles.resultMain}>
                     <MaterialCommunityIcons name="briefcase-outline" size={18} color={colors.accent} />
-                    <Text style={[styles.resultText, { color: colors.text }]}>{skill}</Text>
+                    <Text style={[styles.resultText, { color: colors.text }]}>{translateService(skill)}</Text>
                   </View>
                   <MaterialCommunityIcons name="plus-circle-outline" size={20} color={colors.accent} />
                 </TouchableOpacity>
@@ -161,7 +167,9 @@ const ProviderSkillsScreen = ({ navigation, route }) => {
                 <TouchableOpacity style={styles.resultItem} onPress={() => toggleSkill(search.trim())}>
                   <View style={styles.resultMain}>
                     <MaterialCommunityIcons name="plus" size={18} color={colors.accent} />
-                    <Text style={[styles.resultText, { color: colors.accent }]}>Add "{search.trim()}"</Text>
+                    <Text style={[styles.resultText, { color: colors.accent }]}>
+                      {t('workProfile.addSkill', { skill: search.trim() })}
+                    </Text>
                   </View>
                   <MaterialCommunityIcons name="check-circle" size={20} color={colors.accent} />
                 </TouchableOpacity>
@@ -172,7 +180,7 @@ const ProviderSkillsScreen = ({ navigation, route }) => {
           <View style={styles.chips}>
             {selectedSkills.map(skill => (
               <TouchableOpacity key={skill} style={[styles.chip, { backgroundColor: colors.accent }]} onPress={() => toggleSkill(skill)}>
-                <Text style={styles.chipText}>{skill}</Text>
+                <Text style={styles.chipText}>{translateService(skill)}</Text>
                 <MaterialCommunityIcons name="close-circle" size={16} color="#FFF" />
               </TouchableOpacity>
             ))}

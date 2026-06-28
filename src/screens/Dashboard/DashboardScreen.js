@@ -7,8 +7,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { translateService } from '../../i18n/translate';
 import i18n from '../../i18n';
 import UserAvatar from '../../components/UserAvatar';
+import api, { getMediaUrl } from '../../services/api';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, updateProfile, uploadFile } = useAuth();
@@ -19,6 +21,15 @@ const DashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showSkillPicker, setShowSkillPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [reviews, setReviews] = useState([]);
+
+  useEffect(() => {
+    if (user?.id) {
+      api.get(`/reviews/users/${user.id}`)
+        .then((res) => setReviews(res.data.data || []))
+        .catch((err) => console.log('Error fetching reviews:', err));
+    }
+  }, [user?.id]);
 
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
@@ -350,7 +361,7 @@ const DashboardScreen = ({ navigation }) => {
                 <Text style={[styles.mutedLarge, { color: colors.textSecondary }]}>{t('profileDetail.noSkillsAdded')}</Text>
               ) : skills.map(skill => (
                 <View key={skill} style={[styles.profileChip, { backgroundColor: isDarkMode ? '#303030' : '#EEF2F7' }]}>
-                  <Text style={[styles.profileChipText, { color: colors.text }]}>{skill}</Text>
+                  <Text style={[styles.profileChipText, { color: colors.text }]}>{translateService(skill)}</Text>
                 </View>
               ))}
             </View>
@@ -383,6 +394,66 @@ const DashboardScreen = ({ navigation }) => {
                 {item.description ? <Text style={[styles.bioText, { color: colors.textSecondary }]}>{item.description}</Text> : null}
               </View>
             ))}
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.reviewsRatings')}>
+            {reviews.length === 0 ? (
+              <EmptyProfileBlock icon="star-outline" title={t('profileDetail.realReviewsHelp')} action={t('profileDetail.noReviewsYet')} colors={colors} />
+            ) : (
+              <View style={{ gap: 12 }}>
+                {reviews.slice(0, 2).map((review, i) => {
+                  const reviewerName = review.reviewer?.fullName || review.job?.client?.fullName || t('profile.verifiedUser');
+                  const reviewerAvatarUri = getMediaUrl(review.reviewer?.avatar || review.job?.client?.avatar);
+                  const reviewDateText = review.createdAt
+                    ? new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                    : t('common.recent');
+
+                  return (
+                    <View
+                      key={review.id || i}
+                      style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    >
+                      <View style={styles.reviewTopRow}>
+                        <UserAvatar uri={reviewerAvatarUri} name={reviewerName} size={44} radius={14} style={styles.reviewAvatar} />
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <View style={styles.reviewerNameRow}>
+                            <Text style={[styles.reviewerName, { color: colors.text }]} numberOfLines={1}>{reviewerName}</Text>
+                            <View style={[styles.verifiedClientBadge, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#EFF6FF' }]}>
+                              <Text style={[styles.verifiedClientText, { color: colors.accent }]}>
+                                {t('profile.verifiedClient') || 'Verified Client'}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.reviewRatingRow}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <MaterialCommunityIcons
+                                key={star}
+                                name={star <= (review.rating || 5) ? "star" : "star-outline"}
+                                size={14}
+                                color="#F59E0B"
+                                style={{ marginRight: 2 }}
+                              />
+                            ))}
+                            <Text style={[styles.reviewRatingText, { color: colors.text }]}>
+                              {(review.rating || 5).toFixed(1)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.reviewDate}>{reviewDateText}</Text>
+                      </View>
+                      <Text style={[styles.reviewComment, { color: colors.textSecondary }]}>
+                        {review.comment || t('profile.reviewFallback')}
+                      </Text>
+                    </View>
+                  );
+                })}
+                <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: user.id, role: 'PROVIDER' })}>
+                  <Text style={[styles.moreText, { color: colors.accent, textAlign: 'center', marginTop: 8 }]}>
+                    {t('profile.readMore')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </Section>
 
           <Section colors={colors} title={t('profileDetail.testimonials')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('Feedback', { testimonialPreset: true })}>
@@ -465,7 +536,63 @@ const DashboardScreen = ({ navigation }) => {
           </Section>
 
           <Section colors={colors} title={t('profileDetail.reviewsRatings')}>
-            <EmptyProfileBlock icon="star-outline" title={t('profileDetail.realReviewsHelp')} action={t('profileDetail.noReviewsYet')} colors={colors} />
+            {reviews.length === 0 ? (
+              <EmptyProfileBlock icon="star-outline" title={t('profileDetail.realReviewsHelp')} action={t('profileDetail.noReviewsYet')} colors={colors} />
+            ) : (
+              <View style={{ gap: 12 }}>
+                {reviews.slice(0, 2).map((review, i) => {
+                  const reviewerName = review.reviewer?.fullName || review.job?.client?.fullName || t('profile.verifiedUser');
+                  const reviewerAvatarUri = getMediaUrl(review.reviewer?.avatar || review.job?.client?.avatar);
+                  const reviewDateText = review.createdAt
+                    ? new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                    : t('common.recent');
+
+                  return (
+                    <View
+                      key={review.id || i}
+                      style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    >
+                      <View style={styles.reviewTopRow}>
+                        <UserAvatar uri={reviewerAvatarUri} name={reviewerName} size={44} radius={14} style={styles.reviewAvatar} />
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <View style={styles.reviewerNameRow}>
+                            <Text style={[styles.reviewerName, { color: colors.text }]} numberOfLines={1}>{reviewerName}</Text>
+                            <View style={[styles.verifiedClientBadge, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#EFF6FF' }]}>
+                              <Text style={[styles.verifiedClientText, { color: colors.accent }]}>
+                                {t('profile.verifiedProvider') || 'Verified Provider'}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.reviewRatingRow}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <MaterialCommunityIcons
+                                key={star}
+                                name={star <= (review.rating || 5) ? "star" : "star-outline"}
+                                size={14}
+                                color="#F59E0B"
+                                style={{ marginRight: 2 }}
+                              />
+                            ))}
+                            <Text style={[styles.reviewRatingText, { color: colors.text }]}>
+                              {(review.rating || 5).toFixed(1)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.reviewDate}>{reviewDateText}</Text>
+                      </View>
+                      <Text style={[styles.reviewComment, { color: colors.textSecondary }]}>
+                        {review.comment || t('profile.reviewFallback')}
+                      </Text>
+                    </View>
+                  );
+                })}
+                <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: user.id, role: 'CLIENT' })}>
+                  <Text style={[styles.moreText, { color: colors.accent, textAlign: 'center', marginTop: 8 }]}>
+                    {t('profile.readMore')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </Section>
 
           <Section colors={colors} title={t('profileDetail.accountPreferences')}>
@@ -562,7 +689,7 @@ const DashboardScreen = ({ navigation }) => {
                 <View style={styles.skillsContainer}>
                   {form.skills.map(skill => (
                     <View key={skill} style={[styles.skillChip, { backgroundColor: colors.accent }]}>
-                      <Text style={styles.skillChipText}>{skill}</Text>
+                      <Text style={styles.skillChipText}>{translateService(skill)}</Text>
                       {editing && (
                         <TouchableOpacity onPress={() => toggleSkill(skill)}>
                           <MaterialCommunityIcons name="close-circle" size={16} color="#FFF" />
@@ -623,7 +750,7 @@ const DashboardScreen = ({ navigation }) => {
                     style={[styles.pickerItem, { backgroundColor: isSelected ? colors.accent : colors.background, borderColor: colors.border }]}
                     onPress={() => toggleSkill(skill)}
                   >
-                    <Text style={{ color: isSelected ? '#FFF' : colors.text, fontWeight: '700' }}>{skill}</Text>
+                    <Text style={{ color: isSelected ? '#FFF' : colors.text, fontWeight: '700' }}>{translateService(skill)}</Text>
                     {isSelected && <MaterialCommunityIcons name="check" size={18} color="#FFF" />}
                   </TouchableOpacity>
                 );
@@ -835,6 +962,55 @@ const styles = StyleSheet.create({
   pickerItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderRadius: 15, borderWidth: 1 },
   modalDoneBtn: { height: 54, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
   modalDoneText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
+  reviewCard: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  reviewTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  reviewerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  reviewerName: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  verifiedClientBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  verifiedClientText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  reviewRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewRatingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+  reviewDate: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  reviewComment: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+  },
 });
 
 export default DashboardScreen;

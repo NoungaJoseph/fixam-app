@@ -94,7 +94,9 @@
     "readMore": "Lire plus",
     "allReviews": "Tous les avis",
     "verifiedProvider": "Prestataire vérifié",
-    "noReviewsReceived": "Aucun avis reçu pour le moment."
+    "noReviewsReceived": "Aucun avis reçu pour le moment.",
+    "chatClosedBanner": "Ce chat est fermé car la réservation est terminée.",
+    "bookAgain": "Réserver à nouveau"
   },
   "profileDetail": {
     "permissionError": "Erreur d'autorisation",

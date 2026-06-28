@@ -97,6 +97,7 @@ const ChatScreen = ({ route, navigation }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(!!conversationId); // Only show loading if we have a conversationId to fetch
+  const [chatStatus, setChatStatus] = useState({ active: true, reason: 'LOADING' });
   const [hasCheckedTask, setHasCheckedTask] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -165,6 +166,9 @@ const ChatScreen = ({ route, navigation }) => {
     api.get(`/chat/conversations/${activeConvId}`)
       .then((res) => {
         const conv = res.data.data;
+        if (conv?.chatStatus) {
+          setChatStatus(conv.chatStatus);
+        }
         if (!conv?.participants) return;
         const other = conv.participants.find((p) => (p.userId || p.user?.id || p.id) !== currentUser.id);
         const normalized = normalizeParticipant(other);
@@ -172,6 +176,7 @@ const ChatScreen = ({ route, navigation }) => {
       })
       .catch((err) => {
         console.log('[ChatScreen] Could not fetch conversation details:', err.message);
+        setChatStatus({ active: true, reason: 'ERROR_FALLBACK' });
         // Fallback: try to find participant in already-loaded conversations context
         if (conversations.length > 0) {
           const conv = conversations.find((c) => c.id === activeConvId);
@@ -263,10 +268,31 @@ const ChatScreen = ({ route, navigation }) => {
   }, [activeConvId, fetchMessages, on, emit, receiverId, user?.id, fetchConversations, fetchNotifications]);
 
   const trackingTask = activeTask || task;
-  const canMessage = true;
+  const canMessage = chatStatus.active;
+
+  const handleBookAgain = async () => {
+    const providerProfileId = otherParticipant?.providerProfile?.id;
+    if (!providerProfileId) {
+      Alert.alert(t('common.error'), t('profile.providerUnavailable'));
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.get(`/providers/${providerProfileId}`);
+      if (res.data?.success && res.data?.data) {
+        navigation.navigate('ProviderProfile', { provider: res.data.data });
+      } else {
+        throw new Error('Failed to load profile');
+      }
+    } catch (error) {
+      Alert.alert(t('common.error'), t('profile.providerUnavailable'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showCannotMessageAlert = () => {
-    // Alert logic removed as requested
+    Alert.alert(t('common.error'), t('profile.chatClosedBanner'));
   };
 
   const openTaskTracker = () => {
@@ -460,13 +486,29 @@ const ChatScreen = ({ route, navigation }) => {
           <FlatList ref={flatListRef} data={[...messages].reverse()} keyExtractor={item => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} inverted={true} />
         )}
 
+        {!canMessage && (
+          <View style={[styles.bookingBanner, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+            <Text style={[styles.bookingBannerText, { color: colors.textSecondary }]}>
+              {t('profile.chatClosedBanner')}
+            </Text>
+            {user?.role === 'CLIENT' && otherParticipant?.role === 'PROVIDER' && (
+              <TouchableOpacity
+                style={[styles.bannerBookBtn, { backgroundColor: colors.accent }]}
+                onPress={handleBookAgain}
+              >
+                <Text style={styles.bannerBookBtnText}>{t('profile.bookAgain')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8), opacity: canMessage ? 1 : 0.6 }]}>
-          <TouchableOpacity style={styles.attachBtn} onPress={canMessage ? handleImagePick : showCannotMessageAlert} disabled={isUploading}>
+          <TouchableOpacity style={styles.attachBtn} onPress={canMessage ? handleImagePick : showCannotMessageAlert} disabled={isUploading || !canMessage}>
             {isUploading ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="plus" size={24} color={canMessage ? colors.accent : colors.placeholder} />}
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background }]} onPress={!canMessage ? showCannotMessageAlert : undefined} activeOpacity={canMessage ? 1 : 0.7}>
+          <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background }]} onPress={!canMessage ? showCannotMessageAlert : undefined} activeOpacity={canMessage ? 1 : 0.7} disabled={!canMessage}>
             <View pointerEvents={canMessage ? 'auto' : 'none'} style={{ flex: 1 }}>
-              <TextInput style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]} placeholder={t('messages.type')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline editable={canMessage} />
+              <TextInput style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]} placeholder={canMessage ? t('messages.type') : t('profile.chatClosedBanner')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline editable={canMessage} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.sendButton, { backgroundColor: canMessage ? colors.accent : colors.border, opacity: input.trim() && !isSending && canMessage ? 1 : 0.45 }]} onPress={canMessage ? () => handleSend() : showCannotMessageAlert} disabled={!input.trim() || isSending || !canMessage}>

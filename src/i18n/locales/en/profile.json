@@ -94,7 +94,9 @@
     "readMore": "Read More",
     "allReviews": "All Reviews",
     "verifiedProvider": "Verified Provider",
-    "noReviewsReceived": "No reviews received yet."
+    "noReviewsReceived": "No reviews received yet.",
+    "chatClosedBanner": "This chat has closed because the booking is completed.",
+    "bookAgain": "Book Again"
   },
   "profileDetail": {
     "permissionError": "Permission Error",

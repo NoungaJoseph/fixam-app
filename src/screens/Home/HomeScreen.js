@@ -16,12 +16,11 @@ import { translateService } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
 import WelcomeModal from '../../components/Common/WelcomeModal';
 import ProviderTour from '../../components/Common/ProviderTour';
+import api from '../../services/api';
 import { POPULAR_SERVICE_CATALOG, POPULAR_SERVICE_IMAGES } from '../../data/popularServices';
 import NewsTicker from '../../components/NewsTicker';
 
 const { width } = Dimensions.get('window');
-
-const POPULAR_SERVICES = POPULAR_SERVICE_CATALOG.slice(0, 15);
 
 const LEARN_CARDS = [
   {
@@ -68,6 +67,7 @@ const HomeScreen = ({ navigation }) => {
   const [slideIndex, setSlideIndex] = useState(0);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [popularServices, setPopularServices] = useState(POPULAR_SERVICE_CATALOG.slice(0, 15));
   const learnScrollRef = useRef(null);
 
   const topUpRef = useRef(null);
@@ -143,9 +143,38 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const fetchPopularCategories = async () => {
+    try {
+      const res = await api.get('/jobs/popular-categories');
+      if (res.data?.success && res.data?.data) {
+        const dbCategories = res.data.data;
+        const countMap = {};
+        dbCategories.forEach(item => { countMap[item.category] = item._count.category; });
+        
+        let sortedCatalog = [...POPULAR_SERVICE_CATALOG];
+        sortedCatalog.sort((a, b) => {
+          const countA = countMap[a.name] || 0;
+          const countB = countMap[b.name] || 0;
+          if (countA !== countB) {
+            return countB - countA;
+          }
+          return 0; // Keep relative fallback order
+        });
+        setPopularServices(sortedCatalog.slice(0, 15));
+      }
+    } catch (e) {
+      console.log('Error fetching popular categories:', e.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchPopularCategories();
+  }, []);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchAppData();
+    await fetchPopularCategories();
     setRefreshing(false);
   };
 
@@ -313,7 +342,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
-            {POPULAR_SERVICES.map(service => (
+            {popularServices.map(service => (
               <TouchableOpacity
                 key={service.name}
                 style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}

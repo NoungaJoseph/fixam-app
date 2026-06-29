@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -307,7 +307,7 @@ const BookingFormScreen = ({ route, navigation }) => {
             </View>
 
             <TouchableOpacity onPress={submit} disabled={submitting} style={[styles.submitBtn, { opacity: submitting ? 0.65 : 1, marginTop: 12 }]}>
-              <MaterialCommunityIcons name="calendar-check" size={20} color="#FFFFFF" />
+              {submitting ? <ActivityIndicator size="small" color="#FFFFFF" /> : <MaterialCommunityIcons name="calendar-check" size={20} color="#FFFFFF" />}
               <Text style={styles.submitText}>{submitting ? t('bookings.scheduling') : t('bookings.bookNowCoins', { coins: getCoinCost() }).replace('{{coins}}', getCoinCost())}</Text>
             </TouchableOpacity>
           </ScrollView>

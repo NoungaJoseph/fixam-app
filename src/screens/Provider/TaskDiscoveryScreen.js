@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, StatusBar, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -14,7 +14,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
-  const [sortBy, setSortBy] = useState('newest'); // newest, price_high, price_low, oldest
+  const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -41,7 +41,6 @@ const TaskDiscoveryScreen = ({ navigation }) => {
           location: locationFilter
         }
       });
-
       setTasks(response.data.data || []);
       setCurrentPage(response.data.pagination?.page || 1);
       setTotalPages(response.data.pagination?.pages || 1);
@@ -65,13 +64,14 @@ const TaskDiscoveryScreen = ({ navigation }) => {
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
-    const now = new Date();
-    const then = new Date(dateStr);
-    const diff = Math.floor((now - then) / 1000);
-    if (diff < 60) return 'Just now';
-    if (diff < 3600) { const m = Math.floor(diff / 60); return `${m} min ago`; }
-    if (diff < 86400) { const h = Math.floor(diff / 3600); return `${h} hr${h > 1 ? 's' : ''} ago`; }
-    const d = Math.floor(diff / 86400);
+    const normalized = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
+    const then = new Date(normalized);
+    if (Number.isNaN(then.getTime())) return '';
+    const diffSec = Math.max(0, Math.floor((Date.now() - then.getTime()) / 1000));
+    if (diffSec < 60) return 'Just now';
+    if (diffSec < 3600) { const m = Math.floor(diffSec / 60); return `${m} min ago`; }
+    if (diffSec < 86400) { const h = Math.floor(diffSec / 3600); return `${h} hr${h > 1 ? 's' : ''} ago`; }
+    const d = Math.floor(diffSec / 86400);
     if (d === 1) return 'Yesterday';
     if (d < 7) return `${d} days ago`;
     if (d < 30) { const w = Math.floor(d / 7); return `${w} week${w > 1 ? 's' : ''} ago`; }
@@ -149,7 +149,6 @@ const TaskDiscoveryScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>
-      
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -255,7 +254,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
                 disabled={currentPage === 1}
                 style={[
                   styles.pageButton,
-                  { 
+                  {
                     backgroundColor: currentPage === 1 ? colors.border : colors.accent,
                     opacity: currentPage === 1 ? 0.5 : 1
                   }
@@ -273,7 +272,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
                 disabled={currentPage === totalPages}
                 style={[
                   styles.pageButton,
-                  { 
+                  {
                     backgroundColor: currentPage === totalPages ? colors.border : colors.accent,
                     opacity: currentPage === totalPages ? 0.5 : 1
                   }

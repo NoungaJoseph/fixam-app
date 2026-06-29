@@ -88,19 +88,20 @@ const FindJobsScreen = ({ navigation }) => {
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
-    const now = new Date();
-    const then = new Date(dateStr);
-    const diff = Math.floor((now - then) / 1000);
-    if (diff < 60) return t('home.justNow', 'Just now');
-    if (diff < 3600) {
-      const m = Math.floor(diff / 60);
+    const normalized = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
+    const then = new Date(normalized);
+    if (Number.isNaN(then.getTime())) return '';
+    const diffSec = Math.max(0, Math.floor((Date.now() - then.getTime()) / 1000));
+    if (diffSec < 60) return t('home.justNow', 'Just now');
+    if (diffSec < 3600) {
+      const m = Math.floor(diffSec / 60);
       return t('home.minutesAgo', { count: m, defaultValue: `${m} min ago` });
     }
-    if (diff < 86400) {
-      const h = Math.floor(diff / 3600);
+    if (diffSec < 86400) {
+      const h = Math.floor(diffSec / 3600);
       return t('home.hoursAgo', { count: h, defaultValue: `${h} hr${h > 1 ? 's' : ''} ago` });
     }
-    const d = Math.floor(diff / 86400);
+    const d = Math.floor(diffSec / 86400);
     if (d === 1) return t('home.yesterday', 'Yesterday');
     if (d < 7) return t('home.daysAgo', { count: d, defaultValue: `${d} days ago` });
     if (d < 30) {
@@ -213,10 +214,18 @@ const FindJobsScreen = ({ navigation }) => {
                   ))}
                 </View>
 
-                {/* Stats Row */}
-                <Text style={[styles.statsText, { color: colors.textSecondary }]}>
-                  {t('home.reviewsSpent', { reviews: 0, spent: 0 })}
-                </Text>
+                {/* Stats / Time Row */}
+                <View style={styles.statsRow}>
+                  <Text style={[styles.statsText, { color: colors.textSecondary }]}>
+                    {t('home.reviewsSpent', { reviews: job.clientReviewCount ?? 0, spent: job.clientSpendingTier || 'New client' })}
+                  </Text>
+                  {job.createdAt ? (
+                    <View style={styles.timeInline}>
+                      <MaterialCommunityIcons name="clock-outline" size={13} color={colors.textSecondary} />
+                      <Text style={[styles.timeInlineText, { color: colors.textSecondary }]}>{timeAgo(job.createdAt)}</Text>
+                    </View>
+                  ) : null}
+                </View>
 
                 {/* Bottom Row */}
                 <View style={styles.jobBottomRow}>
@@ -224,17 +233,9 @@ const FindJobsScreen = ({ navigation }) => {
                     <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.textSecondary} />
                     <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{job.location || '4.1070, 9.7619'}</Text>
                   </View>
-                  <View style={styles.jobBottomRight}>
-                    {job.createdAt ? (
-                      <View style={[styles.timeChip, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
-                        <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
-                        <Text style={[styles.timeChipText, { color: colors.textSecondary }]}>{timeAgo(job.createdAt)}</Text>
-                      </View>
-                    ) : null}
-                    <TouchableOpacity style={styles.applyBtn} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
-                      <Text style={styles.applyBtnText}>{t('home.apply')}</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity style={styles.applyBtn} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
+                    <Text style={styles.applyBtnText}>{t('home.apply')}</Text>
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             );
@@ -373,6 +374,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 20,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  timeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  timeInlineText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   jobBottomRow: {
     flexDirection: 'row',

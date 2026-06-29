@@ -390,32 +390,41 @@ const DashboardScreen = ({ navigation }) => {
                   </View>
                   <View style={styles.boostActionRow}>
                     <TouchableOpacity 
-                      style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, marginTop: 12, borderRadius: 0 }]} 
+                      style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, marginTop: 12, borderRadius: 0, opacity: loading ? 0.65 : 1 }]} 
                       onPress={() => handleBoostSelect('1_WEEK', 3)}
+                      disabled={loading}
                     >
-                      <Text style={styles.boostBtnText}>
-                        {t('profile.extendBoost', 'Extend Boost')}
-                      </Text>
+                      {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : (
+                        <Text style={styles.boostBtnText}>
+                          {t('profile.extendBoost', 'Extend Boost')}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 </View>
               ) : (
                 <View style={styles.boostActionRow}>
                   <TouchableOpacity 
-                    style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0 }]} 
+                    style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0, opacity: loading ? 0.65 : 1 }]} 
                     onPress={() => handleBoostSelect('1_WEEK', 3)}
+                    disabled={loading}
                   >
-                    <Text style={styles.boostBtnText}>
-                      {t('profile.boost1Week', 'Boost 1 Week (3 Coins)')}
-                    </Text>
+                    {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : (
+                      <Text style={styles.boostBtnText}>
+                        {t('profile.boost1Week', 'Boost 1 Week (3 Coins)')}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity 
-                    style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0 }]} 
+                    style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0, opacity: loading ? 0.65 : 1 }]} 
                     onPress={() => handleBoostSelect('1_MONTH', 10)}
+                    disabled={loading}
                   >
-                    <Text style={styles.boostBtnText}>
-                      {t('profile.boost1Month', 'Boost 1 Month (10 Coins)')}
-                    </Text>
+                    {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : (
+                      <Text style={styles.boostBtnText}>
+                        {t('profile.boost1Month', 'Boost 1 Month (10 Coins)')}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               )}

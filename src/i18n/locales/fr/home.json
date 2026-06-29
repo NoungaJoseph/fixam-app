@@ -60,7 +60,7 @@
     "work": "TRAVAIL",
     "jobFallbackDescription": "Un client recherche un professionnel expérimenté pour réaliser cette mission avec soin.",
     "more": "plus",
-    "reviewsSpent": "{{reviews}} avis   {{spent}} dépensé",
+    "reviewsSpent": "{{reviews}} avis · {{spent}}",
     "performanceOverview": "Vue d'ensemble des performances",
     "performanceSubtitle": "Suivez votre progression et vos revenus dans le temps.",
     "completedJobs": "Missions terminées",

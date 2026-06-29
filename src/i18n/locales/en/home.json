@@ -60,7 +60,7 @@
     "work": "WORK",
     "jobFallbackDescription": "Looking for an experienced professional to handle this task with care and expertise.",
     "more": "more",
-    "reviewsSpent": "{{reviews}} reviews   {{spent}} spent",
+    "reviewsSpent": "{{reviews}} reviews · {{spent}}",
     "performanceOverview": "Performance Overview",
     "performanceSubtitle": "Track your progress and earnings over time.",
     "completedJobs": "Completed Jobs",

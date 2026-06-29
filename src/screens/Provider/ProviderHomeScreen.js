@@ -248,6 +248,18 @@ const ProviderHomeScreen = ({ navigation }) => {
     return matchSearch && matchCat;
   });
 
+  // Sort: most recent first, high budget jobs bumped up if posted within 48h
+  const prioritizedJobs = [...filteredJobs].sort((a, b) => {
+    const ageA = now - new Date(a.createdAt || 0).getTime();
+    const ageB = now - new Date(b.createdAt || 0).getTime();
+    const recent48h = 48 * 60 * 60 * 1000;
+    const aIsHighPriority = ageA < recent48h && (a.budget || 0) >= 25000;
+    const bIsHighPriority = ageB < recent48h && (b.budget || 0) >= 25000;
+    if (aIsHighPriority && !bIsHighPriority) return -1;
+    if (!aIsHighPriority && bIsHighPriority) return 1;
+    return ageA - ageB; // most recent first
+  });
+
   const firstName = user?.fullName?.split(' ')[0] || t('common.provider');
   const hour = new Date().getHours();
   const greeting = hour < 12 ? t('home.goodMorning') : hour < 17 ? t('home.goodAfternoon') : t('home.goodEvening');
@@ -334,10 +346,18 @@ const ProviderHomeScreen = ({ navigation }) => {
           ))}
         </View>
 
-        {/* Stats Row */}
-        <Text style={[styles.statsText, { color: colors.textSecondary }]}>
-          {t('home.reviewsSpent', { reviews: 0, spent: 0 })}
-        </Text>
+        {/* Stats / Time Row */}
+        <View style={styles.statsRow}>
+          <Text style={[styles.statsText, { color: colors.textSecondary }]}>
+            {t('home.reviewsSpent', { reviews: job.clientReviewCount ?? 0, spent: job.clientSpendingTier || 'New client' })}
+          </Text>
+          {job.createdAt ? (
+            <View style={styles.timeInline}>
+              <MaterialCommunityIcons name="clock-outline" size={13} color={colors.textSecondary} />
+              <Text style={[styles.timeInlineText, { color: colors.textSecondary }]}>{getPostedAgo(job.createdAt)}</Text>
+            </View>
+          ) : null}
+        </View>
 
         {/* Bottom Row */}
         <View style={styles.jobBottomRow}>
@@ -682,7 +702,7 @@ const ProviderHomeScreen = ({ navigation }) => {
             <Text style={[styles.emptySub, { color: colors.textSecondary }]}>{t('home.newJobsRealtime')}</Text>
           </View>
         ) : (
-          filteredJobs.slice(0, 3).map(item => <JobCard key={item.id} item={item} />)
+          prioritizedJobs.slice(0, 5).map(item => <JobCard key={item.id} item={item} />)
         )}
 
         {/* Space at the bottom to avoid tabbar overlap */}
@@ -1353,7 +1373,21 @@ const styles = StyleSheet.create({
   statsText: {
     fontSize: 14,
     fontWeight: '800',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  timeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  timeInlineText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   jobBottomRow: {
     flexDirection: 'row',
@@ -1380,6 +1414,18 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15,
     fontWeight: '800',
+  },
+  timeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  timeChipText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
 
   // Empty State

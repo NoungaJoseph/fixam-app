@@ -51,6 +51,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const [jobDetails, setJobDetails] = useState(task);
   const [fetching, setFetching] = useState(true);
   const [applicationCount, setApplicationCount] = useState(task.assignments?.length || task.proposals || 0);
+  const [submitting, setSubmitting] = useState(false);
   const [applied, setApplied] = useState(false);
   const coinCost = 1;
   const isBooking = Boolean(route.params?.isBooking || task?.isBooking || task?.bookingDate);
@@ -154,6 +155,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
   const confirmAccept = async () => {
     try {
+      setSubmitting(true);
       setShowConfirm(false);
       if (isBooking) {
         await api.patch(`/bookings/${task.id}/status`, { status: 'ACCEPTED' });
@@ -173,6 +175,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     } catch (error) {
       const message = translateApiError(error, t);
       Alert.alert(t('jobs.couldNotApply'), message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -440,13 +444,19 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             <MaterialCommunityIcons name="message-text-outline" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[styles.proposalBtn, hasApplied && styles.proposalBtnDisabled]} onPress={handleAccept} disabled={hasApplied}>
-          <Text style={styles.proposalTitle}>
-            {isBooking 
-              ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBooking', 'Accept Booking')) 
-              : (hasApplied ? t('jobs.alreadyApplied') : t('jobs.sendProposal'))}
-          </Text>
-          {!isBooking && <Text style={styles.proposalSub}>{t('wallet.coinCount', { count: coinCost })}</Text>}
+        <TouchableOpacity style={[styles.proposalBtn, (hasApplied || submitting) && styles.proposalBtnDisabled]} onPress={handleAccept} disabled={hasApplied || submitting}>
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <Text style={styles.proposalTitle}>
+                {isBooking 
+                  ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBooking', 'Accept Booking')) 
+                  : (hasApplied ? t('jobs.alreadyApplied') : t('jobs.sendProposal'))}
+              </Text>
+              {!isBooking && !hasApplied && <Text style={styles.proposalSub}>{t('wallet.coinCount', { count: coinCost })}</Text>}
+            </>
+          )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.footerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
           <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={25} color={isFavorite ? '#EF4444' : colors.text} />

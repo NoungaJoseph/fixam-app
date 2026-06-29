@@ -11,7 +11,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 const PACKAGES = [
-  { id: 'test-pack', coins: 1, amount: 100, price: '100 FCFA', label: 'Test Pack', description: '1 coin - Testing only', isTest: true, popular: false, bonus: 0 },
   { id: 'p1', coins: 10, price: '5,000 FCFA', label: 'Starter', popular: false, bonus: 0 },
   { id: 'p2', coins: 20, price: '10,000 FCFA', label: 'Standard', popular: true, bonus: 2 },
   { id: 'p3', coins: 30, price: '15,000 FCFA', label: 'Popular', popular: false, bonus: 3 },

@@ -6,7 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
 import { POPULAR_SERVICE_CATALOG, POPULAR_SERVICE_IMAGES } from '../../data/popularServices';
-import api from '../../services/api';
+import { useAppContext } from '../../context/AppContext';
 
 const GROUPS = ['All', 'Home', 'Repair', 'Lifestyle', 'Logistics', 'Care', 'Events', 'Professional', 'Outdoor', 'Auto'];
 
@@ -14,40 +14,13 @@ const PopularServicesScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const [group, setGroup] = useState('All');
-  const [sortedCatalog, setSortedCatalog] = useState(POPULAR_SERVICE_CATALOG);
-  const topServices = sortedCatalog.slice(0, 15);
+  const { popularCategories } = useAppContext();
+  const topServices = popularCategories.slice(0, 15);
   
   const visibleServices = useMemo(
-    () => sortedCatalog.filter(service => group === 'All' || service.group === group),
-    [group, sortedCatalog]
+    () => popularCategories.filter(service => group === 'All' || service.group === group),
+    [group, popularCategories]
   );
-
-  React.useEffect(() => {
-    const fetchPopularCategories = async () => {
-      try {
-        const res = await api.get('/jobs/popular-categories');
-        if (res.data?.success && res.data?.data) {
-          const dbCategories = res.data.data;
-          const countMap = {};
-          dbCategories.forEach(item => { countMap[item.category] = item._count.category; });
-          
-          let sorted = [...POPULAR_SERVICE_CATALOG];
-          sorted.sort((a, b) => {
-            const countA = countMap[a.name] || 0;
-            const countB = countMap[b.name] || 0;
-            if (countA !== countB) {
-              return countB - countA;
-            }
-            return 0; 
-          });
-          setSortedCatalog(sorted);
-        }
-      } catch (e) {
-        console.log('Error fetching popular categories:', e.message);
-      }
-    };
-    fetchPopularCategories();
-  }, []);
 
   const openService = (service) => {
     navigation.navigate('ProviderList', { category: service.name, source: 'popular-services' });

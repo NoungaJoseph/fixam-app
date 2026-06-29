@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api, { getMediaUrl } from '../services/api';
 import { useAuth } from './AuthContext';
 import { useSocket } from './SocketContext';
+import { POPULAR_SERVICE_CATALOG } from '../data/popularServices';
 
 const AppContext = createContext();
 const hiddenJobsKey = (userId) => `fixam:hidden-jobs:${userId || 'guest'}`;
@@ -68,6 +69,7 @@ export const AppProvider = ({ children }) => {
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
+  const [popularCategories, setPopularCategories] = useState(POPULAR_SERVICE_CATALOG);
   const markingNotificationsRef = React.useRef(new Set());
   const lastFetchRef = React.useRef(null);
   const hasLoadedDataRef = React.useRef(false);
@@ -97,6 +99,7 @@ export const AppProvider = ({ children }) => {
             setMyTasksList(data.myTasks || []);
             setMyBookingsList(data.myBookings || []);
             setMyReviews(data.myReviews || []);
+            setPopularCategories(data.popularCategories || POPULAR_SERVICE_CATALOG);
             setHasLoadedData(true);
             hasLoadedDataRef.current = true;
             setIsInitialLoad(false);
@@ -283,6 +286,7 @@ export const AppProvider = ({ children }) => {
       let currentWalletDetails = walletDetails;
       let currentConversations = conversations;
       let currentTransactions = transactions;
+      let nextPopularCategories = popularCategories;
 
       if (res.status !== 304 && data) {
         currentProviders = (data.providers || []).map(normalizeProvider);
@@ -317,6 +321,23 @@ export const AppProvider = ({ children }) => {
         
         currentTransactions = data.transactions || [];
         setTransactions(currentTransactions);
+        
+        if (data.popularCategories) {
+          const countMap = {};
+          data.popularCategories.forEach(item => { countMap[item.category] = item._count.category; });
+          
+          let sorted = [...POPULAR_SERVICE_CATALOG];
+          sorted.sort((a, b) => {
+            const countA = countMap[a.name] || 0;
+            const countB = countMap[b.name] || 0;
+            if (countA !== countB) {
+              return countB - countA;
+            }
+            return 0; 
+          });
+          nextPopularCategories = sorted;
+          setPopularCategories(nextPopularCategories);
+        }
       }
       
       let nextMyTasks = myTasksList;
@@ -368,7 +389,8 @@ export const AppProvider = ({ children }) => {
         transactions: currentTransactions,
         myTasks: nextMyTasks,
         myBookings: nextMyBookings,
-        myReviews: nextMyReviews
+        myReviews: nextMyReviews,
+        popularCategories: nextPopularCategories
       }));
 
       lastFetchRef.current = now;
@@ -583,6 +605,7 @@ export const AppProvider = ({ children }) => {
       walletDetails,
       transactions,
       isProviderOnline,
+      popularCategories,
       isLoading,
       isInitialLoad,
       hasLoadedData,

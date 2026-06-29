@@ -58,7 +58,7 @@ const LEARN_CARDS = [
 ];
 
 const HomeScreen = ({ navigation }) => {
-  const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad, hasLoadedData } = useAppContext();
+  const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad, hasLoadedData, popularCategories } = useAppContext();
   const { user, isNewUser, clearNewUser } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
@@ -67,7 +67,7 @@ const HomeScreen = ({ navigation }) => {
   const [slideIndex, setSlideIndex] = useState(0);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTour, setShowTour] = useState(false);
-  const [popularServices, setPopularServices] = useState(POPULAR_SERVICE_CATALOG.slice(0, 15));
+  const popularServices = popularCategories.slice(0, 15);
   const learnScrollRef = useRef(null);
 
   const topUpRef = useRef(null);
@@ -143,38 +143,11 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const fetchPopularCategories = async () => {
-    try {
-      const res = await api.get('/jobs/popular-categories');
-      if (res.data?.success && res.data?.data) {
-        const dbCategories = res.data.data;
-        const countMap = {};
-        dbCategories.forEach(item => { countMap[item.category] = item._count.category; });
-        
-        let sortedCatalog = [...POPULAR_SERVICE_CATALOG];
-        sortedCatalog.sort((a, b) => {
-          const countA = countMap[a.name] || 0;
-          const countB = countMap[b.name] || 0;
-          if (countA !== countB) {
-            return countB - countA;
-          }
-          return 0; // Keep relative fallback order
-        });
-        setPopularServices(sortedCatalog.slice(0, 15));
-      }
-    } catch (e) {
-      console.log('Error fetching popular categories:', e.message);
-    }
-  };
 
-  useEffect(() => {
-    fetchPopularCategories();
-  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchAppData();
-    await fetchPopularCategories();
     setRefreshing(false);
   };
 

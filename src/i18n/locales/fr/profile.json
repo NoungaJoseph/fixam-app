@@ -323,5 +323,17 @@
     "deleteBtn": "Supprimer mon compte",
     "incorrectPassword": "Mot de passe incorrect. Veuillez réessayer.",
     "success": "Votre compte a été supprimé"
-  }
+  },
+  "viewBoostDashboard": "Voir les performances et booster",
+  "boostDashboard": "Tableau de bord Boost",
+  "performanceStats": "Statistiques de performance",
+  "profileViews": "Vues du profil",
+  "searchAppearances": "Apparitions dans les recherches",
+  "completeSetup": "Terminer la configuration (Bonus de 1 pièce)",
+  "claimBonus": "Réclamer le bonus de 1 pièce",
+  "bonusClaimed": "Bonus réclamé avec succès !",
+  "bonusError": "Impossible de réclamer le bonus.",
+  "exp_BEGINNER": "Débutant",
+  "exp_INTERMEDIATE": "Intermédiaire",
+  "exp_EXPERT": "Expert"
 }

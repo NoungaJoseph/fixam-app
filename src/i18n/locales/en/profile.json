@@ -323,5 +323,17 @@
     "deleteBtn": "Delete My Account",
     "incorrectPassword": "Incorrect password. Please try again.",
     "success": "Your account has been deleted"
-  }
+  },
+  "viewBoostDashboard": "View Performance & Boost",
+  "boostDashboard": "Boost Dashboard",
+  "performanceStats": "Performance Stats",
+  "profileViews": "Profile Views",
+  "searchAppearances": "Search Appearances",
+  "completeSetup": "Complete Setup (Bonus 1 Coin)",
+  "claimBonus": "Claim 1 Coin Bonus",
+  "bonusClaimed": "Bonus claimed successfully!",
+  "bonusError": "Could not claim bonus.",
+  "exp_BEGINNER": "Beginner",
+  "exp_INTERMEDIATE": "Intermediate",
+  "exp_EXPERT": "Expert"
 }

@@ -27,6 +27,7 @@ import ReviewTaskScreen from '../screens/Tasks/ReviewTaskScreen';
 import DashboardScreen from '../screens/Dashboard/DashboardScreen';
 import ProviderProfileEditItemScreen from '../screens/Dashboard/ProviderProfileEditItemScreen';
 import ProviderProfileSectionEditScreen from '../screens/Dashboard/ProviderProfileSectionEditScreen';
+import BoostProfileScreen from '../screens/Profile/BoostProfileScreen';
 import SettingsScreen from '../screens/Profile/SettingsScreen';
 import NotificationsScreen from '../screens/Profile/NotificationsScreen';
 import NotificationDetailScreen from '../screens/Profile/NotificationDetailScreen';
@@ -122,6 +123,7 @@ const HIDE_TAB_ROUTES = [
   'UserProfile',
   'ProviderProfileEditItem',
   'ProviderProfileSectionEdit',
+  'BoostProfile',
   'PrivacySecurity',
   'LanguageSelection',
   'Feedback',
@@ -304,6 +306,7 @@ const ProviderTabNavigator = () => {
       <Drawer.Screen name="UserProfile" component={DashboardScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfileEditItem" component={ProviderProfileEditItemScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfileSectionEdit" component={ProviderProfileSectionEditScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="BoostProfile" component={BoostProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="PrivacySecurity" component={PrivacySecurityScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="LanguageSelection" component={ProfileLanguageScreen} options={{ drawerItemStyle: { display: 'none' } }} />

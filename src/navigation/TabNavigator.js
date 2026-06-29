@@ -25,6 +25,7 @@ import ChatListScreen from '../screens/Chat/ChatListScreen';
 import DashboardScreen from '../screens/Dashboard/DashboardScreen';
 import ProviderProfileEditItemScreen from '../screens/Dashboard/ProviderProfileEditItemScreen';
 import ProviderProfileSectionEditScreen from '../screens/Dashboard/ProviderProfileSectionEditScreen';
+import BoostProfileScreen from '../screens/Profile/BoostProfileScreen';
 import WalletScreen from '../screens/Wallet/WalletScreen';
 import RatingScreen from '../screens/Profile/RatingScreen';
 import SettingsScreen from '../screens/Profile/SettingsScreen';
@@ -120,6 +121,7 @@ const HIDE_TAB_ROUTES = [
   'UserProfile',
   'ProviderProfileEditItem',
   'ProviderProfileSectionEdit',
+  'BoostProfile',
   'Notifications',
   'NotificationDetail',
   'NotificationSettings',
@@ -344,6 +346,7 @@ const TabNavigator = () => {
       <Drawer.Screen name="UserProfile" component={DashboardScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfileEditItem" component={ProviderProfileEditItemScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfileSectionEdit" component={ProviderProfileSectionEditScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="BoostProfile" component={BoostProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Notifications" component={NotificationsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="NotificationDetail" component={NotificationDetailScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ drawerItemStyle: { display: 'none' } }} />

@@ -445,6 +445,20 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                 <Text style={[styles.statSubLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>{experienceLevel}</Text>
               </View>
             </View>
+
+            <View style={styles.statRow}>
+              {/* Hourly Rate */}
+              <View style={[styles.statItem, { flex: 1, backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
+                <View style={styles.statIconValRow}>
+                  <View style={[styles.statIconWrap, { backgroundColor: isDarkMode ? '#9F123940' : '#FFE4E6' }]}>
+                    <MaterialCommunityIcons name="currency-usd" size={17} color="#E11D48" />
+                  </View>
+                  <Text style={[styles.statVal, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{ratePrice}</Text>
+                </View>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#CBD5E1' : '#475569' }]} numberOfLines={1}>{t('profileDetail.hourlyRate', 'Hourly Rate')}</Text>
+                <Text style={[styles.statSubLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>{t('profileDetail.estimated', 'Estimated rate')}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -463,73 +477,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Contact Details Section */}
-        {user?.role === 'CLIENT' && (
-          <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
-              {t('profileDetail.phone')}
-            </Text>
-            
-            <View style={[styles.contactCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
-              {profileData?.phoneUnlocked ? (
-                <View>
-                  <View style={styles.unlockedPhoneRow}>
-                    <MaterialCommunityIcons name="phone-check" size={22} color="#0D9488" style={{ marginRight: 8 }} />
-                    <Text style={[styles.unlockedPhoneText, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
-                      {profileData?.user?.phone}
-                    </Text>
-                  </View>
-                  <Text style={[styles.unlockExpiryHint, { color: isDarkMode ? '#64748B' : '#94A3B8' }]}>
-                    🔒 Auto-locks after 24 hours
-                  </Text>
-                  <View style={styles.contactButtonsRow}>
-                    <TouchableOpacity
-                      style={[styles.contactBtn, { backgroundColor: colors.accent, opacity: callingAction ? 0.7 : 1 }]}
-                      onPress={handleCall}
-                      disabled={!!callingAction}
-                    >
-                      {callingAction === 'call'
-                        ? <ActivityIndicator size="small" color="#FFF" />
-                        : <MaterialCommunityIcons name="phone" size={18} color="#FFF" />}
-                      <Text style={styles.contactBtnText}>{t('profile.makeCall')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.contactBtn, { backgroundColor: '#25D366', opacity: callingAction ? 0.7 : 1 }]}
-                      onPress={handleWhatsApp}
-                      disabled={!!callingAction}
-                    >
-                      {callingAction === 'whatsapp'
-                        ? <ActivityIndicator size="small" color="#FFF" />
-                        : <MaterialCommunityIcons name="whatsapp" size={18} color="#FFF" />}
-                      <Text style={styles.contactBtnText}>{t('profile.openWhatsApp')}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.lockedContactContainer}>
-                  <View style={styles.maskedPhoneRow}>
-                    <MaterialCommunityIcons name="phone-lock" size={22} color={isDarkMode ? '#64748B' : '#94A3B8'} style={{ marginRight: 8 }} />
-                    <Text style={[styles.maskedPhoneText, { color: isDarkMode ? '#64748B' : '#94A3B8' }]}>
-                      {profileData?.user?.phone || 'Contact Locked'}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.unlockBtn, { backgroundColor: colors.accent, opacity: unlocking ? 0.65 : 1 }]}
-                    onPress={handleUnlockContact}
-                    disabled={unlocking}
-                  >
-                    {unlocking
-                      ? <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 8 }} />
-                      : <MaterialCommunityIcons name="lock-open-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />}
-                    <Text style={styles.unlockBtnText}>
-                      {unlocking ? 'Unlocking...' : t('profile.unlockContact')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+
 
         {/* Expertise Section */}
         {skills.length > 0 && (

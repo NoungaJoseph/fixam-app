@@ -128,9 +128,34 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
 
           {section === 'about' || (section === 'mode' && profileMode === 'WORK') ? (
             <>
-              <Field label={t('workProfile.bio')} value={bio} onChangeText={setBio} colors={colors} multiline />
-              <Field label={t('workProfile.serviceArea')} value={serviceArea} onChangeText={setServiceArea} colors={colors} />
-              <Field label={t('workProfile.experienceLevel')} value={experienceLevel} onChangeText={setExperienceLevel} colors={colors} />
+              <Field label={t('workProfile.bio', 'Bio')} value={bio} onChangeText={setBio} colors={colors} multiline />
+              <Field label={t('workProfile.serviceArea', 'Area of Work')} value={serviceArea} onChangeText={setServiceArea} colors={colors} />
+              
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('workProfile.experienceLevel', 'Experience Level')}</Text>
+                <View style={styles.experienceContainer}>
+                  {['BEGINNER', 'INTERMEDIATE', 'EXPERT'].map((level) => (
+                    <TouchableOpacity 
+                      key={level} 
+                      style={[
+                        styles.experienceChip, 
+                        { 
+                          borderColor: experienceLevel === level ? colors.accent : colors.border,
+                          backgroundColor: experienceLevel === level ? (isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5') : colors.card 
+                        }
+                      ]}
+                      onPress={() => setExperienceLevel(level)}
+                    >
+                      <Text style={[
+                        styles.experienceText, 
+                        { color: experienceLevel === level ? colors.accent : colors.text }
+                      ]}>
+                        {t(`workProfile.exp_${level}`, level)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
               <Field label={t('workProfile.hourlyRate')} value={rate} onChangeText={setRate} colors={colors} keyboardType="numeric" />
             </>
           ) : null}
@@ -248,10 +273,21 @@ const styles = StyleSheet.create({
   addBtn: { width: 44, height: 44, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   row: { paddingVertical: 17, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 14 },
   rowTitle: { fontSize: 17, fontWeight: '900' },
-  rowSub: { fontSize: 13, marginTop: 4, fontWeight: '600' },
-  help: { fontSize: 14, lineHeight: 21, marginVertical: 18 },
-  saveBtn: { minHeight: 48, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 4, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  saveText: { fontSize: 15, fontWeight: '900' },
+  rowSub: { fontSize: 14, marginTop: 4 },
+  help: { fontSize: 13, marginTop: 10, marginBottom: 20 },
+  saveBtn: { marginTop: 10, height: 50, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  saveText: { fontSize: 16, fontWeight: '900' },
+  experienceContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  experienceChip: { 
+    borderWidth: 1, 
+    borderRadius: 8, 
+    paddingHorizontal: 16, 
+    paddingVertical: 10,
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  experienceText: { fontSize: 13, fontWeight: '700' }
 });
 
 export default ProviderProfileSectionEditScreen;

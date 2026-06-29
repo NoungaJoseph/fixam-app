@@ -117,12 +117,13 @@ const formatCardDate = (job) => {
   return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
 };
 
-const calculateJobCoinCost = (budget) => {
-  const amount = Number(budget || 0);
-  if (amount > 10000) {
-    return Math.max(2, Math.ceil((amount - 10000) / 25000) + 1);
-  }
-  return 1;
+const calculateJobCoinCost = (providersCount) => {
+  const count = parseInt(providersCount) || 1;
+  if (count >= 1 && count <= 5) return 1;
+  if (count >= 6 && count <= 10) return 2;
+  if (count >= 11 && count <= 20) return 3;
+  if (count >= 21 && count <= 30) return 4;
+  return 5;
 };
 
 const PostTaskScreen = ({ route, navigation }) => {
@@ -148,6 +149,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [categorySearch, setCategorySearch] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [whatNeedsDone, setWhatNeedsDone] = useState('');
+  const [providersNeeded, setProvidersNeeded] = useState('');
   const [importantDetails, setImportantDetails] = useState('');
   const [taskScope, setTaskScope] = useState('');
   const [selectedPreferences, setSelectedPreferences] = useState(['verified', 'fast', 'rated', 'today']);
@@ -182,6 +184,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     setCategorySearch('');
     setShowCategoryPicker(false);
     setWhatNeedsDone('');
+    setProvidersNeeded('');
     setImportantDetails('');
     setTaskScope('');
     setSelectedPreferences(['verified', 'fast', 'rated', 'today']);
@@ -218,6 +221,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     setSelectedPhotos([]);
     setCategorySearch(job.category || '');
     setWhatNeedsDone(job.whatNeedsDone || '');
+    setProvidersNeeded(String(job.providersNeeded || 1));
     setImportantDetails(job.importantDetails || '');
     setTaskScope(job.taskScope || '');
     setSelectedPreferences(job.preferences || ['verified', 'fast', 'rated', 'today']);
@@ -283,6 +287,10 @@ const PostTaskScreen = ({ route, navigation }) => {
     const max = budgetMode === 'range' ? parseInt(budgetMax) : parseInt(budget);
     if (!min || !max || min <= 0 || max <= 0) return t('jobs.budgetRequired');
     if (min > max) return t('jobs.budgetMinMax');
+    
+    const count = parseInt(providersNeeded);
+    if (!count || count <= 0) return t('jobs.providersNeededRequired', 'Please specify a valid number of providers needed');
+    
     return null;
   };
 
@@ -373,8 +381,7 @@ const PostTaskScreen = ({ route, navigation }) => {
       }
 
       // 2. Insufficient Coins Check
-      const finalBudget = budgetMode === 'range' ? parseInt(budgetMax || 0) : parseInt(budget || 0);
-      const coinCost = calculateJobCoinCost(finalBudget);
+      const coinCost = calculateJobCoinCost(providersNeeded);
       const balance = walletBalance || 0;
 
       if (balance < coinCost) {
@@ -403,6 +410,7 @@ const PostTaskScreen = ({ route, navigation }) => {
         budget: budgetMode === 'range' ? parseInt(budgetMax) : parseInt(budget),
         budgetMin: budgetMode === 'range' ? parseInt(budgetMin) : parseInt(budget),
         budgetMax: budgetMode === 'range' ? parseInt(budgetMax) : parseInt(budget),
+        providersNeeded: parseInt(providersNeeded),
         category: locale === 'fr' ? getCategoryLabel(selectedCat) : selectedCat,
         scheduledTime: scheduledDateTime.toISOString(),
         whatNeedsDone,
@@ -775,6 +783,19 @@ const PostTaskScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.fieldHint}>{t('jobs.locationHint')}</Text>
+              </View>
+
+              <View style={styles.createFieldGroup}>
+                <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.providersNeeded', 'Number of Providers Needed')}</Text>
+                <TextInput
+                  style={[styles.createInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#FFF' }]}
+                  placeholder={t('jobs.providersNeededPlaceholder', 'e.g. 2')}
+                  placeholderTextColor="#94A3B8"
+                  value={providersNeeded}
+                  onChangeText={setProvidersNeeded}
+                  keyboardType="numeric"
+                />
+                <Text style={styles.fieldHint}>{t('jobs.providersNeededHint', 'How many professionals do you need for this task?')}</Text>
               </View>
 
               <View style={styles.createFieldGroup}>

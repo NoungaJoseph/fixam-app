@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, StatusBar, TextInput, ActivityIndicator, Alert, Modal, Platform, Share, ActionSheetIOS } from 'react-native';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -118,6 +119,14 @@ const DashboardScreen = ({ navigation }) => {
       });
     }
   }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (refreshUser) {
+        refreshUser();
+      }
+    }, [])
+  );
 
   useEffect(() => {
     const handler = () => forceUpdate((value) => value + 1);
@@ -261,6 +270,22 @@ const DashboardScreen = ({ navigation }) => {
       ]
     );
   };
+  
+  const claimSetupBonus = async () => {
+    if (loading) return;
+    try {
+      setLoading(true);
+      const res = await api.post('/providers/claim-setup-bonus');
+      if (res.data?.success) {
+        Alert.alert(t('profile.success', 'Success'), res.data.message || t('profile.bonusClaimed', 'Bonus claimed successfully!'));
+        if (refreshUser) await refreshUser();
+      }
+    } catch (err) {
+      Alert.alert(t('common.error', 'Error'), err.response?.data?.message || t('profile.bonusError', 'Could not claim bonus.'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const switchToClient = () => {
     Alert.alert(
@@ -302,6 +327,15 @@ const DashboardScreen = ({ navigation }) => {
     const skills = user.providerProfile?.skills || [];
     const rate = user.providerProfile?.rate ? `${Number(user.providerProfile.rate).toLocaleString()} XAF/hr` : t('profileDetail.rateNotSet');
     const employmentHistory = user.providerProfile?.employmentHistory || [];
+
+    const setupSteps = [
+      { key: 'bio', completed: !!user.providerProfile?.bio, label: t('profileDetail.addBio', 'Add Bio'), action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' }) },
+      { key: 'skills', completed: !!user.providerProfile?.skills && user.providerProfile.skills.length > 0, label: t('profileDetail.addSkills', 'Add Skills'), action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'skills' }) },
+      { key: 'verification', completed: user.providerProfile?.verification === 'VERIFIED', label: t('profileDetail.verifyId', 'Verify ID'), action: () => navigation.navigate('Verification') },
+    ];
+    const completedStepsCount = setupSteps.filter(s => s.completed).length;
+    const setupProgress = Math.round((completedStepsCount / setupSteps.length) * 100);
+    const showSetupWidget = !user.providerProfile?.setupBonusClaimed;
 
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
@@ -368,6 +402,35 @@ const DashboardScreen = ({ navigation }) => {
 
           <ProfileModeDropdown colors={colors} user={user} isProviderMode={isProviderMode} switchToClient={switchToClient} switchToProvider={switchToProvider} navigation={navigation} />
 
+          {/* Setup Progress Widget */}
+          {showSetupWidget && (
+            <View style={[styles.setupWidget, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
+              <Text style={[styles.setupTitle, { color: colors.text }]}>{t('profile.completeSetup', 'Complete Setup (Bonus 1 Coin)')}</Text>
+              
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBarFill, { backgroundColor: colors.accent, width: `${setupProgress}%` }]} />
+              </View>
+              <Text style={[styles.progressText, { color: colors.textSecondary }]}>{setupProgress}% {t('common.completed', 'Completed')}</Text>
+
+              <View style={styles.setupStepsContainer}>
+                {setupSteps.map((step, idx) => (
+                  <TouchableOpacity key={idx} style={styles.setupStepRow} onPress={step.action} disabled={step.completed}>
+                    <MaterialCommunityIcons name={step.completed ? "check-circle" : "checkbox-blank-circle-outline"} size={20} color={step.completed ? "#10B981" : colors.textSecondary} />
+                    <Text style={[styles.setupStepLabel, { color: step.completed ? colors.textSecondary : colors.text, textDecorationLine: step.completed ? 'line-through' : 'none' }]}>
+                      {step.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {setupProgress === 100 && (
+                <TouchableOpacity style={[styles.claimBonusBtn, { backgroundColor: colors.accent }]} onPress={claimSetupBonus} disabled={loading}>
+                  {loading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.claimBonusText}>{t('profile.claimBonus', 'Claim 1 Coin Bonus')}</Text>}
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* Boost Profile Card for Providers */}
           {(user?.role === 'PROVIDER' || user?.providerProfile) && (
             <View style={[styles.boostCard, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC', borderColor: colors.accent, borderWidth: 2, borderRadius: 0, marginTop: 12, marginHorizontal: 20 }]}>
@@ -388,46 +451,19 @@ const DashboardScreen = ({ navigation }) => {
                       {t('profile.boostActiveUntil', { date: new Date(user.providerProfile.boostExpiresAt).toLocaleDateString() }).replace('{{date}}', new Date(user.providerProfile.boostExpiresAt).toLocaleDateString())}
                     </Text>
                   </View>
-                  <View style={styles.boostActionRow}>
-                    <TouchableOpacity 
-                      style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, marginTop: 12, borderRadius: 0, opacity: loading ? 0.65 : 1 }]} 
-                      onPress={() => handleBoostSelect('1_WEEK', 3)}
-                      disabled={loading}
-                    >
-                      {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : (
-                        <Text style={styles.boostBtnText}>
-                          {t('profile.extendBoost', 'Extend Boost')}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
                 </View>
-              ) : (
-                <View style={styles.boostActionRow}>
-                  <TouchableOpacity 
-                    style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0, opacity: loading ? 0.65 : 1 }]} 
-                    onPress={() => handleBoostSelect('1_WEEK', 3)}
-                    disabled={loading}
-                  >
-                    {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : (
-                      <Text style={styles.boostBtnText}>
-                        {t('profile.boost1Week', 'Boost 1 Week (3 Coins)')}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0, opacity: loading ? 0.65 : 1 }]} 
-                    onPress={() => handleBoostSelect('1_MONTH', 10)}
-                    disabled={loading}
-                  >
-                    {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : (
-                      <Text style={styles.boostBtnText}>
-                        {t('profile.boost1Month', 'Boost 1 Month (10 Coins)')}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
+              ) : null}
+              
+              <View style={styles.boostActionRow}>
+                <TouchableOpacity 
+                  style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, borderRadius: 0 }]} 
+                  onPress={() => navigation.navigate('BoostProfile')}
+                >
+                  <Text style={styles.boostBtnText}>
+                    {t('profile.viewBoostDashboard', 'View Performance & Boost')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -769,37 +805,19 @@ const DashboardScreen = ({ navigation }) => {
                     {t('profile.boostActiveUntil', { date: new Date(user.providerProfile.boostExpiresAt).toLocaleDateString() }).replace('{{date}}', new Date(user.providerProfile.boostExpiresAt).toLocaleDateString())}
                   </Text>
                 </View>
-                <View style={styles.boostActionRow}>
-                  <TouchableOpacity 
-                    style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, marginTop: 12, borderRadius: 0 }]} 
-                    onPress={() => handleBoostSelect('1_WEEK', 3)}
-                  >
-                    <Text style={styles.boostBtnText}>
-                      {t('profile.extendBoost', 'Extend Boost')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
               </View>
-            ) : (
-              <View style={styles.boostActionRow}>
-                <TouchableOpacity 
-                  style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0 }]} 
-                  onPress={() => handleBoostSelect('1_WEEK', 3)}
-                >
-                  <Text style={styles.boostBtnText}>
-                    {t('profile.boost1Week', 'Boost 1 Week (3 Coins)')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.boostBtn, { backgroundColor: colors.accent, borderRadius: 0 }]} 
-                  onPress={() => handleBoostSelect('1_MONTH', 10)}
-                >
-                  <Text style={styles.boostBtnText}>
-                    {t('profile.boost1Month', 'Boost 1 Month (10 Coins)')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            ) : null}
+            
+            <View style={styles.boostActionRow}>
+              <TouchableOpacity 
+                style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, borderRadius: 0 }]} 
+                onPress={() => navigation.navigate('BoostProfile')}
+              >
+                <Text style={styles.boostBtnText}>
+                  {t('profile.viewBoostDashboard', 'View Performance & Boost')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -977,11 +995,7 @@ const ProfileModeDropdown = ({ colors, isProviderMode, switchToClient, switchToP
         <MaterialCommunityIcons name="chevron-right" size={24} color={colors.placeholder} />
       </TouchableOpacity>
 
-      {isProviderMode && (
-        <TouchableOpacity onPress={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'mode' })} style={{ marginTop: 15 }}>
-          <Text style={[styles.linkMuted, { color: colors.textSecondary }]}>{t('profileDetail.advancedProfileSettings')}</Text>
-        </TouchableOpacity>
-      )}
+
     </View>
   );
 };
@@ -1187,9 +1201,59 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   boostTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  setupWidget: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+  },
+  setupTitle: {
     fontSize: 16,
-    fontWeight: '900',
-    textAlign: 'left',
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    marginBottom: 16,
+    textAlign: 'right',
+  },
+  setupStepsContainer: {
+    marginBottom: 12,
+  },
+  setupStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  setupStepLabel: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  claimBonusBtn: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  claimBonusText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
   boostSubtitle: {
     fontSize: 13,

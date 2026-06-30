@@ -3,6 +3,7 @@ import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
   StatusBar, Share, Alert, Image
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CustomHeader } from '../../navigation/NavigationComponents';
 import { useTheme } from '../../context/ThemeContext';
@@ -10,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 import * as Clipboard from 'expo-clipboard';
+
 const InvitationScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { user } = useAuth();
@@ -49,7 +51,7 @@ const InvitationScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.background, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.background, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       <CustomHeader navigation={navigation} title={t('drawer.inviteFriends')} colors={colors} />
       
@@ -162,7 +164,7 @@ const InvitationScreen = ({ navigation }) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

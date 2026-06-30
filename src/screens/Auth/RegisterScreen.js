@@ -150,9 +150,10 @@ const RegisterScreen = ({ navigation, route }) => {
     >
       <SafeAreaView style={styles.flex} edges={['top']}>
         <KeyboardAwareScrollView
+          style={styles.flex}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + 40 }
+            { paddingBottom: insets.bottom + 100 }
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -370,6 +371,9 @@ const RegisterScreen = ({ navigation, route }) => {
                 {submitting ? t('register.creating') : t('register.submit')}
               </Text>
             </TouchableOpacity>
+
+            {/* Bottom spacer to guarantee the button can scroll fully above navigation area */}
+            <View style={{ height: 120 }} />
           </View>
         </KeyboardAwareScrollView>
       </SafeAreaView>

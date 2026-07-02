@@ -322,7 +322,7 @@ const BookingsScreen = ({ navigation }) => {
               </View>
 
               <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 16 }]}>{t('booking.bookings.explanation', 'Message / Explanation')}</Text>
-              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.background, minHeight: 80, alignItems: 'flex-start', paddingTop: 8, marginBottom: 12 }]}>
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.background, height: 'auto', minHeight: 90, alignItems: 'flex-start', paddingTop: 8, marginBottom: 24 }]}>
                 <TextInput
                   style={[styles.textInput, { color: colors.text, height: '100%', textAlignVertical: 'top' }]}
                   multiline

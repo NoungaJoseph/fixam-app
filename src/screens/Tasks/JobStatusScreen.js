@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -49,6 +49,35 @@ const JobStatusScreen = ({ route, navigation }) => {
   const currentStep = Math.max(0, steps.indexOf(normalizedStatus));
   const hasLocationCoords = job.latitude != null && job.longitude != null;
   const canViewLocation = Boolean(job.selectedAssignmentId && hasLocationCoords);
+
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const updateStatus = async (nextStatus) => {
+    try {
+      setUpdatingStatus(true);
+      const endpoint = isBooking ? `/bookings/${job.id}/status` : `/jobs/${job.id}/status`;
+      const res = isBooking
+        ? await api.patch(endpoint, { status: nextStatus })
+        : await api.put(endpoint, { status: nextStatus });
+        
+      if (res.data?.data) {
+        setJob(res.data.data);
+      } else {
+        setJob(prev => ({ ...prev, status: nextStatus }));
+      }
+      await fetchAppData?.(true);
+      
+      if (nextStatus === 'ACCEPTED') {
+        Alert.alert(t('common.success'), t('booking.counterAcceptedSuccess', 'Counter offer accepted successfully.'));
+      } else if (nextStatus === 'REJECTED' || nextStatus === 'CANCELLED') {
+        Alert.alert(t('common.success'), t('booking.bookingCancelledSuccess', 'Booking request cancelled.'));
+      }
+    } catch (err) {
+      Alert.alert(t('common.error'), translateApiError(err, t, 'jobs.updateFailedClient'));
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!route.params?.job?.id) return;
@@ -249,6 +278,53 @@ const JobStatusScreen = ({ route, navigation }) => {
             <Detail icon="text-box-outline" label={t('jobs.description')} value={(isBooking ? job.notes : job.description) || t('jobs.noAdditionalDetails')} colors={colors} isDarkMode={isDarkMode} />
           </View>
 
+          {isBooking && normalizedStatus === 'COUNTER_PROPOSED' && (
+            <View style={[styles.counterCard, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF', borderColor: '#8B5CF6' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <MaterialCommunityIcons name="cash-multiple" size={24} color="#8B5CF6" />
+                <Text style={{ fontSize: 16, fontWeight: '900', color: '#8B5CF6' }}>
+                  {t('booking.counterOfferReceived', 'Counter-Offer Received!')}
+                </Text>
+              </View>
+              
+              <Text style={[styles.counterValue, { color: colors.text }]}>
+                {Number(job.counterBudget || 0).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
+              </Text>
+
+              {job.counterNotes ? (
+                <Text style={[styles.counterNotes, { color: colors.textSecondary }]}>
+                  "{job.counterNotes}"
+                </Text>
+              ) : null}
+
+              <View style={styles.counterActionRow}>
+                <TouchableOpacity
+                  style={[styles.counterDeclineBtn, { borderColor: '#EF4444' }]}
+                  onPress={() => updateStatus('REJECTED')}
+                  disabled={updatingStatus}
+                >
+                  <Text style={{ color: '#EF4444', fontWeight: '800', fontSize: 13 }}>
+                    {t('common.decline', 'Decline')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.counterAcceptBtn, { backgroundColor: '#8B5CF6' }]}
+                  onPress={() => updateStatus('ACCEPTED')}
+                  disabled={updatingStatus}
+                >
+                  {updatingStatus ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>
+                      {t('common.accept', 'Accept')}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           <View style={[styles.costCard, { backgroundColor: colors.accent }]}>
             <Text style={styles.costLabel}>{t('jobs.totalEstimatedBudget')}</Text>
             <Text style={styles.costValue}>{Number(job.budget || 0).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}</Text>
@@ -274,16 +350,14 @@ const JobStatusScreen = ({ route, navigation }) => {
                       text: t('jobs.completeAndRate'),
                       onPress: async () => {
                         try {
-                          const endpoint = isBooking ? `/bookings/${job.id}/status` : `/jobs/${job.id}/status`;
-                          await api.put(endpoint, { status: 'COMPLETED' });
-                          await fetchAppData?.(true);
+                          await updateStatus('COMPLETED');
                           navigation.navigate('Rating', {
                             jobId: job.id,
                             targetUser: assignedProviderUser,
                             mode: 'rate_provider',
                           });
                         } catch (err) {
-                          Alert.alert(t('common.error'), translateApiError(err, t, 'jobs.updateFailedClient'));
+                          // Handled by helper
                         }
                       }
                     }
@@ -309,13 +383,9 @@ const JobStatusScreen = ({ route, navigation }) => {
                         style: 'destructive',
                         onPress: async () => {
                           try {
-                            const endpoint = isBooking ? `/bookings/${job.id}/status` : `/jobs/${job.id}/status`;
-                            await api.patch(endpoint, { status: 'CANCELLED' });
-                            setJob({ ...job, status: 'CANCELLED' });
-                            await fetchAppData?.(true);
-                            Alert.alert(t('common.success'), t('jobs.cancelledSuccess', 'Task cancelled successfully.'));
+                            await updateStatus('CANCELLED');
                           } catch (err) {
-                            Alert.alert(t('common.error'), translateApiError(err, t, 'jobs.updateFailedClient'));
+                            // Handled by helper
                           }
                         }
                       }
@@ -409,6 +479,12 @@ const styles = StyleSheet.create({
   secondaryActionText: { fontSize: 16, fontWeight: '800' },
   cancelBtn: { height: 60, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
   cancelBtnText: { fontSize: 16, fontWeight: '800' },
+  counterCard: { marginHorizontal: 25, padding: 20, borderRadius: 8, borderWidth: 1.5, marginBottom: 20 },
+  counterValue: { fontSize: 24, fontWeight: '950', marginBottom: 4 },
+  counterNotes: { fontSize: 13, fontWeight: '600', fontStyle: 'italic', marginBottom: 16 },
+  counterActionRow: { flexDirection: 'row', gap: 10 },
+  counterDeclineBtn: { flex: 1, height: 44, borderRadius: 8, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
+  counterAcceptBtn: { flex: 1.5, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default JobStatusScreen;

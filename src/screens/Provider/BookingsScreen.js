@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, TextInput, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { useTheme } from '../../context/ThemeContext';
@@ -18,6 +18,7 @@ const statusMeta = {
   COMPLETED: { icon: 'check-circle-outline', color: '#22C55E', label: 'Completed' },
   REJECTED: { icon: 'close-circle-outline', color: '#EF4444', label: 'Rejected' },
   CANCELLED: { icon: 'close-circle-outline', color: '#EF4444', label: 'Cancelled' },
+  COUNTER_PROPOSED: { icon: 'cash-multiple', color: '#8B5CF6', label: 'Counter proposed' },
 };
 
 const hasUserReviewed = (booking, userId) => {
@@ -34,6 +35,40 @@ const BookingsScreen = ({ navigation }) => {
   const [bookings, setBookings] = useState(myBookingsList || []);
   const [loading, setLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
+
+  const [counterModalVisible, setCounterModalVisible] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [counterBudget, setCounterBudget] = useState('');
+  const [counterNotes, setCounterNotes] = useState('');
+  const [submittingCounter, setSubmittingCounter] = useState(false);
+
+  const handleOpenCounterModal = (booking) => {
+    setSelectedBooking(booking);
+    setCounterBudget(String(booking.budget || ''));
+    setCounterNotes('');
+    setCounterModalVisible(true);
+  };
+
+  const submitCounterOffer = async () => {
+    if (!counterBudget || isNaN(Number(counterBudget)) || Number(counterBudget) <= 0) {
+      Alert.alert(t('common.error'), t('jobs.invalidBudget', 'Please enter a valid budget greater than 0'));
+      return;
+    }
+    try {
+      setSubmittingCounter(true);
+      await api.post(`/bookings/${selectedBooking.id}/counter`, {
+        counterBudget: Number(counterBudget),
+        counterNotes: counterNotes
+      });
+      setCounterModalVisible(false);
+      Alert.alert(t('common.success'), t('booking.counterOfferSent', 'Counter-offer sent successfully.'));
+      await fetchBookings();
+    } catch (error) {
+      Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.updateFailed'));
+    } finally {
+      setSubmittingCounter(false);
+    }
+  };
 
   const handleSafeGoBack = () => {
     navigation.goBack();
@@ -123,8 +158,25 @@ const BookingsScreen = ({ navigation }) => {
           <Detail icon="cash" label={`${Number(item.budget || 0).toLocaleString()} ${getCurrencyForUser(item.country || user?.country || 'Cameroon')}`} colors={colors} />
         </View>
 
+        {status === 'COUNTER_PROPOSED' && (
+          <View style={[styles.counterDetails, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF', borderColor: colors.border, borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 12 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <MaterialCommunityIcons name="cash-multiple" size={16} color="#8B5CF6" />
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#8B5CF6' }}>{t('booking.yourProposedCounter', 'Your Proposed Counter:')}</Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, marginTop: 4 }}>
+              {Number(item.counterBudget || 0).toLocaleString()} {getCurrencyForUser(item.country || user?.country || 'Cameroon')}
+            </Text>
+            {item.counterNotes ? (
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginTop: 4, fontStyle: 'italic' }}>
+                "{item.counterNotes}"
+              </Text>
+            ) : null}
+          </View>
+        )}
+
         <View style={[styles.actions, { borderTopColor: colors.border }]}>
-          {['ACCEPTED', 'IN_PROGRESS'].includes(status) ? (
+          {['ACCEPTED', 'IN_PROGRESS', 'COUNTER_PROPOSED'].includes(status) ? (
             <TouchableOpacity
               style={[styles.secondaryBtn, { borderColor: colors.border }]}
               onPress={() => navigation.navigate('Chat', {
@@ -140,13 +192,31 @@ const BookingsScreen = ({ navigation }) => {
           ) : null}
 
           {status === 'PENDING' ? (
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              disabled={isUpdating}
-              onPress={() => updateStatus(item.id, 'ACCEPTED')}
-            >
-              {isUpdating ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryText}>{t('jobs.accept')}</Text>}
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', width: '100%', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.secondaryBtn, { borderColor: '#EF4444', flex: 1 }]}
+                disabled={isUpdating}
+                onPress={() => confirmStatus(item, 'REJECTED', t('jobs.reject'), t('jobs.rejectConfirm', 'Are you sure you want to decline this booking request?'))}
+              >
+                <Text style={[styles.secondaryText, { color: '#EF4444' }]}>{t('jobs.reject')}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.secondaryBtn, { borderColor: '#8B5CF6', flex: 1 }]}
+                disabled={isUpdating}
+                onPress={() => handleOpenCounterModal(item)}
+              >
+                <Text style={[styles.secondaryText, { color: '#8B5CF6' }]}>{t('jobs.counter', 'Counter')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
+                disabled={isUpdating}
+                onPress={() => updateStatus(item.id, 'ACCEPTED')}
+              >
+                {isUpdating ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryText}>{t('jobs.accept')}</Text>}
+              </TouchableOpacity>
+            </View>
           ) : null}
 
           {status === 'ACCEPTED' ? (
@@ -221,6 +291,69 @@ const BookingsScreen = ({ navigation }) => {
           </View>
         }
       />
+
+      <Modal
+        visible={counterModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setCounterModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('booking.proposeCounter', 'Propose Counter-Offer')}</Text>
+              <TouchableOpacity onPress={() => setCounterModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('booking.proposedBudget', 'Proposed Budget')}</Text>
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                <MaterialCommunityIcons name="cash" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={[styles.textInput, { color: colors.text }]}
+                  keyboardType="numeric"
+                  value={counterBudget}
+                  onChangeText={setCounterBudget}
+                  placeholder="e.g. 15000"
+                  placeholderTextColor={colors.placeholder}
+                />
+              </View>
+
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 16 }]}>{t('booking.explanation', 'Message / Explanation')}</Text>
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.background, minHeight: 80, alignItems: 'flex-start', paddingTop: 8 }]}>
+                <TextInput
+                  style={[styles.textInput, { color: colors.text, height: '100%', textAlignVertical: 'top' }]}
+                  multiline
+                  numberOfLines={3}
+                  value={counterNotes}
+                  onChangeText={setCounterNotes}
+                  placeholder={t('booking.counterNotesPlaceholder', 'Why are you countering? (e.g. materials needed)')}
+                  placeholderTextColor={colors.placeholder}
+                />
+              </View>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={() => setCounterModalVisible(false)}>
+                <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitBtn, { backgroundColor: colors.accent }]}
+                onPress={submitCounterOffer}
+                disabled={submittingCounter}
+              >
+                {submittingCounter ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.submitBtnText}>{t('common.submit', 'Submit')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -256,6 +389,20 @@ const styles = StyleSheet.create({
   primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900', textAlign: 'center' },
   secondaryBtn: { flex: 1, minHeight: 42, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10 },
   secondaryText: { fontSize: 13, fontWeight: '900' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { width: '90%', maxWidth: 400, borderRadius: 12, borderWidth: 1, padding: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  modalTitle: { fontSize: 18, fontWeight: '900' },
+  modalBody: { marginBottom: 20 },
+  inputLabel: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, height: 46 },
+  textInput: { flex: 1, fontSize: 14, fontWeight: '600', padding: 0 },
+  modalFooter: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
+  submitBtn: { minWidth: 100, height: 42, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  submitBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  cancelBtn: { minWidth: 100, height: 42, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  cancelBtnText: { fontSize: 13, fontWeight: '900' },
+  counterDetails: { borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 12 },
   reviewedPill: { flex: 1, minHeight: 42, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10 },
   reviewedText: { color: '#16A34A', fontSize: 13, fontWeight: '900' },
   empty: { alignItems: 'center', paddingTop: 90, paddingHorizontal: 22 },

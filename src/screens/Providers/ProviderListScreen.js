@@ -24,6 +24,51 @@ const isRemoteSkill = (skillName) => {
   return REMOTE_KEYWORDS.some(keyword => s.includes(keyword));
 };
 
+const CATEGORY_KEYWORDS = {
+  'home tutor': ['tutor', 'tutoring', 'teacher', 'teach', 'soutien scolaire', 'cours', 'domicile', 'enseignant', 'prof', 'educat', 'math', 'physic', 'chem', 'english', 'french', 'tutoring'],
+  'plumbing': ['plumb', 'pipe', 'leak', 'water pump', 'borehole', 'drain', 'plombier', 'plomberie', 'tuyau', 'forage', 'pompe'],
+  'electrical': ['electr', 'wire', 'solar', 'inverter', 'light', 'electricien', 'électricité', 'câblage', 'solaire', 'onduleur'],
+  'tricycle': ['tricycle', 'triporteur', 'gambia', 'moto', '3 wheel', 'three wheel'],
+  'cleaning': ['clean', 'sweep', 'broom', 'dust', 'wash', 'laundry', 'nettoy', 'balai', 'lessive', 'ménag', 'propreté', 'vide', 'poubelle', 'trash', 'waste', 'disinfect', 'disinfectant'],
+  'graphic designer': ['graphic', 'design', 'logo', 'illustrat', 'photoshop', 'infograph', 'dessin', 'sketch', 'brand'],
+  'website designer': ['web', 'website', 'developer', 'program', 'code', 'software', 'site', 'logiciel', 'appli', 'frontend', 'backend', 'dev'],
+  'waste removal': ['waste', 'removal', 'trash', 'garbage', 'pest', 'bug', 'insect', 'fumigat', 'déchet', 'poubelle', 'ordure', 'désinfect', 'nuisible', 'rat', 'souris', 'cafard'],
+  'house maid': ['maid', 'nanny', 'sitting', 'sitter', 'baby', 'housekeeper', 'ménagère', 'nounou', 'garde', 'foyer', 'sitting'],
+  'painting': ['paint', 'peint', 'color', 'brush', 'pinceau', 'enduit'],
+  'beauty': ['beauty', 'beauté', 'makeup', 'maquillage', 'hair', 'coiffure', 'barber', 'barb', 'nail', 'ongle', 'massage', 'esthet', 'salon', 'tress', 'wig', 'perruque', 'pédicure', 'manucure'],
+  'carpentry': ['carpent', 'wood', 'furniture', 'cabinet', 'upholster', 'menuis', 'bois', 'meuble', 'placard', 'charpent'],
+  'real estate agent': ['real estate', 'agent', 'house', 'land', 'property', 'rent', 'immob', 'maison', 'terrain', 'location', 'bail'],
+  'moving service': ['move', 'moving', 'truck', 'déménag', 'camion', 'transport', 'towing', 'remorqu'],
+  'delivery service': ['deliver', 'courier', 'driver', 'courier', 'taxi', 'bike', 'motorcycl', 'livrai', 'coursier', 'chauffeur', 'moto'],
+  'child care': ['child', 'baby', 'sitting', 'sitter', 'nanny', 'kid', 'enfant', 'nounou', 'crèche', 'garde'],
+  'elder care': ['elder', 'senior', 'nurse', 'nursing', 'medical', 'patient', 'personne âgée', 'vieux', 'infirm', 'santé'],
+  'home nursing': ['nurse', 'nursing', 'medical', 'care', 'doctor', 'infirm', 'soin', 'médic', 'santé', 'docteur'],
+  'shoe repair': ['shoe', 'cobbler', 'leather', 'cordonnier', 'chaussure', 'cuir'],
+  'ac repair': ['ac ', 'air con', 'climat', 'ac-repair', 'fridge', 'refrigerat', 'frigo'],
+  'appliance repair': ['appliance', 'repair', 'fix', 'machine', 'tv', 'fridge', 'microwave', 'stove', 'generator', 'répar', 'électroménag', 'télé', 'générateur'],
+  'phone repair': ['phone', 'mobile', 'cell', 'repair', 'screen', 'téléphone', 'portable', 'répar', 'écran', 'laptop', 'tablet'],
+  'computer repair': ['computer', 'laptop', 'desktop', 'pc', 'repair', 'software', 'network', 'ordinat', 'portable', 'répar', 'logiciel', 'réseau'],
+  'generator repair': ['generator', 'engine', 'repair', 'fix', 'générateur', 'moteur', 'répar', 'groupe électrogène'],
+  'roof repair': ['roof', 'leak', 'repair', 'toit', 'fuite', 'répar', 'charpente', 'étanchéité'],
+  'masonry': ['mason', 'brick', 'cement', 'concrete', 'stone', 'maçon', 'brique', 'ciment', 'béton', 'pierre'],
+  'tiling': ['tile', 'tiling', 'floor', 'carrel', 'sol'],
+  'welding': ['weld', 'iron', 'metal', 'steel', 'soud', 'fer', 'métal', 'acier'],
+  'pest control': ['pest', 'bug', 'insect', 'rat', 'fumigat', 'nuisible', 'cafard', 'souris'],
+  'laundry service': ['laundry', 'wash', 'clean', 'dry clean', 'cloth', 'ironing', 'lessive', 'lavage', 'repassage', 'pressing', 'vêtement'],
+  'tailoring': ['tailor', 'sew', 'coutur', 'hanger', 'fashion', 'design', 'dress', 'cloth', 'mode', 'styliste', 'vêtement'],
+  'makeup artist': ['makeup', 'maquillage', 'artist', 'visage', 'beauty', 'beauté'],
+  'hair stylist': ['hair', 'coiffure', 'stylist', 'braid', 'salon', 'tress', 'wig', 'perruque', 'cheveux'],
+  'barber': ['barber', 'barb', 'shave', 'coiffeur', 'rasage'],
+  'massage therapy': ['massage', 'therap', 'relax', 'spa', 'masseur'],
+  'fitness trainer': ['fitness', 'train', 'coach', 'gym', 'workout', 'sport', 'muscu'],
+  'event planning': ['event', 'plan', 'organiz', 'wedding', 'party', 'évèn', 'fête', 'mariage', 'anniversaire'],
+  'catering': ['cater', 'food', 'cook', 'chef', 'meal', 'traiteur', 'nourriture', 'cuisine', 'repas'],
+  'photography': ['photograph', 'photo', 'camera', 'shoot'],
+  'videography': ['video', 'film', 'editor', 'movie', 'montage', 'caméra'],
+  'dj service': ['dj', 'music', 'mix', 'disc jockey', 'musique', 'sono'],
+  'decoration': ['decor', 'interior', 'design', 'event', 'party', 'décora', 'intérieur', 'fête', 'salle']
+};
+
 const matchesCategory = (providerSkills, categoryName) => {
   if (!categoryName || categoryName.toLowerCase() === 'all') return true;
   
@@ -36,52 +81,11 @@ const matchesCategory = (providerSkills, categoryName) => {
   ]);
   const skillsString = skillsList.join(' ');
   
-  // 1. Home tutor / tutoring logic
-  if (catLower === 'home tutor' || catLower === 'home tutoring') {
-    return skillsString.includes('tutor') || skillsString.includes('tutoring') || 
-           skillsString.includes('soutien scolaire') || skillsString.includes('cours à domicile');
+  const keywords = CATEGORY_KEYWORDS[catLower];
+  if (keywords) {
+    return keywords.some(keyword => skillsString.includes(keyword));
   }
   
-  // 2. Electrical logic
-  if (catLower === 'electrical') {
-    return skillsString.includes('electr') || skillsString.includes('électricité') || skillsString.includes('solar');
-  }
-  
-  // 3. Beauty logic
-  if (catLower === 'beauty') {
-    return skillsString.includes('beauty') || skillsString.includes('beauté') || 
-           skillsString.includes('makeup') || skillsString.includes('maquillage') || 
-           skillsString.includes('hair') || skillsString.includes('coiffure') || 
-           skillsString.includes('barber') || skillsString.includes('barbing') || 
-           skillsString.includes('ongles') || skillsString.includes('nail') || 
-           skillsString.includes('massage') || skillsString.includes('esthet');
-  }
-  
-  // 4. Tailoring / Tailor / Designer
-  if (catLower === 'tailoring') {
-    return skillsString.includes('tailor') || skillsString.includes('couture') || 
-           skillsString.includes('fashion') || skillsString.includes('mode') || 
-           skillsString.includes('design');
-  }
-
-  // 5. Appliance repair
-  if (catLower === 'appliance repair') {
-    return skillsString.includes('appliance') || skillsString.includes('repair') || 
-           skillsString.includes('réparation') || skillsString.includes('machine') || 
-           skillsString.includes('fridge') || skillsString.includes('frigo') || 
-           skillsString.includes('tv') || skillsString.includes('generator') || 
-           skillsString.includes('générateur');
-  }
-
-  // 6. Computer repair
-  if (catLower === 'computer repair') {
-    return skillsString.includes('computer') || skillsString.includes('laptop') || 
-           skillsString.includes('ordinate') || skillsString.includes('repair') || 
-           skillsString.includes('network') || skillsString.includes('réseau') || 
-           skillsString.includes('software') || skillsString.includes('logiciel');
-  }
-  
-  // 7. General search fallback
   return skillsString.includes(catLower);
 };
 

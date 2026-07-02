@@ -5,12 +5,17 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { COUNTRY_DATA, detectCountryFromPhone } from '../../constants/countries';
 
 const TopUpSuccessScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
   const { user } = useAuth();
   const { package: pkg } = route.params || {};
   const isProvider = user?.role?.toUpperCase() === 'PROVIDER';
+
+  const userCountry = user?.country || detectCountryFromPhone(user?.phone) || 'Cameroon';
+  const countryConfig = COUNTRY_DATA[userCountry] || COUNTRY_DATA.Cameroon;
+  const currency = countryConfig.currency;
   
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -64,7 +69,7 @@ const TopUpSuccessScreen = ({ navigation, route }) => {
 
               <View style={styles.receiptRow}>
                 <Text style={[styles.receiptLabel, { color: colors.textSecondary }]}>Amount Paid</Text>
-                <Text style={[styles.receiptValue, { color: colors.text }]}>{pkg?.price} FCFA</Text>
+                <Text style={[styles.receiptValue, { color: colors.text }]}>{pkg?.price} {currency}</Text>
               </View>
 
               <View style={styles.receiptRow}>

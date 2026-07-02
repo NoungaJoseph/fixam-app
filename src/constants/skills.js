@@ -25,7 +25,7 @@ export const ALL_SKILLS = [
   
   // Transport & Delivery
   'Moving Service', 'Delivery Driver', 'Courier', 'Truck Driver', 'Taxi Driver', 'Mechanic', 'Auto Electrician',
-  'Car Wash', 'Towing Service', 'Bicycle Repair',
+  'Car Wash', 'Towing Service', 'Bicycle Repair', 'Tricycle',
   
   // Education & Professional
   'Tutor', 'Language Teacher', 'Music Teacher', 'Accounting', 'Legal Advice', 'Translation', 'Writing',
@@ -40,7 +40,7 @@ export const LOCAL_SKILLS = [
   'Septic tank service', 'Car wash', 'Auto mechanic', 'Auto electrician', 'Panel beating', 'Car painting', 'Tyre service', 'Battery service', 'Motorcycle repair', 'Tricycle repair',
   'Phone repair', 'Laptop repair', 'Printer repair', 'Network setup', 'Software installation', 'Data recovery', 'Graphic design', 'Web design', 'Social media management', 'Photography',
   'Videography', 'Video editing', 'Event decoration', 'Catering', 'Cake baking', 'Hair styling', 'Barbing', 'Makeup artistry', 'Tailoring', 'Fashion design',
-  'Shoe repair', 'Bag repair', 'Security guard', 'Private driver', 'Delivery service', 'Moving service', 'Errand service', 'Home nursing', 'Child care', 'Elder care',
+  'Shoe repair', 'Bag repair', 'Security guard', 'Private driver', 'Delivery service', 'Moving service', 'Errand service', 'Home nursing', 'Child care', 'Elder care', 'Tricycle',
   'Fitness training', 'Music lessons', 'Math tutoring', 'English tutoring', 'French tutoring', 'Computer tutoring', 'CV writing', 'Translation', 'Legal documentation', 'Accounting',
   'Bookkeeping', 'Tax filing', 'Real estate agent', 'Property inspection', 'Interior decoration', 'Appliance installation', 'Cooker repair', 'Microwave repair', 'TV repair', 'Sound system repair',
   'Gate automation', 'Fence installation', 'Floor polishing', 'Wallpaper installation', 'Curtain installation', 'Blinds installation', 'Locksmith', 'Key cutting', 'Signage', 'Printing'

@@ -9,22 +9,105 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-
-const PACKAGES = [
-  { id: 'p1', coins: 10, price: '5,000 FCFA', label: 'Starter', popular: false, bonus: 0 },
-  { id: 'p2', coins: 20, price: '10,000 FCFA', label: 'Standard', popular: true, bonus: 2 },
-  { id: 'p3', coins: 30, price: '15,000 FCFA', label: 'Popular', popular: false, bonus: 3 },
-  { id: 'p4', coins: 40, price: '20,000 FCFA', label: 'Growth', popular: false, bonus: 4 },
-  { id: 'p5', coins: 50, price: '25,000 FCFA', label: 'Premium', popular: false, bonus: 5 },
-];
+import { COUNTRY_DATA, detectCountryFromPhone } from '../../constants/countries';
 
 const TopUpScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { walletBalance, transactions } = useAppContext();
   const { user } = useAuth();
   const { t } = useLanguage();
+
+  const userCountry = user?.country || detectCountryFromPhone(user?.phone) || 'Cameroon';
+  const countryConfig = COUNTRY_DATA[userCountry] || COUNTRY_DATA.Cameroon;
+  const currency = countryConfig.currency;
+
+  console.log('[TopUpScreen] User profile info:', {
+    phone: user?.phone,
+    countryField: user?.country,
+    detectedCountry: userCountry
+  });
+
+  const PACKAGES = [
+    { id: 'p1', coins: 10, price: `${(countryConfig.coinPrices.p1).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p1, label: 'Starter', popular: false, bonus: 0 },
+    { id: 'p2', coins: 20, price: `${(countryConfig.coinPrices.p2).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p2, label: 'Standard', popular: true, bonus: 2 },
+    { id: 'p3', coins: 30, price: `${(countryConfig.coinPrices.p3).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p3, label: 'Popular', popular: false, bonus: 3 },
+    { id: 'p4', coins: 40, price: `${(countryConfig.coinPrices.p4).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p4, label: 'Growth', popular: false, bonus: 4 },
+    { id: 'p5', coins: 50, price: `${(countryConfig.coinPrices.p5).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p5, label: 'Premium', popular: false, bonus: 5 },
+  ];
+
   const [selectedPkg, setSelectedPkg] = useState('p2');
   const [isNavigating, setIsNavigating] = useState(false);
+
+  const renderNetworkBadge = (methodId) => {
+    switch (methodId) {
+      case 'mtn':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#FFCC00', borderColor: '#000' }]}>
+            <Text style={[styles.badgeText1, { color: '#000' }]}>MTN</Text>
+            <Text style={[styles.badgeText2, { color: '#0066CC', fontStyle: 'italic' }]}>momo</Text>
+          </View>
+        );
+      case 'orange':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#F16E00', borderRadius: 4, borderColor: '#F16E00' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF' }]}>orange</Text>
+            <Text style={[styles.badgeText2, { color: '#FFF', textTransform: 'uppercase', fontSize: 5 }]}>money</Text>
+          </View>
+        );
+      case 'mpesa':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#22C55E', borderColor: '#22C55E' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 8 }]}>m-pesa</Text>
+          </View>
+        );
+      case 'vodafone':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#E11D48', borderColor: '#E11D48' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 8 }]}>voda</Text>
+            <Text style={[styles.badgeText2, { color: '#FFF', fontSize: 6 }]}>cash</Text>
+          </View>
+        );
+      case 'airtel':
+      case 'airteltigo':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#E11D48', borderColor: '#E11D48' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 8 }]}>airtel</Text>
+            <Text style={[styles.badgeText2, { color: '#FFF', fontSize: 6 }]}>money</Text>
+          </View>
+        );
+      case 'moov':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#0066CC', borderColor: '#0066CC' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 9 }]}>moov</Text>
+          </View>
+        );
+      case 'wave':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#0EA5E9', borderColor: '#0EA5E9' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 9 }]}>wave</Text>
+          </View>
+        );
+      case 'tigo':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#1E3A8A', borderColor: '#1E3A8A' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 8 }]}>tigo</Text>
+            <Text style={[styles.badgeText2, { color: '#FFF', fontSize: 6 }]}>pesa</Text>
+          </View>
+        );
+      case 'etisalat':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#059669', borderColor: '#059669' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 7 }]}>etisalat</Text>
+          </View>
+        );
+      default:
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#94A3B8', borderColor: '#94A3B8' }]}>
+            <MaterialCommunityIcons name="cellphone-wireless" size={16} color="#FFF" />
+          </View>
+        );
+    }
+  };
 
   const handleContinue = () => {
     if (isNavigating) return;
@@ -122,7 +205,7 @@ const TopUpScreen = ({ navigation }) => {
             {PACKAGES.map((pkg) => {
               const isSelected = selectedPkg === pkg.id;
               const badgeColors = getPackageBadgeColors(pkg.label);
-              const cleanPrice = pkg.price.replace(' FCFA', '');
+              const cleanPrice = pkg.rawPrice.toLocaleString();
 
               return (
                 <TouchableOpacity
@@ -188,7 +271,7 @@ const TopUpScreen = ({ navigation }) => {
                         {cleanPrice}
                       </Text>
                       <Text style={[styles.priceUnit, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>
-                        {" "}FCFA
+                        {" "}{currency}
                       </Text>
                     </View>
 
@@ -245,21 +328,12 @@ const TopUpScreen = ({ navigation }) => {
           {/* Payment providers footer logo card */}
           <View style={[styles.logoCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#F1F5F9', marginBottom: 28 }]}>
             <View style={styles.logoRow}>
-              <View style={styles.badgeWrapper}>
-                <View style={styles.mtnBadge}>
-                  <Text style={styles.mtnText1}>MTN</Text>
-                  <Text style={styles.mtnText2}>momo</Text>
+              {countryConfig.paymentMethods.filter(m => m.type === 'momo').slice(0, 3).map((method) => (
+                <View key={method.id} style={styles.badgeWrapper}>
+                  {renderNetworkBadge(method.id)}
+                  <Text style={[styles.badgeLabel, { color: isDarkMode ? '#FFF' : '#0F172A', textAlign: 'center', marginTop: 4 }]} numberOfLines={2}>{method.name}</Text>
                 </View>
-                <Text style={[styles.badgeLabel, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>MTN MoMo</Text>
-              </View>
-              
-              <View style={styles.badgeWrapper}>
-                <View style={styles.orangeBadge}>
-                  <Text style={styles.orangeText1}>orange</Text>
-                  <Text style={styles.orangeText2}>money</Text>
-                </View>
-                <Text style={[styles.badgeLabel, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>Orange Money</Text>
-              </View>
+              ))}
             </View>
           </View>
 
@@ -623,58 +697,35 @@ const styles = StyleSheet.create({
   },
   logoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
+    alignItems: 'flex-start',
+    justifyContent: 'space-evenly',
+    width: '100%',
   },
   badgeWrapper: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 6,
+    minWidth: 70,
+    maxWidth: 100,
   },
-  mtnBadge: {
+  momoBadge: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FFCC00',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: 'rgba(0,0,0,0.08)',
   },
-  mtnText1: {
+  badgeText1: {
     fontSize: 8,
     fontWeight: '900',
-    color: '#000',
     lineHeight: 8,
   },
-  mtnText2: {
+  badgeText2: {
     fontSize: 6,
     fontWeight: '900',
-    color: '#0066CC',
     lineHeight: 7,
-    fontStyle: 'italic',
-  },
-  orangeBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: '#F16E00',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orangeText1: {
-    fontSize: 6,
-    fontWeight: '800',
-    color: '#FFF',
-    lineHeight: 7,
-  },
-  orangeText2: {
-    fontSize: 5,
-    fontWeight: '800',
-    color: '#FFF',
-    lineHeight: 6,
-    textTransform: 'uppercase',
   },
   badgeLabel: {
     fontSize: 11,

@@ -12,6 +12,7 @@ import { translateService } from '../../i18n/translate';
 import i18n from '../../i18n';
 import UserAvatar from '../../components/UserAvatar';
 import api, { getMediaUrl } from '../../services/api';
+import { SUPPORTED_COUNTRIES } from '../../constants/countries';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, updateProfile, uploadFile, refreshUser } = useAuth();
@@ -36,6 +37,7 @@ const DashboardScreen = ({ navigation }) => {
     fullName: user?.fullName || '',
     email: user?.email || '',
     phone: user?.phone || '',
+    country: user?.country || 'Cameroon',
     bio: user?.providerProfile?.bio || '',
     skills: user?.providerProfile?.skills || [],
     rate: user?.providerProfile?.rate?.toString() || '',
@@ -102,6 +104,7 @@ const DashboardScreen = ({ navigation }) => {
         fullName: user.fullName || '',
         email: user.email || '',
         phone: user.phone || '',
+        country: user.country || 'Cameroon',
         bio: user.providerProfile?.bio || '',
         skills: user.providerProfile?.skills || [],
         rate: user.providerProfile?.rate?.toString() || '',
@@ -382,6 +385,9 @@ const DashboardScreen = ({ navigation }) => {
                 <Text style={[styles.freelancerName, { color: colors.text }]}>{user?.fullName || t('settings.yourName')}</Text>
               </View>
               <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user.providerProfile?.serviceArea || t('profileDetail.serviceAreaNotSet')}</Text>
+              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>
+                <MaterialCommunityIcons name="earth" size={12} color={colors.textSecondary} /> {user?.country || 'Cameroon'}
+              </Text>
               <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{t('profileDetail.localTimeAvailable')}</Text>
             </View>
             <TouchableOpacity onPress={async () => {
@@ -671,6 +677,10 @@ const DashboardScreen = ({ navigation }) => {
               <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('profileDetail.email')}</Text>
               <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.email || t('profileDetail.notAdded')}</Text>
             </View>
+            <View style={styles.profileLineItem}>
+              <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('register.country') || 'Country'}</Text>
+              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.country || 'Cameroon'}</Text>
+            </View>
           </Section>
 
           <Section colors={colors} title={t('profileDetail.postedTasks')}>
@@ -853,6 +863,7 @@ const DashboardScreen = ({ navigation }) => {
           </View>
 
           <ProfileField label={t('profileDetail.phone')} value={form.phone} editable={false} style={[inputStyle, { opacity: 0.5 }]} colors={colors} />
+          <ProfileField label={t('register.country') || 'Country'} value={form.country} editable={false} style={[inputStyle, { opacity: 0.5 }]} colors={colors} />
 
           {user?.role === 'PROVIDER' && (
             <>

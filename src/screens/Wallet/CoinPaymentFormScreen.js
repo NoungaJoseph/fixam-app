@@ -9,10 +9,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 import { validatePhoneForProvider, getNetworkFromPhone } from '../../utils/phoneValidation';
 
-const PAYMENT_METHODS = [
-  { id: 'MTN', label: 'MTN MoMo', color: '#FFCC00', textColor: '#111827', icon: 'cellphone-wireless' },
-  { id: 'ORANGE', label: 'Orange Money', color: '#F16E00', textColor: '#FFFFFF', icon: 'cellphone-check' },
-];
+import { COUNTRY_DATA, detectCountryFromPhone } from '../../constants/countries';
 
 const CoinPaymentFormScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
@@ -21,8 +18,27 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
   const { t } = useLanguage();
   const { package: pkg } = route.params || {};
 
+  const userCountry = user?.country || detectCountryFromPhone(user?.phone) || 'Cameroon';
+  const countryConfig = COUNTRY_DATA[userCountry] || COUNTRY_DATA.Cameroon;
+
+  console.log('[CoinPaymentFormScreen] User profile info:', {
+    phone: user?.phone,
+    countryField: user?.country,
+    detectedCountry: userCountry
+  });
+
+  const PAYMENT_METHODS = countryConfig.paymentMethods
+    .filter(m => m.type === 'momo')
+    .map(m => ({
+      id: m.methodKey,
+      label: m.name,
+      color: m.id === 'mtn' ? '#FFCC00' : m.id === 'orange' ? '#F16E00' : m.id === 'mpesa' ? '#22C55E' : '#0D9488',
+      textColor: m.id === 'mtn' ? '#111827' : '#FFFFFF',
+      icon: 'cellphone-wireless',
+    }));
+
   const [paymentId, setPaymentId] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState('MTN');
+  const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0]?.id || 'MTN_MOMO');
   const [formData, setFormData] = useState({
     phone: user?.phone || ''
   });
@@ -30,6 +46,77 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
   const [paymentStatus, setPaymentStatus] = useState('IDLE');
   const [phoneError, setPhoneError] = useState(null);
   const [networkDetected, setNetworkDetected] = useState(null);
+
+  const renderNetworkBadge = (methodId) => {
+    switch (methodId) {
+      case 'mtn':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#FFCC00', borderColor: '#000' }]}>
+            <Text style={[styles.badgeText1, { color: '#000' }]}>MTN</Text>
+            <Text style={[styles.badgeText2, { color: '#0066CC', fontStyle: 'italic' }]}>momo</Text>
+          </View>
+        );
+      case 'orange':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#F16E00', borderRadius: 4, borderColor: '#F16E00' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF' }]}>orange</Text>
+            <Text style={[styles.badgeText2, { color: '#FFF', textTransform: 'uppercase', fontSize: 5 }]}>money</Text>
+          </View>
+        );
+      case 'mpesa':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#22C55E', borderColor: '#22C55E' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 8 }]}>m-pesa</Text>
+          </View>
+        );
+      case 'vodafone':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#E11D48', borderColor: '#E11D48' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 8 }]}>voda</Text>
+            <Text style={[styles.badgeText2, { color: '#FFF', fontSize: 6 }]}>cash</Text>
+          </View>
+        );
+      case 'airtel':
+      case 'airteltigo':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#E11D48', borderColor: '#E11D48' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 8 }]}>airtel</Text>
+            <Text style={[styles.badgeText2, { color: '#FFF', fontSize: 6 }]}>money</Text>
+          </View>
+        );
+      case 'moov':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#0066CC', borderColor: '#0066CC' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 9 }]}>moov</Text>
+          </View>
+        );
+      case 'wave':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#0EA5E9', borderColor: '#0EA5E9' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 9 }]}>wave</Text>
+          </View>
+        );
+      case 'tigo':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#1E3A8A', borderColor: '#1E3A8A' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 8 }]}>tigo</Text>
+            <Text style={[styles.badgeText2, { color: '#FFF', fontSize: 6 }]}>pesa</Text>
+          </View>
+        );
+      case 'etisalat':
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#059669', borderColor: '#059669' }]}>
+            <Text style={[styles.badgeText1, { color: '#FFF', fontSize: 7 }]}>etisalat</Text>
+          </View>
+        );
+      default:
+        return (
+          <View style={[styles.momoBadge, { backgroundColor: '#94A3B8', borderColor: '#94A3B8' }]}>
+            <MaterialCommunityIcons name="cellphone-wireless" size={16} color="#FFF" />
+          </View>
+        );
+    }
+  };
   const timeoutRef = useRef(null);
 
   useEffect(() => {
@@ -112,15 +199,17 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
     setFormData({ ...formData, phone: text });
     setPhoneError(null);
 
-    const cleaned = text.replace(/[\s\-]/g, '').replace(/^\+?237/, '');
-    if (cleaned.length >= 3) {
-      const detected = getNetworkFromPhone(text);
-      setNetworkDetected(detected);
-      if (detected && detected !== 'UNKNOWN') {
-        setSelectedMethod(detected);
+    if (userCountry === 'Cameroon') {
+      const cleaned = text.replace(/[\s\-]/g, '').replace(/^\+?237/, '');
+      if (cleaned.length >= 3) {
+        const detected = getNetworkFromPhone(text);
+        setNetworkDetected(detected);
+        if (detected && detected !== 'UNKNOWN') {
+          setSelectedMethod(detected === 'MTN' ? 'MTN_MOMO' : 'ORANGE_MONEY');
+        }
+      } else {
+        setNetworkDetected(null);
       }
-    } else {
-      setNetworkDetected(null);
     }
   };
 
@@ -128,13 +217,16 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
     setSelectedMethod(newMethod);
     setPhoneError(null);
 
-    const cleaned = formData.phone.replace(/[\s\-]/g, '').replace(/^\+?237/, '');
-    if (cleaned.length >= 9) {
-      const validation = validatePhoneForProvider(formData.phone, newMethod);
-      if (!validation.valid) {
-        setFormData({ ...formData, phone: '' });
-        setNetworkDetected(null);
-        setPhoneError(t(validation.error));
+    if (userCountry === 'Cameroon') {
+      const provider = newMethod === 'MTN_MOMO' ? 'MTN' : 'ORANGE';
+      const cleaned = formData.phone.replace(/[\s\-]/g, '').replace(/^\+?237/, '');
+      if (cleaned.length >= 9) {
+        const validation = validatePhoneForProvider(formData.phone, provider);
+        if (!validation.valid) {
+          setFormData({ ...formData, phone: '' });
+          setNetworkDetected(null);
+          setPhoneError(t(validation.error));
+        }
       }
     }
   };
@@ -147,10 +239,18 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
     }
 
     // Validate phone matches selected provider
-    const validation = validatePhoneForProvider(formData.phone, selectedMethod);
-    if (!validation.valid) {
-      setPhoneError(t(validation.error));
-      return;
+    if (userCountry === 'Cameroon') {
+      const provider = selectedMethod === 'MTN_MOMO' ? 'MTN' : 'ORANGE';
+      const validation = validatePhoneForProvider(formData.phone, provider);
+      if (!validation.valid) {
+        setPhoneError(t(validation.error));
+        return;
+      }
+    } else {
+      if (!countryConfig.regex.test(formData.phone.replace(/\D/g, ''))) {
+        setPhoneError(`Invalid number. Format matches: ${countryConfig.placeholder}`);
+        return;
+      }
     }
     try {
       setLoading(true);
@@ -254,14 +354,14 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
               <Text style={[styles.label, { color: colors.text }]}>{t('payments.phoneNumber')}</Text>
               <TextInput
                 style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                placeholder="+237 6XXXXXXXX"
+                placeholder={`${countryConfig.flag} ${countryConfig.dialCode} ${countryConfig.placeholder}`}
                 placeholderTextColor={colors.placeholder}
                 value={formData.phone}
                 onChangeText={handlePhoneChange}
                 keyboardType="phone-pad"
               />
               {/* Network detection badge */}
-              {formData.phone.replace(/[\s\-]/g, '').replace(/^\+?237/, '').length >= 3 && networkDetected && (
+              {userCountry === 'Cameroon' && formData.phone.replace(/[\s\-]/g, '').replace(/^\+?237/, '').length >= 3 && networkDetected && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                   <View style={{
                     backgroundColor: networkDetected === 'MTN' ? '#FFCC00' : networkDetected === 'ORANGE' ? '#F16E00' : '#94A3B8',
@@ -305,8 +405,8 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
                       }
                     ]}
                   >
-                    <View style={[styles.methodLogo, { backgroundColor: method.color }]}>
-                      <MaterialCommunityIcons name={method.icon} size={20} color={method.textColor} />
+                    <View style={{ marginRight: 4 }}>
+                      {renderNetworkBadge(method.id.toLowerCase().replace('_momo', '').replace('_money', '').replace('_cash', '').replace('_pesa', '').replace('airteltigo', 'airtel'))}
                     </View>
                     <Text style={[styles.methodText, { color: colors.text }]}>{method.label}</Text>
                     {active ? <MaterialCommunityIcons name="check-circle" size={18} color={colors.accent} /> : null}
@@ -370,7 +470,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
             ) : (
               <>
                 <MaterialCommunityIcons name="check-circle" size={20} color="#FFF" />
-                <Text style={styles.submitText}>{t('payments.payWith', { price: pkg.price, method: selectedMethod === 'MTN' ? 'MTN MoMo' : 'Orange Money' })}</Text>
+                <Text style={styles.submitText}>{`Confirm & Pay ${pkg.price}`}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -554,6 +654,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  momoBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+  },
+  badgeText1: {
+    fontSize: 8,
+    fontWeight: '900',
+    lineHeight: 8,
+  },
+  badgeText2: {
+    fontSize: 6,
+    fontWeight: '900',
+    lineHeight: 7,
   },
   methodText: {
     flex: 1,

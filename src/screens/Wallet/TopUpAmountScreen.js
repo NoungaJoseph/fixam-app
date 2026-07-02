@@ -5,13 +5,19 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import { COUNTRY_DATA, detectCountryFromPhone } from '../../constants/countries';
 
 const TopUpAmountScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [amount, setAmount] = useState('');
 
-  const COIN_PRICE = 500; // 1 coin = 500 FCFA
+  const userCountry = user?.country || detectCountryFromPhone(user?.phone) || 'Cameroon';
+  const countryConfig = COUNTRY_DATA[userCountry] || COUNTRY_DATA.Cameroon;
+  const currency = countryConfig.currency;
+  const COIN_PRICE = countryConfig.coinPrices.p1 / 10; // price per coin derived from package 1
 
   const handleContinue = () => {
     const numAmount = parseInt(amount);
@@ -55,7 +61,7 @@ const TopUpAmountScreen = ({ navigation }) => {
             </Text>
 
             <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.currencyPrefix, { color: colors.textSecondary }]}>FCFA</Text>
+              <Text style={[styles.currencyPrefix, { color: colors.textSecondary }]}>{currency}</Text>
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={amount}

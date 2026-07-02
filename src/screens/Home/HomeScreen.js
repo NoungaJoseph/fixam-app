@@ -255,7 +255,7 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.nameText}>{firstName}</Text>
             <View style={styles.locationRow}>
               <MaterialCommunityIcons name="map-marker" size={14} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.locationText}>{t('home.locationDefault')}</Text>
+              <Text style={styles.locationText}>{user?.location || t('home.locationDefault')}</Text>
               <MaterialCommunityIcons name="chevron-down" size={16} color="rgba(255,255,255,0.8)" />
             </View>
           </View>

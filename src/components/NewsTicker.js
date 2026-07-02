@@ -4,12 +4,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
 const NewsTicker = () => {
   const { colors, isDarkMode } = useTheme();
   const { language, t } = useLanguage();
+  const { user } = useAuth();
   
   const [tickerItems, setTickerItems] = useState([{
     isNews: false,
@@ -25,7 +27,8 @@ const NewsTicker = () => {
     
     const fetchTicker = async () => {
       try {
-        const res = await api.get(`/sports/ticker?lang=${language}`);
+        const country = user?.country || 'Cameroon';
+        const res = await api.get(`/sports/ticker?lang=${language}&country=${country}`);
         if (isMounted && res.data?.data?.items) {
           const items = res.data.data.items;
           if (items.length === 0) {

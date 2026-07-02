@@ -4,31 +4,69 @@ import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Image,
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { COUNTRY_DATA, detectCountryFromPhone } from '../../constants/countries';
 import api from '../../services/api';
-
-const METHODS = [
-  { id: 'mtn', name: 'MTN Mobile Money', icon: 'https://seeklogo.com/images/M/mtn-logo-40644FC8B0-seeklogo.com.png', type: 'momo' },
-  { id: 'orange', name: 'Orange Money', icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Orange_logo.svg/1200px-Orange_logo.svg.png', type: 'momo' },
-  { id: 'card', name: 'Credit/Debit Card', icon: 'credit-card-outline', type: 'card' },
-];
 
 const TopUpPaymentScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
+  const { user } = useAuth();
   const { package: pkg } = route.params || {};
-  const [selectedMethod, setSelectedMethod] = useState('mtn');
-  const [phone, setPhone] = useState('670671249');
+
+  const userCountry = user?.country || detectCountryFromPhone(user?.phone) || 'Cameroon';
+  const countryConfig = COUNTRY_DATA[userCountry] || COUNTRY_DATA.Cameroon;
+  const methods = countryConfig.paymentMethods || [];
+
+  console.log('[TopUpPaymentScreen] User profile info:', {
+    phone: user?.phone,
+    countryField: user?.country,
+    detectedCountry: userCountry
+  });
+
+  const [selectedMethod, setSelectedMethod] = useState(methods[0]?.id || 'mtn');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const activeMethod = methods.find(m => m.id === selectedMethod) || methods[0];
+
+  const renderNetworkBadge = (methodId) => {
+    const badges = {
+      mtn: { bg: '#FFCC00', border: '#000', t1: 'MTN', t1c: '#000', t2: 'momo', t2c: '#0066CC', italic: true },
+      orange: { bg: '#F16E00', border: '#F16E00', t1: 'orange', t1c: '#FFF', t2: 'money', t2c: '#FFF', radius: 4 },
+      mpesa: { bg: '#22C55E', border: '#22C55E', t1: 'm-pesa', t1c: '#FFF' },
+      vodafone: { bg: '#E11D48', border: '#E11D48', t1: 'voda', t1c: '#FFF', t2: 'cash', t2c: '#FFF' },
+      airtel: { bg: '#E11D48', border: '#E11D48', t1: 'airtel', t1c: '#FFF', t2: 'money', t2c: '#FFF' },
+      airteltigo: { bg: '#E11D48', border: '#E11D48', t1: 'airtel', t1c: '#FFF', t2: 'tigo', t2c: '#FFF' },
+      moov: { bg: '#0066CC', border: '#0066CC', t1: 'moov', t1c: '#FFF' },
+      wave: { bg: '#0EA5E9', border: '#0EA5E9', t1: 'wave', t1c: '#FFF' },
+      tigo: { bg: '#1E3A8A', border: '#1E3A8A', t1: 'tigo', t1c: '#FFF', t2: 'pesa', t2c: '#FFF' },
+      etisalat: { bg: '#059669', border: '#059669', t1: 'etisalat', t1c: '#FFF' },
+    };
+    const b = badges[methodId];
+    if (!b) return <MaterialCommunityIcons name="cellphone-wireless" size={24} color={colors.primary} />;
+    return (
+      <View style={{ width: 32, height: 32, borderRadius: b.radius || 16, backgroundColor: b.bg, borderWidth: 1, borderColor: b.border, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 8, fontWeight: '900', color: b.t1c, lineHeight: 9, fontStyle: b.italic ? 'italic' : 'normal' }}>{b.t1}</Text>
+        {b.t2 && <Text style={{ fontSize: 5, fontWeight: '900', color: b.t2c, lineHeight: 6 }}>{b.t2}</Text>}
+      </View>
+    );
+  };
+
   const handlePay = () => {
-    if ((selectedMethod === 'mtn' || selectedMethod === 'orange') && !phone) {
+    if (activeMethod?.type === 'momo' && !phone) {
       Alert.alert('Phone Required', 'Please enter your mobile money phone number.');
+      return;
+    }
+
+    if (activeMethod?.type === 'momo' && !countryConfig.regex.test(phone)) {
+      Alert.alert('Invalid Number', `Please enter a valid phone number matching format: ${countryConfig.placeholder}`);
       return;
     }
     
     // Simulate payment flow
     Alert.alert(
       'Confirm Payment',
-      `You are about to pay ${pkg?.price} FCFA for ${pkg?.coins} coins via ${METHODS.find(m => m.id === selectedMethod)?.name}.`,
+      `You are about to pay ${pkg?.price} ${countryConfig.currency} for ${pkg?.coins} coins via ${activeMethod?.name}.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -39,7 +77,7 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
               const res = await api.post('/wallet/topup', {
                 coins: pkg?.coins || 0,
                 reference: `FIX-${Date.now()}`,
-                paymentMethod: METHODS.find(m => m.id === selectedMethod)?.name,
+                paymentMethod: activeMethod?.methodKey,
                 phone,
               });
               navigation.navigate('TopUpSuccess', { package: pkg, transaction: res.data.data });
@@ -56,7 +94,6 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>
-      
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -86,13 +123,13 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryRow}>
               <Text style={[styles.totalLabel, { color: colors.text }]}>Total Price</Text>
-              <Text style={[styles.totalValue, { color: colors.accent }]}>{pkg?.price} FCFA</Text>
+              <Text style={[styles.totalValue, { color: colors.accent }]}>{pkg?.price} {countryConfig.currency}</Text>
             </View>
           </View>
 
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Select Payment Method</Text>
 
-          {METHODS.map((method) => {
+          {methods.map((method) => {
             const isSelected = selectedMethod === method.id;
             return (
               <TouchableOpacity
@@ -109,7 +146,7 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
               >
                 <View style={[styles.methodIconWrap, { backgroundColor: isDarkMode ? colors.surface : '#F8FAFC' }]}>
                   {method.type === 'momo' ? (
-                    <Image source={{ uri: method.icon }} style={styles.momoIcon} />
+                    renderNetworkBadge(method.id)
                   ) : (
                     <MaterialCommunityIcons name={method.icon} size={26} color={colors.primary} />
                   )}
@@ -123,21 +160,22 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
           })}
 
           {/* Momo Phone Input */}
-          {(selectedMethod === 'mtn' || selectedMethod === 'orange') && (
+          {activeMethod?.type === 'momo' && (
             <View style={styles.phoneSection}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>MOBILE MONEY NUMBER</Text>
               <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.countryCode}>
-                  <Text style={[styles.countryText, { color: colors.text }]}>🇨🇲 +237</Text>
+                  <Text style={[styles.countryText, { color: colors.text }]}>{countryConfig.flag} {countryConfig.dialCode}</Text>
                   <View style={[styles.vDivider, { backgroundColor: colors.border }]} />
                 </View>
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   value={phone}
-                  onChangeText={setPhone}
-                  placeholder="6xx xxx xxx"
+                  onChangeText={(val) => setPhone(val.replace(/\D/g, '').slice(0, countryConfig.phoneLength))}
+                  placeholder={countryConfig.placeholder}
                   placeholderTextColor={colors.placeholder}
                   keyboardType="phone-pad"
+                  maxLength={countryConfig.phoneLength}
                 />
               </View>
               <Text style={[styles.inputHint, { color: colors.textSecondary }]}>
@@ -151,7 +189,7 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
             onPress={handlePay}
           >
             <MaterialCommunityIcons name="lock-outline" size={20} color="#FFF" />
-            <Text style={styles.payBtnText}>{loading ? 'Submitting...' : `Confirm & Pay ${pkg?.price} FCFA`}</Text>
+            <Text style={styles.payBtnText}>{loading ? 'Submitting...' : `Confirm & Pay ${pkg?.price} ${countryConfig.currency}`}</Text>
           </TouchableOpacity>
 
           <View style={styles.secureBadge}>

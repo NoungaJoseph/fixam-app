@@ -4,7 +4,7 @@ export const POPULAR_SERVICE_CATALOG = [
   { name: 'Home tutor', group: 'Professional', icon: 'school-outline', imageName: 'tutor.jpg', colors: ['#0E7490', '#67E8F9'] },
   { name: 'Plumbing', group: 'Home', icon: 'pipe-wrench', imageName: 'plumbing.jpg', colors: ['#2563EB', '#38BDF8'] },
   { name: 'Electrical', group: 'Home', icon: 'lightning-bolt', imageName: 'electrical.jpg', colors: ['#F59E0B', '#FCD34D'] },
-  { name: 'Handyman', group: 'Home', icon: 'hammer-screwdriver', imageName: 'carpentry.jpg', colors: ['#92400E', '#F59E0B'] },
+  { name: 'Tricycle', group: 'Logistics', icon: 'moped', imageName: 'tricycle.webp', colors: ['#0D9488', '#14B8A6'] },
   { name: 'Cleaning', group: 'Home', icon: 'broom', imageName: 'cleaning.jpg', colors: ['#0D9488', '#34D399'] },
   { name: 'Graphic Designer', group: 'Professional', icon: 'palette', imageName: 'graphic designer.png', colors: ['#DB2777', '#FB7185'] },
   { name: 'Website Designer', group: 'Professional', icon: 'web', imageName: 'website designer.png', colors: ['#3B82F6', '#93C5FD'] },
@@ -74,6 +74,7 @@ export const POPULAR_SERVICE_CATALOG = [
 ];
 
 export const POPULAR_SERVICE_IMAGES = {
+  'tricycle.webp': require('../../assets/popular-services/tricycle.webp'),
   'graphic designer.png': require('../../assets/promo image/graphic designer.png'),
   'website designer.png': require('../../assets/promo image/website designer.png'),
   'seo.png': require('../../assets/promo image/seo.png'),

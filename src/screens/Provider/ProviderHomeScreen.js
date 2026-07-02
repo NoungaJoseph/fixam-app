@@ -440,7 +440,7 @@ const ProviderHomeScreen = ({ navigation }) => {
           style={{ flexGrow: 0, marginBottom: 16 }}
         >
           <TouchableOpacity style={[styles.subPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.subPillText, { color: colors.text }]}>📍 Douala, Cameroon</Text>
+            <Text style={[styles.subPillText, { color: colors.text }]}>📍 {user?.location || t('home.locationDefault') || 'Douala, Cameroon'}</Text>
             <MaterialCommunityIcons name="chevron-down" size={14} color={colors.textSecondary} />
           </TouchableOpacity>
 

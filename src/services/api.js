@@ -1,4 +1,5 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Set EXPO_PUBLIC_API_URL for device builds, e.g. http://192.168.1.185:5000/api
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://fixam-backend-production.up.railway.app/api';
@@ -9,8 +10,17 @@ const api = axios.create({
   timeout: 15000, // Reduced from 30s to 15s for snappier failure handling
 });
 
+let lastActiveWriteTime = 0;
+
 api.interceptors.request.use(config => {
   if (__DEV__) console.log(`[API Request] ${config.method.toUpperCase()} ${config.url}`);
+  
+  const now = Date.now();
+  if (now - lastActiveWriteTime > 60000) {
+    lastActiveWriteTime = now;
+    AsyncStorage.setItem('last_active_time', now.toString()).catch(() => {});
+  }
+  
   return config;
 }, error => {
   return Promise.reject(error);

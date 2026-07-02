@@ -17,6 +17,8 @@ import CallModal from './src/components/CallModal';
 import SupportChatButton from './src/components/SupportChatButton';
 import BiometricLockScreen from './src/components/BiometricLockScreen';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { INACTIVITY_TIMEOUT } from './src/context/AuthContext';
 import * as Sentry from '@sentry/react-native';
 import axios from 'axios';
 import MaintenanceScreen from './src/screens/MaintenanceScreen';
@@ -95,6 +97,7 @@ const AppChrome = () => {
   const { fetchAppData, fetchConversations } = useAppContext();
   const [locked, setLocked] = useState(false);
   const backgroundAtRef = useRef(null);
+  const initialLockCheckedRef = useRef(false);
 
   useEffect(() => {
     if (user && token) {
@@ -103,14 +106,21 @@ const AppChrome = () => {
   }, [user, token]);
 
   useEffect(() => {
+    if (!user) {
+      initialLockCheckedRef.current = false;
+      return;
+    }
+    if (isRestoring) return;
+    if (initialLockCheckedRef.current) return;
+
     let cancelled = false;
     const checkInitialLock = async () => {
-      if (isRestoring || !user) return;
       const biometricEnabled = await SecureStore.getItemAsync('biometric_enabled');
       const storedToken = await SecureStore.getItemAsync('authToken');
       if (!cancelled && biometricEnabled === 'true' && storedToken) {
         setLocked(true);
       }
+      initialLockCheckedRef.current = true;
     };
     checkInitialLock().catch(() => {});
     return () => {
@@ -122,9 +132,24 @@ const AppChrome = () => {
     const subscription = AppState.addEventListener('change', async (state) => {
       if (state === 'background') {
         backgroundAtRef.current = Date.now();
+        await AsyncStorage.setItem('last_active_time', Date.now().toString()).catch(() => {});
         return;
       }
       if (state === 'active' && user && token) {
+        // Check for inactivity session timeout
+        const lastActiveStr = await AsyncStorage.getItem('last_active_time');
+        const lastActive = lastActiveStr ? parseInt(lastActiveStr, 10) : Date.now();
+        
+        if (Date.now() - lastActive > INACTIVITY_TIMEOUT) {
+          if (__DEV__) console.log('Session expired on resume due to inactivity');
+          logout();
+          backgroundAtRef.current = null;
+          return;
+        }
+
+        // Session is still active; update last active time
+        await AsyncStorage.setItem('last_active_time', Date.now().toString()).catch(() => {});
+
         fetchAppData(true);
         fetchConversations();
         

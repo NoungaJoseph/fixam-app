@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   StatusBar, ActivityIndicator, Alert,
-  Platform, Image
+  Platform, Image, Modal, ScrollView
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SUPPORTED_COUNTRIES } from '../../constants/countries';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,25 +21,53 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(SUPPORTED_COUNTRIES[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const { t } = useLanguage();
   const { loginDirect } = useAuth();
   const { isDarkMode, colors } = useTheme();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef(null);
 
-  const phoneDigits = contact.replace(/\D/g, '').slice(0, 9);
+  useEffect(() => {
+    const loadCountry = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('FIXAM_LAST_SELECTED_COUNTRY');
+        if (stored) {
+          const found = SUPPORTED_COUNTRIES.find(c => c.name === stored);
+          if (found) setSelectedCountry(found);
+        }
+      } catch (err) {
+        console.log('Failed to load last selected country', err);
+      }
+    };
+    loadCountry();
+  }, []);
+
+  const handleCountrySelect = async (country) => {
+    setSelectedCountry(country);
+    setShowCountryPicker(false);
+    setContact('');
+    try {
+      await AsyncStorage.setItem('FIXAM_LAST_SELECTED_COUNTRY', country.name);
+    } catch (err) {
+      console.log('Failed to save selected country', err);
+    }
+  };
+
+  const phoneDigits = contact.replace(/\D/g, '').slice(0, selectedCountry.phoneLength);
   const authInputStyle = { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)' };
   const authInputTextStyle = { color: '#FFF' };
 
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isValidPhone = (phone) => /^6\d{8}$/.test(phone);
+  const isValidPhone = (phone) => selectedCountry.regex.test(phone);
   const isFormValid = loginMethod === 'phone'
     ? isValidPhone(phoneDigits) && password.length > 0
     : isValidEmail(contact.trim()) && password.length > 0;
 
   const handleContactChange = (value) => {
     if (loginMethod === 'phone') {
-      setContact(value.replace(/\D/g, '').slice(0, 9));
+      setContact(value.replace(/\D/g, '').slice(0, selectedCountry.phoneLength));
       return;
     }
     setContact(value);
@@ -48,7 +78,7 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert(t('common.required'), t(loginMethod === 'phone' ? 'login.phonePasswordRequired' : 'login.emailPasswordRequired'));
       return;
     }
-    if (loginMethod === 'phone' && phoneDigits.length !== 9) {
+    if (loginMethod === 'phone' && phoneDigits.length !== selectedCountry.phoneLength) {
       Alert.alert(t('common.required'), t('login.phonePasswordRequired'));
       return;
     }
@@ -58,7 +88,8 @@ const LoginScreen = ({ navigation }) => {
       const normalizedContact = loginMethod === 'phone' ? phoneDigits : contact.trim();
       const payload = {
         [loginMethod === 'phone' ? 'phone' : 'email']: normalizedContact,
-        password
+        password,
+        ...(loginMethod === 'phone' ? { country: selectedCountry.name } : {})
       };
 
       const res = await api.post('/auth/login', payload);
@@ -141,21 +172,22 @@ const LoginScreen = ({ navigation }) => {
                 {/* Contact field (phone / email) */}
                 <View style={[styles.inputWrapper, authInputStyle]}>
                   {loginMethod === 'phone' ? (
-                    <View style={styles.countryPrefix}>
-                      <Text style={styles.flagText}>🇨🇲</Text>
-                      <Text style={styles.prefixText}>+237</Text>
-                    </View>
+                    <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
+                      <Text style={styles.flagText}>{selectedCountry.flag}</Text>
+                      <Text style={styles.prefixText}>{selectedCountry.dialCode}</Text>
+                      <MaterialIcons name="arrow-drop-down" size={18} color="#FFF" />
+                    </TouchableOpacity>
                   ) : (
                     <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
                   )}
                   <TextInput
                     style={[styles.textInput, authInputTextStyle]}
-                    placeholder={loginMethod === 'phone' ? '6XX XXX XXX' : t('register.emailPlaceholder')}
+                    placeholder={loginMethod === 'phone' ? selectedCountry.placeholder : t('register.emailPlaceholder')}
                     placeholderTextColor="rgba(255,255,255,0.66)"
                     value={loginMethod === 'phone' ? phoneDigits : contact}
                     onChangeText={handleContactChange}
                     keyboardType={loginMethod === 'phone' ? 'phone-pad' : 'email-address'}
-                    maxLength={loginMethod === 'phone' ? 9 : undefined}
+                    maxLength={loginMethod === 'phone' ? selectedCountry.phoneLength : undefined}
                     selectionColor="#FFF"
                   />
                 </View>
@@ -207,6 +239,27 @@ const LoginScreen = ({ navigation }) => {
             </View>
           </KeyboardAwareScrollView>
       </SafeAreaView>
+
+      <Modal visible={showCountryPicker} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowCountryPicker(false)}>
+          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Select Country</Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {SUPPORTED_COUNTRIES.map(country => (
+                <TouchableOpacity 
+                  key={country.name} 
+                  style={[styles.modalOption, { borderBottomColor: colors.border }]}
+                  onPress={() => handleCountrySelect(country)}
+                >
+                  <Text style={[styles.modalOptionText, { color: colors.text }]}>
+                    {country.flag} {country.name} ({country.dialCode})
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </LinearGradient>
   );
 };
@@ -237,6 +290,11 @@ const styles = StyleSheet.create({
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, marginTop: 10 },
   registerLink: { color: '#FFF', fontSize: 14, fontWeight: '800', textDecorationLine: 'underline' },
   forgotText: { color: 'rgba(255,255,255,0.82)', fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { width: '100%', backgroundColor: '#FFF', borderRadius: 16, padding: 20, maxHeight: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 12, textAlign: 'center' },
+  modalOption: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  modalOptionText: { fontSize: 16, color: '#374151', textAlign: 'center' },
 });
 
 export default LoginScreen;

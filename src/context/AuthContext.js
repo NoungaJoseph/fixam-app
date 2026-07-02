@@ -6,6 +6,8 @@ import { requestStartupPermissions } from '../services/permissions';
 
 const AuthContext = createContext();
 
+export const INACTIVITY_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours in ms
+
 // Simple fallback storage for when AsyncStorage fails
 const fallbackStorage = {};
 
@@ -75,16 +77,32 @@ export const AuthProvider = ({ children }) => {
         const storedUserStr = await getStoredToken('authUser');
         
         if (storedToken && storedUserStr) {
-          const storedUser = JSON.parse(storedUserStr);
-          setToken(storedToken);
-          setUser(normalizeUser(storedUser));
-          setAuthToken(storedToken);
-          api.get('/users/me')
-            .then((res) => {
-              const freshUser = normalizeUser(res.data.data || res.data.user);
-              if (freshUser) setUser(freshUser);
-            })
-            .catch(() => {});
+          // Check for inactivity timeout
+          const lastActiveStr = await AsyncStorage.getItem('last_active_time');
+          const lastActive = lastActiveStr ? parseInt(lastActiveStr, 10) : Date.now();
+          
+          if (Date.now() - lastActive > INACTIVITY_TIMEOUT) {
+            // Session expired due to inactivity
+            if (__DEV__) console.log('Session expired on startup due to inactivity');
+            await storeToken('authToken', null);
+            await storeToken('authUser', null);
+            await AsyncStorage.removeItem('last_active_time');
+            setHasLoggedOut(true);
+          } else {
+            const storedUser = JSON.parse(storedUserStr);
+            setToken(storedToken);
+            setUser(normalizeUser(storedUser));
+            setAuthToken(storedToken);
+            // Update last active time to current time
+            await AsyncStorage.setItem('last_active_time', Date.now().toString());
+            
+            api.get('/users/me')
+              .then((res) => {
+                const freshUser = normalizeUser(res.data.data || res.data.user);
+                if (freshUser) setUser(freshUser);
+              })
+              .catch(() => {});
+          }
         }
       } catch (error) {
         if (__DEV__) console.log('Error restoring token:', error);
@@ -102,6 +120,7 @@ export const AuthProvider = ({ children }) => {
       storeToken('authToken', token);
       storeToken('authUser', user);
       setAuthToken(token);
+      AsyncStorage.setItem('last_active_time', Date.now().toString()).catch(() => {});
       requestStartupPermissions()
         .catch((error) => {
           if (__DEV__) console.log('Startup permissions skipped:', error.message);
@@ -109,6 +128,7 @@ export const AuthProvider = ({ children }) => {
     } else if (!token && !user && !isRestoring) {
       storeToken('authToken', null);
       storeToken('authUser', null);
+      AsyncStorage.removeItem('last_active_time').catch(() => {});
     }
   }, [token, user, isRestoring]);
 

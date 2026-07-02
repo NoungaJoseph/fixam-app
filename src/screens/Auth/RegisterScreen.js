@@ -12,19 +12,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-
-const cameroonRegions = {
-  Adamawa: ["Ngaoundéré", "Meiganga", "Tibati", "Banyo"],
-  Centre: ["Yaoundé", "Bafia", "Mbalmayo", "Obala"],
-  East: ["Bertoua", "Batouri", "Abong-Mbang", "Yokadouma"],
-  "Far North": ["Maroua", "Yagoua", "Mokolo", "Kousseri"],
-  Littoral: ["Douala", "Edéa", "Nkongsamba", "Loum"],
-  North: ["Garoua", "Guider", "Figuil", "Tcholliré"],
-  Northwest: ["Bamenda", "Kumbo", "Wum", "Ndop"],
-  South: ["Ebolowa", "Sangmélima", "Kribi", "Campo"],
-  Southwest: ["Buea", "Limbe", "Kumba", "Tiko"],
-  West: ["Bafoussam", "Dschang", "Foumban", "Mbouda"]
-};
+import { COUNTRY_DATA, SUPPORTED_COUNTRIES } from '../../constants/countries';
 
 const RegisterScreen = ({ navigation, route }) => {
   const { isDarkMode, colors } = useTheme();
@@ -43,7 +31,21 @@ const RegisterScreen = ({ navigation, route }) => {
     city: '',
     password: '',
     repeatPassword: '',
+    country: SUPPORTED_COUNTRIES[0].name,
   });
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const selectedCountry = COUNTRY_DATA[formData.country] || COUNTRY_DATA.Cameroon;
+
+  const handleCountrySelect = (countryName) => {
+    setFormData(prev => ({
+      ...prev,
+      country: countryName,
+      phone: '',
+      region: '',
+      city: ''
+    }));
+    setShowCountryPicker(false);
+  };
   const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -52,12 +54,12 @@ const RegisterScreen = ({ navigation, route }) => {
   const [showCityPicker, setShowCityPicker] = useState(false);
 
   const setField = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
-  const setPhoneField = (value) => setField('phone', value.replace(/\D/g, '').slice(0, 9));
-  const phoneDigits = formData.phone.replace(/\D/g, '').slice(0, 9);
+  const setPhoneField = (value) => setField('phone', value.replace(/\D/g, '').slice(0, selectedCountry.phoneLength));
+  const phoneDigits = formData.phone.replace(/\D/g, '').slice(0, selectedCountry.phoneLength);
   const authInputStyle = { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)', color: '#FFF' };
 
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isValidPhone = (phone) => /^6\d{8}$/.test(phone);
+  const isValidPhone = (phone) => selectedCountry.regex.test(phone);
 
   // ── Password requirements ────────────────────────────────────────────────────
   const requirements = [
@@ -212,18 +214,19 @@ const RegisterScreen = ({ navigation, route }) => {
             {/* Phone */}
             <Text style={styles.label}>{t('register.phone')}</Text>
             <View style={[styles.phoneInputWrapper, inputStyle]}>
-              <View style={styles.countryPrefix}>
-                <Text style={styles.flagText}>🇨🇲</Text>
-                <Text style={styles.prefixText}>+237</Text>
-              </View>
+              <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
+                <Text style={styles.flagText}>{selectedCountry.flag}</Text>
+                <Text style={styles.prefixText}>{selectedCountry.dialCode}</Text>
+                <MaterialCommunityIcons name="menu-down" size={18} color="#FFF" style={{ marginLeft: 2 }} />
+              </TouchableOpacity>
               <TextInput
                 style={styles.flexInput}
-                placeholder="6XX XXX XXX"
+                placeholder={selectedCountry.placeholder}
                 placeholderTextColor="rgba(255,255,255,0.66)"
                 keyboardType="phone-pad"
                 value={phoneDigits}
                 onChangeText={setPhoneField}
-                maxLength={9}
+                maxLength={selectedCountry.phoneLength}
                 selectionColor="#FFF"
               />
             </View>
@@ -383,7 +386,7 @@ const RegisterScreen = ({ navigation, route }) => {
           <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('register.selectRegion')}</Text>
             <ScrollView style={{ maxHeight: 300 }}>
-              {Object.keys(cameroonRegions).map(region => (
+              {Object.keys(selectedCountry.regions || {}).map(region => (
                 <TouchableOpacity 
                   key={region} 
                   style={[styles.modalOption, { borderBottomColor: colors.border }]}
@@ -406,7 +409,7 @@ const RegisterScreen = ({ navigation, route }) => {
           <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('register.selectCity')}</Text>
             <ScrollView style={{ maxHeight: 300 }}>
-              {!!formData.region && cameroonRegions[formData.region].map(city => (
+              {!!formData.region && (selectedCountry.regions?.[formData.region] || []).map(city => (
                 <TouchableOpacity 
                   key={city} 
                   style={[styles.modalOption, { borderBottomColor: colors.border }]}
@@ -416,6 +419,27 @@ const RegisterScreen = ({ navigation, route }) => {
                   }}
                 >
                   <Text style={[styles.modalOptionText, { color: colors.text }]}>{city}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={showCountryPicker} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowCountryPicker(false)}>
+          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Select Country</Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {SUPPORTED_COUNTRIES.map(country => (
+                <TouchableOpacity 
+                  key={country.name} 
+                  style={[styles.modalOption, { borderBottomColor: colors.border }]}
+                  onPress={() => handleCountrySelect(country.name)}
+                >
+                  <Text style={[styles.modalOptionText, { color: colors.text }]}>
+                    {country.flag} {country.name} ({country.dialCode})
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>

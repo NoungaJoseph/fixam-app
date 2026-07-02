@@ -44,6 +44,7 @@
     "yourProposedCounter": "Votre contre-proposition :",
     "counterOfferReceived": "Contre-proposition reçue !",
     "counterAcceptedSuccess": "Contre-proposition acceptée avec succès.",
-    "bookingCancelledSuccess": "Demande de réservation annulée."
+    "bookingCancelledSuccess": "Demande de réservation annulée.",
+    "waitingForClient": "En attente de la réponse du client..."
   }
 }

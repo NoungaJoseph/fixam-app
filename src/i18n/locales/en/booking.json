@@ -44,6 +44,7 @@
     "yourProposedCounter": "Your Proposed Counter:",
     "counterOfferReceived": "Counter-Offer Received!",
     "counterAcceptedSuccess": "Counter-offer accepted successfully.",
-    "bookingCancelledSuccess": "Booking request cancelled."
+    "bookingCancelledSuccess": "Booking request cancelled.",
+    "waitingForClient": "Waiting for client to accept or decline..."
   }
 }

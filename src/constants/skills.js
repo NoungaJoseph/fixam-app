@@ -53,7 +53,7 @@ export const SKILL_CATEGORIES = {
   'Beauty & Fashion': ['Hair Styling', 'Barber', 'Makeup Artist', 'Tailor', 'Fashion Designer'],
   'Technology': ['Computer Repair', 'IT Support', 'Web Development', 'CCTV Installation'],
   'Events': ['Event Planning', 'Catering', 'DJ', 'Photographer'],
-  'Transport': ['Moving Service', 'Delivery Driver', 'Mechanic']
+  'Transport': ['Moving Service', 'Delivery Driver', 'Mechanic', 'Tricycle']
 };
 
 export const normalizeSkill = (input) => {

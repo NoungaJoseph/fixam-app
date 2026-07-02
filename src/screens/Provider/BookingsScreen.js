@@ -61,7 +61,7 @@ const BookingsScreen = ({ navigation }) => {
         counterNotes: counterNotes
       });
       setCounterModalVisible(false);
-      Alert.alert(t('common.success'), t('booking.counterOfferSent', 'Counter-offer sent successfully.'));
+      Alert.alert(t('common.success'), t('booking.bookings.counterOfferSent', 'Counter-offer sent successfully.'));
       await fetchBookings();
     } catch (error) {
       Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.updateFailed'));
@@ -162,7 +162,7 @@ const BookingsScreen = ({ navigation }) => {
           <View style={[styles.counterDetails, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF', borderColor: colors.border, borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 12 }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <MaterialCommunityIcons name="cash-multiple" size={16} color="#8B5CF6" />
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#8B5CF6' }}>{t('booking.yourProposedCounter', 'Your Proposed Counter:')}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#8B5CF6' }}>{t('booking.bookings.yourProposedCounter', 'Your Proposed Counter:')}</Text>
             </View>
             <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, marginTop: 4 }}>
               {Number(item.counterBudget || 0).toLocaleString()} {getCurrencyForUser(item.country || user?.country || 'Cameroon')}
@@ -192,9 +192,9 @@ const BookingsScreen = ({ navigation }) => {
           ) : null}
 
           {status === 'PENDING' ? (
-            <View style={{ flexDirection: 'row', width: '100%', gap: 8 }}>
+            <>
               <TouchableOpacity
-                style={[styles.secondaryBtn, { borderColor: '#EF4444', flex: 1 }]}
+                style={[styles.secondaryBtn, { borderColor: '#EF4444', flex: 1, marginRight: 2 }]}
                 disabled={isUpdating}
                 onPress={() => confirmStatus(item, 'REJECTED', t('jobs.reject'), t('jobs.rejectConfirm', 'Are you sure you want to decline this booking request?'))}
               >
@@ -202,11 +202,11 @@ const BookingsScreen = ({ navigation }) => {
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={[styles.secondaryBtn, { borderColor: '#8B5CF6', flex: 1 }]}
+                style={[styles.secondaryBtn, { borderColor: '#8B5CF6', flex: 1, marginRight: 2 }]}
                 disabled={isUpdating}
                 onPress={() => handleOpenCounterModal(item)}
               >
-                <Text style={[styles.secondaryText, { color: '#8B5CF6' }]}>{t('jobs.counter', 'Counter')}</Text>
+                <Text style={[styles.secondaryText, { color: '#8B5CF6' }]}>{t('booking.bookings.counter', 'Counter')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -216,7 +216,7 @@ const BookingsScreen = ({ navigation }) => {
               >
                 {isUpdating ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryText}>{t('jobs.accept')}</Text>}
               </TouchableOpacity>
-            </View>
+            </>
           ) : null}
 
           {status === 'ACCEPTED' ? (
@@ -301,14 +301,14 @@ const BookingsScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('booking.proposeCounter', 'Propose Counter-Offer')}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('booking.bookings.proposeCounter', 'Propose Counter-Offer')}</Text>
               <TouchableOpacity onPress={() => setCounterModalVisible(false)}>
                 <MaterialCommunityIcons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             
             <View style={styles.modalBody}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('booking.proposedBudget', 'Proposed Budget')}</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('booking.bookings.proposedBudget', 'Proposed Budget')}</Text>
               <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.background }]}>
                 <MaterialCommunityIcons name="cash" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
                 <TextInput
@@ -321,7 +321,7 @@ const BookingsScreen = ({ navigation }) => {
                 />
               </View>
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 16 }]}>{t('booking.explanation', 'Message / Explanation')}</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 16 }]}>{t('booking.bookings.explanation', 'Message / Explanation')}</Text>
               <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.background, minHeight: 80, alignItems: 'flex-start', paddingTop: 8 }]}>
                 <TextInput
                   style={[styles.textInput, { color: colors.text, height: '100%', textAlignVertical: 'top' }]}
@@ -329,7 +329,7 @@ const BookingsScreen = ({ navigation }) => {
                   numberOfLines={3}
                   value={counterNotes}
                   onChangeText={setCounterNotes}
-                  placeholder={t('booking.counterNotesPlaceholder', 'Why are you countering? (e.g. materials needed)')}
+                  placeholder={t('booking.bookings.counterNotesPlaceholder', 'Why are you countering? (e.g. materials needed)')}
                   placeholderTextColor={colors.placeholder}
                 />
               </View>

@@ -68,9 +68,9 @@ const JobStatusScreen = ({ route, navigation }) => {
       await fetchAppData?.(true);
       
       if (nextStatus === 'ACCEPTED') {
-        Alert.alert(t('common.success'), t('booking.counterAcceptedSuccess', 'Counter offer accepted successfully.'));
+        Alert.alert(t('common.success'), t('booking.bookings.counterAcceptedSuccess', 'Counter offer accepted successfully.'));
       } else if (nextStatus === 'REJECTED' || nextStatus === 'CANCELLED') {
-        Alert.alert(t('common.success'), t('booking.bookingCancelledSuccess', 'Booking request cancelled.'));
+        Alert.alert(t('common.success'), t('booking.bookings.bookingCancelledSuccess', 'Booking request cancelled.'));
       }
     } catch (err) {
       Alert.alert(t('common.error'), translateApiError(err, t, 'jobs.updateFailedClient'));
@@ -283,7 +283,7 @@ const JobStatusScreen = ({ route, navigation }) => {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <MaterialCommunityIcons name="cash-multiple" size={24} color="#8B5CF6" />
                 <Text style={{ fontSize: 16, fontWeight: '900', color: '#8B5CF6' }}>
-                  {t('booking.counterOfferReceived', 'Counter-Offer Received!')}
+                  {t('booking.bookings.counterOfferReceived', 'Counter-Offer Received!')}
                 </Text>
               </View>
               
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
   counterCard: { marginHorizontal: 25, padding: 20, borderRadius: 8, borderWidth: 1.5, marginBottom: 20 },
   counterValue: { fontSize: 24, fontWeight: '950', marginBottom: 4 },
   counterNotes: { fontSize: 13, fontWeight: '600', fontStyle: 'italic', marginBottom: 16 },
-  counterActionRow: { flexDirection: 'row', gap: 10 },
+  counterActionRow: { flexDirection: 'row', gap: 10, width: '100%', marginTop: 12, alignItems: 'center' },
   counterDeclineBtn: { flex: 1, height: 44, borderRadius: 8, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
   counterAcceptBtn: { flex: 1.5, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
 });

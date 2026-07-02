@@ -34,6 +34,16 @@
     "confirmBookingTitle": "Confirm Booking Details",
     "providerRate": "Provider Rate",
     "coinCostDesc": "Booking Service Fee",
-    "heldCoinsNotice": "Credits will be securely held in escrow until the job is marked complete."
+    "heldCoinsNotice": "Credits will be securely held in escrow until the job is marked complete.",
+    "counter": "Counter Offer",
+    "proposeCounter": "Propose Counter-Offer",
+    "proposedBudget": "Proposed Budget",
+    "explanation": "Explanation / Note",
+    "counterNotesPlaceholder": "Why are you countering? (e.g. materials needed, extra travel)",
+    "counterOfferSent": "Counter-offer sent successfully.",
+    "yourProposedCounter": "Your Proposed Counter:",
+    "counterOfferReceived": "Counter-Offer Received!",
+    "counterAcceptedSuccess": "Counter-offer accepted successfully.",
+    "bookingCancelledSuccess": "Booking request cancelled."
   }
 }

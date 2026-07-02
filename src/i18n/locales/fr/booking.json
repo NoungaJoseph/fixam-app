@@ -34,6 +34,16 @@
     "confirmBookingTitle": "Confirmer les détails de la réservation",
     "providerRate": "Tarif du prestataire",
     "coinCostDesc": "Frais de service de réservation",
-    "heldCoinsNotice": "Les crédits seront conservés en toute sécurité sous séquestre jusqu'à ce que la mission soit marquée comme terminée."
+    "heldCoinsNotice": "Les crédits seront conservés en toute sécurité sous séquestre jusqu'à ce que la mission soit marquée comme terminée.",
+    "counter": "Contre-offre",
+    "proposeCounter": "Proposer une contre-offre",
+    "proposedBudget": "Budget proposé",
+    "explanation": "Explication / Note",
+    "counterNotesPlaceholder": "Pourquoi proposez-vous un autre tarif ? (ex. matériel requis, déplacement)",
+    "counterOfferSent": "Contre-proposition envoyée avec succès.",
+    "yourProposedCounter": "Votre contre-proposition :",
+    "counterOfferReceived": "Contre-proposition reçue !",
+    "counterAcceptedSuccess": "Contre-proposition acceptée avec succès.",
+    "bookingCancelledSuccess": "Demande de réservation annulée."
   }
 }

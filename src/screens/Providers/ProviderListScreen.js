@@ -24,6 +24,67 @@ const isRemoteSkill = (skillName) => {
   return REMOTE_KEYWORDS.some(keyword => s.includes(keyword));
 };
 
+const matchesCategory = (providerSkills, categoryName) => {
+  if (!categoryName || categoryName.toLowerCase() === 'all') return true;
+  
+  const catLower = categoryName.toLowerCase().trim();
+  
+  const skillsList = (providerSkills || []).flatMap(s => [
+    s.toLowerCase(),
+    translateService(s, { lng: 'en' }).toLowerCase(),
+    translateService(s, { lng: 'fr' }).toLowerCase()
+  ]);
+  const skillsString = skillsList.join(' ');
+  
+  // 1. Home tutor / tutoring logic
+  if (catLower === 'home tutor' || catLower === 'home tutoring') {
+    return skillsString.includes('tutor') || skillsString.includes('tutoring') || 
+           skillsString.includes('soutien scolaire') || skillsString.includes('cours à domicile');
+  }
+  
+  // 2. Electrical logic
+  if (catLower === 'electrical') {
+    return skillsString.includes('electr') || skillsString.includes('électricité') || skillsString.includes('solar');
+  }
+  
+  // 3. Beauty logic
+  if (catLower === 'beauty') {
+    return skillsString.includes('beauty') || skillsString.includes('beauté') || 
+           skillsString.includes('makeup') || skillsString.includes('maquillage') || 
+           skillsString.includes('hair') || skillsString.includes('coiffure') || 
+           skillsString.includes('barber') || skillsString.includes('barbing') || 
+           skillsString.includes('ongles') || skillsString.includes('nail') || 
+           skillsString.includes('massage') || skillsString.includes('esthet');
+  }
+  
+  // 4. Tailoring / Tailor / Designer
+  if (catLower === 'tailoring') {
+    return skillsString.includes('tailor') || skillsString.includes('couture') || 
+           skillsString.includes('fashion') || skillsString.includes('mode') || 
+           skillsString.includes('design');
+  }
+
+  // 5. Appliance repair
+  if (catLower === 'appliance repair') {
+    return skillsString.includes('appliance') || skillsString.includes('repair') || 
+           skillsString.includes('réparation') || skillsString.includes('machine') || 
+           skillsString.includes('fridge') || skillsString.includes('frigo') || 
+           skillsString.includes('tv') || skillsString.includes('generator') || 
+           skillsString.includes('générateur');
+  }
+
+  // 6. Computer repair
+  if (catLower === 'computer repair') {
+    return skillsString.includes('computer') || skillsString.includes('laptop') || 
+           skillsString.includes('ordinate') || skillsString.includes('repair') || 
+           skillsString.includes('network') || skillsString.includes('réseau') || 
+           skillsString.includes('software') || skillsString.includes('logiciel');
+  }
+  
+  // 7. General search fallback
+  return skillsString.includes(catLower);
+};
+
 const FILTERS = ['Rating', 'Price', 'Distance', 'Availability'];
 
 const ProviderListScreen = ({ route, navigation }) => {
@@ -85,7 +146,7 @@ const ProviderListScreen = ({ route, navigation }) => {
     const combinedInfo = `${name} ${skills} ${area}`;
 
     // Filter by Category if provided in route
-    if (catLower && catLower !== 'all' && !skills.includes(catLower)) return false;
+    if (catLower && catLower !== 'all' && !matchesCategory(p.skills || [], category)) return false;
     if (verifiedOnly && p.verification !== 'VERIFIED') return false;
     if (favoritesOnly && !favoriteProviderIds?.includes(p.id)) return false;
 

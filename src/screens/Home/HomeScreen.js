@@ -179,8 +179,9 @@ const HomeScreen = ({ navigation }) => {
 
   const currentLevel = calculateLevel(completedTaskCount);
   const { currentThreshold, nextThreshold } = getLevelThresholds(currentLevel);
-  const tasksNeededForNextLevel = walletDetails?.nextLevelTasks ?? (nextThreshold - currentThreshold);
-  const progressPercent = walletDetails?.progressPercent ?? Math.min(100, Math.round((completedTaskCount / tasksNeededForNextLevel) * 100));
+  const tasksInThisLevel = nextThreshold - currentThreshold;
+  const absoluteTarget = walletDetails?.nextLevelTasks ?? nextThreshold;
+  const progressPercent = walletDetails?.progressPercent ?? Math.min(100, Math.round((Math.max(0, completedTaskCount - currentThreshold) / tasksInThisLevel) * 100));
   const nextRewardCoins = Math.min(currentLevel, 200);
   const localizedLearnCards = LEARN_CARDS.map((card) => {
     const copy = {
@@ -386,7 +387,7 @@ const HomeScreen = ({ navigation }) => {
           <View style={{ flex: 1 }}>
             <Text style={styles.progressTitle}>{t('home.doingGreat')} 🔥</Text>
             <Text style={styles.progressCount}>{t('home.tasksCompleted', { count: completedTaskCount })}</Text>
-            <Text style={styles.progressSub}>{t('home.tasksToLevel', { count: Math.max(tasksNeededForNextLevel - completedTaskCount, 0) })}</Text>
+            <Text style={styles.progressSub}>{t('home.tasksToLevel', { count: Math.max(absoluteTarget - completedTaskCount, 0) })}</Text>
             <View style={styles.progressBar}>
               {[1,2,3,4,5].map((i) => {
                 const stepValue = (progressPercent / 100) * 5;

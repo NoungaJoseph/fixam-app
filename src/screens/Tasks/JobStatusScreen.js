@@ -33,6 +33,7 @@ const JobStatusScreen = ({ route, navigation }) => {
   const { t, locale } = useLanguage();
   const { fetchAppData } = useAppContext();
   const [job, setJob] = useState(route.params?.job || {});
+  const [selectingAssignmentId, setSelectingAssignmentId] = useState(null);
 
   const normalizedStatus = String(job.status || 'PENDING').toUpperCase();
   const displayStatus = translateStatus(normalizedStatus);
@@ -89,15 +90,19 @@ const JobStatusScreen = ({ route, navigation }) => {
         {
           text: t('common.confirm'),
           onPress: async () => {
+            setSelectingAssignmentId(assignment.id);
             try {
               const res = await api.post(`/jobs/${job.id}/applications/${assignment.id}/select`);
               setJob(res.data.data);
+              await fetchAppData?.(true);
               Alert.alert(t('jobs.providerSelected'), t('jobs.providerSelectedBody', { name: providerName }), [
                 { text: t('common.close') },
                 { text: t('jobs.trackProvider'), onPress: () => navigation.navigate('LiveTaskMap', { task: res.data.data }) }
               ]);
             } catch (error) {
               Alert.alert(t('jobs.couldNotChooseProvider'), translateApiError(error, t));
+            } finally {
+              setSelectingAssignmentId(null);
             }
           }
         }
@@ -199,8 +204,16 @@ const JobStatusScreen = ({ route, navigation }) => {
                       <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.border, flex: 1 }]} onPress={() => navigation.navigate('ProviderProfile', { provider })}>
                         <Text style={[styles.outlineBtnText, { color: colors.text }]}>{t('profile.viewProfile')}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={[styles.solidBtn, { backgroundColor: colors.accent, flex: 1.5 }]} onPress={() => chooseProvider(assignment)}>
-                        <Text style={styles.solidBtnText}>{t('jobs.hireNow')}</Text>
+                      <TouchableOpacity 
+                        style={[styles.solidBtn, { backgroundColor: colors.accent, flex: 1.5 }]} 
+                        onPress={() => chooseProvider(assignment)}
+                        disabled={selectingAssignmentId !== null}
+                      >
+                        {selectingAssignmentId === assignment.id ? (
+                          <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                          <Text style={styles.solidBtnText}>{t('jobs.hireNow')}</Text>
+                        )}
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -299,6 +312,7 @@ const JobStatusScreen = ({ route, navigation }) => {
                             const endpoint = isBooking ? `/bookings/${job.id}/status` : `/jobs/${job.id}/status`;
                             await api.patch(endpoint, { status: 'CANCELLED' });
                             setJob({ ...job, status: 'CANCELLED' });
+                            await fetchAppData?.(true);
                             Alert.alert(t('common.success'), t('jobs.cancelledSuccess', 'Task cancelled successfully.'));
                           } catch (err) {
                             Alert.alert(t('common.error'), translateApiError(err, t, 'jobs.updateFailedClient'));

@@ -85,7 +85,6 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-secure-store",
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
       "./plugins/withAndroidFirebaseStabilization",

@@ -18,7 +18,8 @@
         "EXPO_PUBLIC_SOCKET_URL": "https://fixam-backend-production.up.railway.app",
         "GRADLE_OPTS": "-Dorg.gradle.jvmargs=-Xmx4096m",
         "SENTRY_ORG": "fixam",
-        "SENTRY_PROJECT": "react-native"
+        "SENTRY_PROJECT": "react-native",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
@@ -30,7 +31,8 @@
         "EXPO_PUBLIC_API_URL": "https://fixam-backend-production.up.railway.app/api",
         "EXPO_PUBLIC_SOCKET_URL": "https://fixam-backend-production.up.railway.app",
         "SENTRY_ORG": "fixam",
-        "SENTRY_PROJECT": "react-native"
+        "SENTRY_PROJECT": "react-native",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },

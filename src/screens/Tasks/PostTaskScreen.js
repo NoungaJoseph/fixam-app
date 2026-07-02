@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { COUNTRY_DATA, SUPPORTED_COUNTRIES, getCurrencyForUser } from '../../constants/countries';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -131,6 +132,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const { jobs, fetchAppData, walletBalance } = useAppContext();
   const { t, locale } = useLanguage();
   const { user } = useAuth();
+  const currency = getCurrencyForUser(user);
   
   const [step, setStep] = useState('details'); // 'details', 'review', 'success'
   const [taskMode, setTaskMode] = useState(route?.params?.startOnPost ? 'post' : 'tasks');
@@ -155,6 +157,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [selectedPreferences, setSelectedPreferences] = useState(['verified', 'fast', 'rated', 'today']);
   const [detailEditor, setDetailEditor] = useState(null);
   const [priority, setPriority] = useState('normal');
+  const [isRemote, setIsRemote] = useState(false);
   
   const [scheduledDate, setScheduledDate] = useState(new Date());
   const [scheduledTime, setScheduledTime] = useState(new Date());
@@ -190,6 +193,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     setSelectedPreferences(['verified', 'fast', 'rated', 'today']);
     setDetailEditor(null);
     setPriority('normal');
+    setIsRemote(false);
     setScheduledDate(new Date());
     setScheduledTime(new Date());
   };
@@ -227,6 +231,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     setSelectedPreferences(job.preferences || ['verified', 'fast', 'rated', 'today']);
     setDetailEditor(null);
     setPriority(job.priority || 'normal');
+    setIsRemote(job.isRemote ?? false);
     setScheduledDate(Number.isNaN(scheduled.getTime()) ? new Date() : scheduled);
     setScheduledTime(Number.isNaN(scheduled.getTime()) ? new Date() : scheduled);
     setTaskMode('post');
@@ -282,7 +287,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const validateForm = () => {
     if (!selectedCat) return t('jobs.categoryRequired', 'Please select a category');
     if (!title.trim()) return t('jobs.taskTitleRequired');
-    if (!location.trim()) return t('jobs.locationRequired');
+    if (!isRemote && !location.trim()) return t('jobs.locationRequired');
     const min = budgetMode === 'range' ? parseInt(budgetMin) : parseInt(budget);
     const max = budgetMode === 'range' ? parseInt(budgetMax) : parseInt(budget);
     if (!min || !max || min <= 0 || max <= 0) return t('jobs.budgetRequired');
@@ -406,7 +411,8 @@ const PostTaskScreen = ({ route, navigation }) => {
         scheduledTime.getMinutes()
       );
       const payload = {
-        title, description, location,
+        title, description,
+        location: isRemote ? 'Remote / Online' : location,
         budget: budgetMode === 'range' ? parseInt(budgetMax) : parseInt(budget),
         budgetMin: budgetMode === 'range' ? parseInt(budgetMin) : parseInt(budget),
         budgetMax: budgetMode === 'range' ? parseInt(budgetMax) : parseInt(budget),
@@ -418,13 +424,14 @@ const PostTaskScreen = ({ route, navigation }) => {
         taskScope,
         preferences: selectedPreferences,
         priority,
+        isRemote,
       };
       if (editingJob) {
         await api.put(`/jobs/${editingJob.id}`, payload);
       } else {
         await api.post('/jobs', payload);
       }
-      await fetchAppData?.();
+      await fetchAppData?.(true);
       setStep('success');
     } catch (error) {
       Alert.alert(t('common.error'), error.response?.data?.message || t('jobs.publishFailed'));
@@ -436,7 +443,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const updateTaskStatus = async (job, status) => {
     try {
       await api.put(`/jobs/${job.id}/status`, { status });
-      await fetchAppData?.();
+      await fetchAppData?.(true);
       Alert.alert(t('jobs.updated'), status === 'COMPLETED' ? t('jobs.completedBody') : t('jobs.updatedBody'));
     } catch (error) {
       Alert.alert(t('common.error'), error.response?.data?.message || t('jobs.updateFailedClient'));
@@ -456,12 +463,13 @@ const PostTaskScreen = ({ route, navigation }) => {
     const titleText = job.title || t('jobs.untitledTask');
     const applicantCount = job._count?.assignments ?? job.assignments?.length ?? 0;
 
-    // FCFA budget formatting
+    // dynamic budget formatting
     const budgetMin = Number(job.budgetMin || job.budget || 0);
     const budgetMax = Number(job.budgetMax || job.budget || 0);
-    const budgetDisplay = budgetMin !== budgetMax
-      ? `${budgetMin.toLocaleString()} – ${budgetMax.toLocaleString()} FCFA`
-      : `${budgetMin.toLocaleString()} FCFA`;
+    const jobCurrency = getCurrencyForUser(job.country || user?.country || 'Cameroon');
+    const budgetDisplay = budgetMin && budgetMax && budgetMin !== budgetMax
+      ? `${budgetMin.toLocaleString()} – ${budgetMax.toLocaleString()} ${jobCurrency}`
+      : `${budgetMin.toLocaleString()} ${jobCurrency}`;
 
     const selectedAssignment = job.assignments?.find((assignment) => assignment.id === job.selectedAssignmentId) || job.assignments?.find((assignment) => assignment.status === 'ACCEPTED');
     const assignedProviderUser = job.provider || selectedAssignment?.provider?.user;
@@ -755,6 +763,45 @@ const PostTaskScreen = ({ route, navigation }) => {
               )}
 
               <View style={styles.createFieldGroup}>
+                <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.taskType', 'Task Type')}</Text>
+                <View style={styles.budgetModeRow}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.budgetModeBtn, 
+                      { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }, 
+                      !isRemote && [styles.budgetModeBtnActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F8FFFD', borderColor: '#0D9488' }]
+                    ]} 
+                    onPress={() => setIsRemote(false)}
+                  >
+                    <MaterialCommunityIcons name="map-marker-radius-outline" size={22} color={!isRemote ? '#0D9488' : '#64748B'} />
+                    <Text style={[styles.budgetModeTitle, { color: colors.textSecondary }, !isRemote && [styles.budgetModeTitleActive, { color: colors.text }]]}>
+                      {t('jobs.physical', 'On-Site / Physical')}
+                    </Text>
+                    <Text style={[styles.budgetModeSub, { color: colors.textSecondary }]}>
+                      {t('jobs.physicalDesc', 'Requires local presence')}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[
+                      styles.budgetModeBtn, 
+                      { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }, 
+                      isRemote && [styles.budgetModeBtnActive, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F8FFFD', borderColor: '#0D9488' }]
+                    ]} 
+                    onPress={() => setIsRemote(true)}
+                  >
+                    <MaterialCommunityIcons name="laptop-chromebook" size={22} color={isRemote ? '#0D9488' : '#64748B'} />
+                    <Text style={[styles.budgetModeTitle, { color: colors.textSecondary }, isRemote && [styles.budgetModeTitleActive, { color: colors.text }]]}>
+                      {t('jobs.remote', 'Online / Remote')}
+                    </Text>
+                    <Text style={[styles.budgetModeSub, { color: colors.textSecondary }]}>
+                      {t('jobs.remoteDesc', 'Can be done from anywhere')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.createFieldGroup}>
                 <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.taskTitle')}</Text>
                 <TextInput
                   style={[styles.createInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#FFF' }]}
@@ -767,23 +814,25 @@ const PostTaskScreen = ({ route, navigation }) => {
                 <Text style={styles.inputCounter}>{title.length}/80</Text>
               </View>
 
-              <View style={styles.createFieldGroup}>
-                <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.location')}</Text>
-                <View style={[styles.createLocationInput, { borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#FFF' }]}>
-                  <MaterialCommunityIcons name="map-marker-outline" size={21} color="#0D9488" />
-                  <TextInput
-                    style={[styles.createLocationTextInput, { color: colors.text }]}
-                    placeholder="Douala, Cameroon"
-                    placeholderTextColor="#94A3B8"
-                    value={location}
-                    onChangeText={setLocation}
-                  />
-                  <TouchableOpacity onPress={getCurrentLocation}>
-                    <MaterialCommunityIcons name="crosshairs-gps" size={22} color="#0D9488" />
-                  </TouchableOpacity>
+              {!isRemote && (
+                <View style={styles.createFieldGroup}>
+                  <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.location')}</Text>
+                  <View style={[styles.createLocationInput, { borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#FFF' }]}>
+                    <MaterialCommunityIcons name="map-marker-outline" size={21} color="#0D9488" />
+                    <TextInput
+                      style={[styles.createLocationTextInput, { color: colors.text }]}
+                      placeholder="Douala, Cameroon"
+                      placeholderTextColor="#94A3B8"
+                      value={location}
+                      onChangeText={setLocation}
+                    />
+                    <TouchableOpacity onPress={getCurrentLocation}>
+                      <MaterialCommunityIcons name="crosshairs-gps" size={22} color="#0D9488" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.fieldHint}>{t('jobs.locationHint')}</Text>
                 </View>
-                <Text style={styles.fieldHint}>{t('jobs.locationHint')}</Text>
-              </View>
+              )}
 
               <View style={styles.createFieldGroup}>
                 <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.providersNeeded', 'Number of Providers Needed')}</Text>
@@ -813,7 +862,7 @@ const PostTaskScreen = ({ route, navigation }) => {
                 {budgetMode === 'range' ? (
                   <View style={styles.budgetRangeRow}>
                     <View style={[styles.budgetRangeInputWrap, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}>
-                      <Text style={styles.rangeLabel}>{t('jobs.min')} FCFA</Text>
+                      <Text style={styles.rangeLabel}>{t('jobs.min')} {currency}</Text>
                       <TextInput
                         style={[styles.budgetAmountInput, { color: colors.text }]}
                         value={budgetMin}
@@ -824,7 +873,7 @@ const PostTaskScreen = ({ route, navigation }) => {
                       />
                     </View>
                     <View style={[styles.budgetRangeInputWrap, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}>
-                      <Text style={styles.rangeLabel}>{t('jobs.max')} FCFA</Text>
+                      <Text style={styles.rangeLabel}>{t('jobs.max')} {currency}</Text>
                       <TextInput
                         style={[styles.budgetAmountInput, { color: colors.text }]}
                         value={budgetMax}
@@ -838,7 +887,7 @@ const PostTaskScreen = ({ route, navigation }) => {
                 ) : (
                   <View style={[styles.budgetAmountRow, { borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#FFF' }]}>
                     <View style={[styles.currencyBox, { backgroundColor: isDarkMode ? '#374151' : '#F1F5F9' }]}>
-                      <Text style={[styles.currencyBoxText, { color: colors.text }]}>FCFA</Text>
+                      <Text style={[styles.currencyBoxText, { color: colors.text }]}>{currency}</Text>
                     </View>
                     <TextInput
                       style={[styles.budgetAmountInput, { color: colors.text }]}
@@ -1087,8 +1136,8 @@ const PostTaskScreen = ({ route, navigation }) => {
                   <Text style={[styles.reviewLabel, { color: colors.textSecondary }]}>💰 {t('jobs.budget')}</Text>
                   <Text style={[styles.reviewValue, { color: colors.text }]}>
                     {budgetMode === 'range'
-                      ? `${parseInt(budgetMin).toLocaleString()} - ${parseInt(budgetMax).toLocaleString()} XAF`
-                      : `${parseInt(budget).toLocaleString()} XAF`}
+                      ? `${parseInt(budgetMin).toLocaleString()} - ${parseInt(budgetMax).toLocaleString()} ${currency}`
+                      : `${parseInt(budget).toLocaleString()} ${currency}`}
                   </Text>
                 </View>
                 <View style={styles.reviewItem}>

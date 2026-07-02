@@ -8,6 +8,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { CustomHeader } from '../../navigation/NavigationComponents';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import { getCurrencyForUser } from '../../constants/countries';
 import api from '../../services/api';
 
 const monthNamesEn = [
@@ -22,6 +24,7 @@ const monthNamesFr = [
 const ReportsScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t, language } = useLanguage();
+  const { user } = useAuth();
   
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -189,7 +192,7 @@ const ReportsScreen = ({ navigation }) => {
             <View style={[styles.modalEarningsCard, { backgroundColor: isDarkMode ? '#1E293B' : '#F0FDFA', borderColor: isDarkMode ? '#334155' : '#CCFBF1' }]}>
               <Text style={[styles.modalEarningsLabel, { color: colors.accent }]}>{t('profile.earnings', 'Total Earnings')}</Text>
               <Text style={[styles.modalEarningsValue, { color: isDarkMode ? '#FFF' : '#0F766E' }]}>
-                {activeReport.earnings.toLocaleString()} FCFA
+                {activeReport.earnings.toLocaleString()} {getCurrencyForUser(user)}
               </Text>
             </View>
 

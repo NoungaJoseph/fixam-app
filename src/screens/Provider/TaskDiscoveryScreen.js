@@ -5,10 +5,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { getCurrencyForUser } from '../../constants/countries';
 
 const TaskDiscoveryScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +99,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
         </View>
         <View style={[styles.budgetBadge, { backgroundColor: colors.accentSoft }]}>
           <Text style={[styles.budgetText, { color: colors.accent }]}>
-            {task.budget} FCFA
+            {task.budget} {getCurrencyForUser(task.country || user?.country || 'Cameroon')}
           </Text>
         </View>
       </View>

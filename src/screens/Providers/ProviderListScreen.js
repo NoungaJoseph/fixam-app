@@ -157,6 +157,9 @@ const ProviderListScreen = ({ route, navigation }) => {
     // City locking filter for physical services
     const isRemote = isRemoteSkill(category || search);
     if (!isRemote) {
+      if (p.user?.country && user?.country && p.user.country !== user.country) {
+        return false;
+      }
       const clientCity = (user?.location || '').toLowerCase().trim();
       const providerCity = (p.serviceArea || '').toLowerCase().trim();
       if (clientCity && providerCity && !providerCity.includes(clientCity) && !clientCity.includes(providerCity)) {
@@ -174,6 +177,20 @@ const ProviderListScreen = ({ route, navigation }) => {
     const isBoostedB = b.boostExpiresAt && new Date(b.boostExpiresAt) > new Date();
     if (isBoostedA && !isBoostedB) return -1;
     if (!isBoostedA && isBoostedB) return 1;
+
+    // Prioritize provider in client's city for physical jobs
+    const isRemote = isRemoteSkill(category || search);
+    if (!isRemote) {
+      const clientCity = (user?.location || '').toLowerCase().trim();
+      if (clientCity) {
+        const cityA = (a.serviceArea || '').toLowerCase();
+        const cityB = (b.serviceArea || '').toLowerCase();
+        const matchesA = cityA.includes(clientCity);
+        const matchesB = cityB.includes(clientCity);
+        if (matchesA && !matchesB) return -1;
+        if (!matchesA && matchesB) return 1;
+      }
+    }
 
     if (activeFilter === 'Rating') {
       return Number(b.rating || 0) - Number(a.rating || 0);

@@ -7,6 +7,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCurrencyForUser } from '../../constants/countries';
 import api from '../../services/api';
 import { translateApiError } from '../../utils/eligibilityMessages';
 
@@ -119,7 +120,7 @@ const BookingsScreen = ({ navigation }) => {
           <Detail icon="calendar" label={date} colors={colors} />
           <Detail icon="clock-outline" label={item.bookingTime || t('jobs.asap')} colors={colors} />
           <Detail icon="map-marker-outline" label={item.location || t('jobs.onSite')} colors={colors} />
-          <Detail icon="cash" label={`${Number(item.budget || 0).toLocaleString()} FCFA`} colors={colors} />
+          <Detail icon="cash" label={`${Number(item.budget || 0).toLocaleString()} ${getCurrencyForUser(item.country || user?.country || 'Cameroon')}`} colors={colors} />
         </View>
 
         <View style={[styles.actions, { borderTopColor: colors.border }]}>

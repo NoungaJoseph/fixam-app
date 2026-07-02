@@ -13,6 +13,7 @@ import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
+import { getCurrencyForUser } from '../../constants/countries';
 import UserAvatar from '../../components/UserAvatar';
 import VerificationRequiredModal from '../../components/VerificationRequiredModal';
 import { getVerificationMessageKey, isIdentityVerified, translateApiError } from '../../utils/eligibilityMessages';
@@ -63,9 +64,10 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const budgetMin = Number(task.budgetMin || task.budget || 0);
   const budgetMax = Number(task.budgetMax || task.budget || 0);
   const budget = budgetMax;
+  const jobCurrency = getCurrencyForUser(task.country || user?.country || 'Cameroon');
   const budgetLabel = budgetMin && budgetMax && budgetMin !== budgetMax
-    ? `${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()} XAF`
-    : `${budget.toLocaleString()} XAF`;
+    ? `${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()} ${jobCurrency}`
+    : `${budget.toLocaleString()} ${jobCurrency}`;
   const photos = task.photos?.length ? task.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : [];
   const fallbackIcon = CATEGORY_ICONS[String(task.category || '').toUpperCase()] || 'briefcase-outline';
   const postedOn = formatDate(task.createdAt, locale);
@@ -260,12 +262,15 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           ) : null}
           <View style={styles.heroBottom}>
             <View style={styles.locationLine}>
-              <MaterialCommunityIcons name="map-marker" size={25} color="#0D9488" />
+              <MaterialCommunityIcons name="map-marker-outline" size={22} color="#0D9488" />
               <Text style={[styles.locationText, { color: colors.text }]}>{task.location || t('jobs.locationNotShared')}</Text>
             </View>
             {budget > 0 ? (
               <View style={styles.priceBlock}>
-                <Text style={styles.priceText}>{budgetLabel}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <MaterialCommunityIcons name="wallet-outline" size={22} color="#06B85F" />
+                  <Text style={styles.priceText}>{budgetLabel}</Text>
+                </View>
                 <Text style={styles.priceBadge}>{budgetMin !== budgetMax ? t('jobs.budgetRange').toUpperCase() : t('jobs.fixedPrice').toUpperCase()}</Text>
               </View>
             ) : null}
@@ -555,14 +560,14 @@ const styles = StyleSheet.create({
   postedText: { color: '#0D9488', fontSize: 13, fontWeight: '900' },
   jobTitle: { color: '#071936', fontSize: 26, fontWeight: '900', marginBottom: 14 },
   jobSummary: { color: '#10213D', fontSize: 17, lineHeight: 27, fontWeight: '600' },
-  heroBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 18, gap: 10 },
-  locationLine: { flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1, flexWrap: 'wrap' },
-  locationText: { color: '#071936', fontSize: 16, fontWeight: '900' },
+  heroBottom: { marginTop: 18, gap: 14 },
+  locationLine: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  locationText: { color: '#071936', fontSize: 16, fontWeight: '700', flex: 1 },
   vDivider: { width: 1, height: 22, backgroundColor: '#CBD5E1' },
   distanceText: { color: '#0D9488', fontSize: 14, fontWeight: '900' },
-  priceBlock: { alignItems: 'flex-end' },
-  priceText: { color: '#06B85F', fontSize: 26, fontWeight: '900' },
-  priceBadge: { color: '#0D9488', backgroundColor: '#DFFAF5', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, fontSize: 13, fontWeight: '900', marginTop: 8 },
+  priceBlock: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  priceText: { color: '#06B85F', fontSize: 24, fontWeight: '900' },
+  priceBadge: { color: '#0D9488', backgroundColor: '#DFFAF5', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, fontSize: 12, fontWeight: '900' },
   addressCard: { minHeight: 80, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
   cardTitle: { color: '#071936', fontSize: 16, fontWeight: '900', marginBottom: 5 },
   cardSub: { color: '#64748B', fontSize: 14, fontWeight: '700' },

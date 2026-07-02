@@ -7,11 +7,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
+import { useAuth } from '../../context/AuthContext';
+import { getCurrencyForUser } from '../../constants/countries';
 
 const FindJobsScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { visibleJobs, notificationCount } = useAppContext();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all'); // 'all' or 'favorites'
   const [favorites, setFavorites] = useState([]);
@@ -196,7 +199,7 @@ const FindJobsScreen = ({ navigation }) => {
 
                 {/* Subtitle */}
                 <Text style={[styles.jobSubtitle, { color: colors.textSecondary }]}>
-                  {t('home.fixedPrice')} - {translateService(job.category || t('home.work')).toUpperCase()} - {t('home.estimatedBudget')}: {job.budget ? job.budget.toLocaleString() : '25,000'} FCFA
+                  {t('home.fixedPrice')} - {translateService(job.category || t('home.work')).toUpperCase()} - {t('home.estimatedBudget')}: {job.budget ? job.budget.toLocaleString() : '25,000'} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
                 </Text>
 
                 {/* Description */}

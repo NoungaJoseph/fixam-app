@@ -9,6 +9,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCurrencyForUser } from '../../constants/countries';
 import { translateApiError } from '../../utils/eligibilityMessages';
 
 const TABS = [
@@ -201,7 +202,7 @@ const MyJobsScreen = ({ navigation }) => {
               <View style={styles.jobFooter}>
                 <View style={[styles.budgetBox, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#F0FDFA' }]}>
                   <Text style={[styles.budgetText, { color: colors.accent }]}>
-                    {item.budget.toLocaleString()} FCFA
+                    {item.budget.toLocaleString()} {getCurrencyForUser(item.country || item.rawJob?.country || user?.country || 'Cameroon')}
                   </Text>
                   <Text style={[styles.estimatedText, { color: colors.textSecondary }]}>{t('jobs.estimated')}</Text>
                 </View>
@@ -318,7 +319,7 @@ const MyJobsScreen = ({ navigation }) => {
         </View>
         <View style={[styles.statsRow, { marginTop: 8 }]}>
           <StatCard icon="check-decagram"  value={completed}    label={t('jobs.statusLabels.Completed')}    sub={t('jobs.allTime')}  color="#F59E0B" bg="#FFFBEB" />
-          <StatCard icon="wallet"          value={liveEarned.toLocaleString()} label={t('home.totalEarnings')} sub="FCFA" color="#0D9488" bg="#E6FDF3" />
+          <StatCard icon="wallet"          value={liveEarned.toLocaleString()} label={t('home.totalEarnings')} sub={getCurrencyForUser(user)} color="#0D9488" bg="#E6FDF3" />
         </View>
       </View>
 

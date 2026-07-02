@@ -10,6 +10,7 @@ import { CustomHeader } from '../../navigation/NavigationComponents';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
+import { getCurrencyForUser } from '../../constants/countries';
 import api from '../../services/api';
 
 const { width } = Dimensions.get('window');
@@ -52,7 +53,7 @@ const StatsScreen = ({ navigation }) => {
 
   const stats = [
     { label: t('home.completedJobs'), value: String(completedJobs), icon: 'check-circle-outline', color: '#10B981' },
-    { label: t('home.totalEarnings'), value: `${totalEarnings.toLocaleString()} FCFA`, icon: 'cash-multiple', color: '#2563EB' },
+    { label: t('home.totalEarnings'), value: `${totalEarnings.toLocaleString()} ${getCurrencyForUser(user)}`, icon: 'cash-multiple', color: '#2563EB' },
     { label: t('home.avgRating'), value: String(avgRating), icon: 'star-outline', color: '#FBBF24' },
     { label: t('home.successRate'), value: `${successRate}%`, icon: 'trending-up', color: '#8B5CF6' },
   ];

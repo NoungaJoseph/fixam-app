@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCurrencyForUser } from '../../constants/countries';
 import { useLanguage } from '../../context/LanguageContext';
 import { getProviderProgress } from '../../utils/providerProgress';
 import { translateService } from '../../i18n/translate';
@@ -328,7 +329,7 @@ const ProviderHomeScreen = ({ navigation }) => {
 
         {/* Subtitle */}
         <Text style={[styles.jobSubtitle, { color: colors.textSecondary }]}>
-          {t('home.fixedPrice')} - {(job.category || t('home.work')).toUpperCase()} - {t('home.estimatedBudget')}: {job.budget ? job.budget.toLocaleString() : '25,000'} FCFA
+          {t('home.fixedPrice')} - {(job.category || t('home.work')).toUpperCase()} - {t('home.estimatedBudget')}: {job.budget ? job.budget.toLocaleString() : '25,000'} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
         </Text>
 
         {/* Description */}

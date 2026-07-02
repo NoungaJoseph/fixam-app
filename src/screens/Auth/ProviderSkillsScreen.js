@@ -8,6 +8,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
 
 import { ALL_SKILLS, normalizeSkill } from '../../constants/skills';
+import { detectCountryFromPhone, getCurrencyForUser } from '../../constants/countries';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => `${i + 1}`);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -17,6 +18,9 @@ const TIMES = Array.from({ length: 24 }, (_, i) => [`${i.toString().padStart(2, 
 const ProviderSkillsScreen = ({ navigation, route }) => {
   const { isDarkMode, colors } = useTheme();
   const { t } = useLanguage();
+  const userPhone = route.params?.userData?.phone || '';
+  const detectedCountry = detectCountryFromPhone(userPhone);
+  const currency = getCurrencyForUser(detectedCountry);
   const [search, setSearch] = useState('');
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [form, setForm] = useState({
@@ -144,7 +148,7 @@ const ProviderSkillsScreen = ({ navigation, route }) => {
           </View>
 
           <Text style={[styles.label, { color: colors.text }]}>{t('providerSetup.rate')}</Text>
-          <TextInput style={[styles.input, inputStyle]} value={form.rate} onChangeText={(value) => setField('rate', value)} placeholder="Rate per hour (e.g. 5000 XAF)" placeholderTextColor={colors.placeholder} />
+          <TextInput style={[styles.input, inputStyle]} value={form.rate} onChangeText={(value) => setField('rate', value)} placeholder={`Rate per hour (e.g. 5000 ${currency})`} placeholderTextColor={colors.placeholder} />
 
           <Text style={[styles.label, { color: colors.text }]}>{t('providerSetup.skills')}</Text>
           <View style={[styles.searchBox, inputStyle]}>

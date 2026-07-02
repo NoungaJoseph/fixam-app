@@ -12,7 +12,7 @@ import { translateService } from '../../i18n/translate';
 import i18n from '../../i18n';
 import UserAvatar from '../../components/UserAvatar';
 import api, { getMediaUrl } from '../../services/api';
-import { SUPPORTED_COUNTRIES } from '../../constants/countries';
+import { SUPPORTED_COUNTRIES, getCurrencyForUser } from '../../constants/countries';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, updateProfile, uploadFile, refreshUser } = useAuth();
@@ -328,7 +328,7 @@ const DashboardScreen = ({ navigation }) => {
     const portfolio = user.providerProfile?.portfolio || [];
     const certificates = user.providerProfile?.certificates || [];
     const skills = user.providerProfile?.skills || [];
-    const rate = user.providerProfile?.rate ? `${Number(user.providerProfile.rate).toLocaleString()} XAF/hr` : t('profileDetail.rateNotSet');
+    const rate = user.providerProfile?.rate ? `${Number(user.providerProfile.rate).toLocaleString()} ${getCurrencyForUser(user)}/hr` : t('profileDetail.rateNotSet');
     const employmentHistory = user.providerProfile?.employmentHistory || [];
 
     const setupSteps = [

@@ -196,3 +196,9 @@ export const detectCountryFromPhone = (phone) => {
   // if (cleaned.startsWith('234')) return 'Nigeria';
   return 'Cameroon';
 };
+
+export const getCurrencyForUser = (userOrCountry) => {
+  if (!userOrCountry) return 'XAF';
+  const countryName = typeof userOrCountry === 'string' ? userOrCountry : (userOrCountry.country || 'Cameroon');
+  return COUNTRY_DATA[countryName]?.currency || 'XAF';
+};

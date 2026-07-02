@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCurrencyForUser } from '../../constants/countries';
 import api, { getMediaUrl } from '../../services/api';
 import { translateService } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
@@ -199,7 +200,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const isFavorite = favoriteProviderIds?.includes(provider.id);
 
   const ratePrice = provider.rate
-    ? `${provider.rate.toLocaleString()} FCFA`
+    ? `${provider.rate.toLocaleString()} ${getCurrencyForUser(provider.user?.country || user?.country || 'Cameroon')}`
     : t('profile.contactForPrice');
 
   const skills = provider.skills && provider.skills.length > 0
@@ -765,7 +766,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
               }
               Alert.alert(
                 t('booking.confirmBookingTitle', 'Confirm Booking Details'),
-                `${t('booking.providerRate', 'Provider Rate')}: ${provider.rate ? `${provider.rate.toLocaleString()} FCFA` : t('profile.contactForPrice')}\n\n` +
+                `${t('booking.providerRate', 'Provider Rate')}: ${provider.rate ? `${provider.rate.toLocaleString()} ${getCurrencyForUser(provider.user?.country || user?.country || 'Cameroon')}` : t('profile.contactForPrice')}\n\n` +
                 `${t('booking.coinCostDesc', 'Booking Service Fee')}:\n` +
                 `• Normal Urgency: 1 Credit\n` +
                 `• Urgent: 2 Credits\n` +

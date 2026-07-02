@@ -8,6 +8,7 @@ import SafeAreaView from '../../components/Common/TealSafeAreaView';
 
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAppContext } from '../../context/AppContext';
 
 import api from '../../services/api';
 import { translateApiError } from '../../utils/eligibilityMessages';
@@ -15,6 +16,7 @@ import { translateApiError } from '../../utils/eligibilityMessages';
 const ReviewTaskScreen = ({ route, navigation }) => {
   const { isDarkMode, colors } = useTheme();
   const { t } = useLanguage();
+  const { fetchAppData } = useAppContext();
   const { task, provider } = route.params;
   
   const [rating, setRating] = useState(0);
@@ -35,6 +37,8 @@ const ReviewTaskScreen = ({ route, navigation }) => {
         rating,
         comment
       });
+
+      await fetchAppData?.(true);
 
       if (route.params?.onReviewSubmitted) {
         route.params.onReviewSubmitted(task.id);

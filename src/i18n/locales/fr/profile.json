@@ -212,6 +212,7 @@
     "selectPhoto": "Sélectionner la photo du projet",
     "changePhoto": "Changer de photo",
     "noPhotoSelected": "Aucune photo sélectionnée pour le moment",
+    "addAnotherPhoto": "Ajouter une autre photo",
     "certificateName": "Nom du certificat",
     "year": "Année",
     "certificateImageUrl": "URL de l'image du certificat",

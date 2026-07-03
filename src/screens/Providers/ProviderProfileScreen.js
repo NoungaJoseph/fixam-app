@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, Linking, Share, Platform, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, Linking, Share, Platform, Alert, ActivityIndicator, Modal, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
@@ -42,6 +42,14 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [unlocking, setUnlocking] = React.useState(false);
   const [callingAction, setCallingAction] = React.useState(null); // 'call' | 'whatsapp' | null
   const { refreshUser } = useAuth();
+  
+  const [selectedProject, setSelectedProject] = React.useState(null);
+  const [projectModalVisible, setProjectModalVisible] = React.useState(false);
+
+  const handleOpenProjectDetail = (project) => {
+    setSelectedProject(project);
+    setProjectModalVisible(true);
+  };
 
   const fetchLatestProfile = async () => {
     try {
@@ -537,7 +545,12 @@ const ProviderProfileScreen = ({ route, navigation }) => {
             <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>Projects</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.projectScroll}>
               {portfolio.map((item, index) => (
-                <View key={`${item.title || 'project'}-${index}`} style={[styles.projectCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
+                <TouchableOpacity 
+                  key={`${item.title || 'project'}-${index}`} 
+                  style={[styles.projectCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}
+                  onPress={() => handleOpenProjectDetail(item)}
+                  activeOpacity={0.75}
+                >
                   {item.imageUrl ? (
                     <Image source={{ uri: item.imageUrl }} style={styles.projectImage} />
                   ) : (
@@ -547,7 +560,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                   )}
                   <Text style={[styles.projectTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]} numberOfLines={1}>{item.title || 'Project'}</Text>
                   {item.description ? <Text style={[styles.projectDesc, { color: isDarkMode ? '#CBD5E1' : '#64748B' }]} numberOfLines={3}>{item.description}</Text> : null}
-                </View>
+                </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
@@ -797,6 +810,58 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         message={verificationMessage || t('verification.bookingRequired')}
         isProvider={false}
       />
+
+      <Modal
+        visible={projectModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setProjectModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitleText, { color: isDarkMode ? '#FFF' : '#0F172A' }]} numberOfLines={1}>
+                {selectedProject?.title || 'Project Detail'}
+              </Text>
+              <TouchableOpacity onPress={() => setProjectModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={26} color={isDarkMode ? '#FFF' : '#0F172A'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+              {selectedProject && (Array.isArray(selectedProject.images) ? selectedProject.images : [selectedProject.imageUrl]).filter(Boolean).length > 0 ? (
+                <View style={styles.carouselContainer}>
+                  <ScrollView
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ alignItems: 'center' }}
+                  >
+                    {(Array.isArray(selectedProject.images) ? selectedProject.images : [selectedProject.imageUrl]).filter(Boolean).map((imgUrl, imgIdx) => (
+                      <Image 
+                        key={`${imgUrl}-${imgIdx}`} 
+                        source={{ uri: imgUrl }} 
+                        style={styles.carouselImage} 
+                        resizeMode="cover" 
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : (
+                <View style={[styles.carouselImage, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9', justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginBottom: 16 }]}>
+                  <MaterialCommunityIcons name="image-outline" size={48} color="#94A3B8" />
+                </View>
+              )}
+
+              {selectedProject?.description ? (
+                <Text style={[styles.modalDescription, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
+                  {selectedProject.description}
+                </Text>
+              ) : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
     </View>
   );
@@ -1494,5 +1559,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const extraStyles = StyleSheet.create({
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { width: '95%', maxWidth: 450, borderRadius: 12, borderWidth: 1, padding: 20, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  modalTitleText: { fontSize: 18, fontWeight: '900', flex: 1, marginRight: 10 },
+  modalScrollBody: { paddingBottom: 20 },
+  carouselContainer: { width: '100%', height: 260, marginBottom: 16 },
+  carouselImage: { width: SCREEN_WIDTH * 0.76, height: 250, borderRadius: 8, marginRight: 10 },
+  modalDescription: { fontSize: 15, lineHeight: 22, fontWeight: '500' },
+});
+
+Object.assign(styles, extraStyles);
 
 export default ProviderProfileScreen;

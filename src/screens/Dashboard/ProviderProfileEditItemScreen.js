@@ -51,8 +51,9 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
   const [uploadingField, setUploadingField] = useState(null);
+  const [images, setImages] = useState([]);
 
-  const handleSelectImage = async (fieldKey) => {
+  const handleSelectMultipleImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -62,7 +63,7 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
 
       if (!result.canceled && result.assets?.[0]?.uri) {
         const uri = result.assets[0].uri;
-        setUploadingField(fieldKey);
+        setUploadingField('imageUrl');
         
         const filename = uri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename);
@@ -78,17 +79,31 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
 
         const res = await uploadFile(formData);
         if (res?.url) {
-          setField(fieldKey, res.url);
+          setImages(prev => {
+            const next = [...prev, res.url];
+            if (!form.imageUrl) {
+              setField('imageUrl', res.url);
+            }
+            return next;
+          });
         } else {
           throw new Error('Upload failed');
         }
       }
     } catch (err) {
-      console.log('Portfolio image upload error:', err);
+      console.log('Multiple image upload error:', err);
       Alert.alert(t('profileDetail.permissionError', 'Upload Failed'), t('profileDetail.imageUploadFailed', 'Could not upload image. Please try again.'));
     } finally {
       setUploadingField(null);
     }
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setImages(prev => {
+      const next = prev.filter((_, idx) => idx !== indexToRemove);
+      setField('imageUrl', next[0] || '');
+      return next;
+    });
   };
 
   const existingItems = useMemo(() => {
@@ -99,7 +114,7 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
-    const hasContent = Object.values(form).some((value) => String(value || '').trim());
+    const hasContent = Object.values(form).some((value) => String(value || '').trim()) || images.length > 0;
     if (!hasContent) {
       Alert.alert('Add details', 'Please add at least one detail before saving.');
       return;
@@ -110,6 +125,9 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
       const cleaned = Object.fromEntries(
         Object.entries(form).map(([key, value]) => [key, String(value || '').trim()])
       );
+      cleaned.images = images;
+      cleaned.imageUrl = images[0] || '';
+
       await updateProfile({ [config.field]: [...existingItems, cleaned] });
       Alert.alert('Saved', `${config.title.replace('Add ', '')} added successfully.`, [
         { text: 'OK', onPress: () => navigation.goBack() }
@@ -159,42 +177,47 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
               return (
                 <View key={key} style={styles.field}>
                   <Text style={[styles.label, { color: colors.textSecondary }]}>
-                    {type === 'project' ? t('profileDetail.projectImageUrl', 'Project Photo') : t('profileDetail.certificateImageUrl', 'Certificate Photo')}
+                    {type === 'project' ? t('profileDetail.projectImageUrl', 'Project Photos') : t('profileDetail.certificateImageUrl', 'Certificate Photo')}
                   </Text>
                   
                   <View style={styles.imageSelectorContainer}>
-                    {form[key] ? (
-                      <View style={styles.previewContainer}>
-                        <Image source={{ uri: form[key] }} style={styles.imagePreview} resizeMode="cover" />
-                        <TouchableOpacity 
-                          style={[styles.selectBtn, { backgroundColor: colors.accent }]}
-                          onPress={() => handleSelectImage(key)}
-                          disabled={uploadingField === key}
-                        >
-                          {uploadingField === key ? (
-                            <ActivityIndicator size="small" color="#FFF" />
-                          ) : (
-                            <Text style={styles.selectBtnText}>{t('profileDetail.changePhoto', 'Change Photo')}</Text>
-                          )}
-                        </TouchableOpacity>
+                    {images.length > 0 && (
+                      <View style={styles.imagesGrid}>
+                        {images.map((imgUrl, idx) => (
+                          <View key={`${imgUrl}-${idx}`} style={styles.gridImageItem}>
+                            <Image source={{ uri: imgUrl }} style={styles.gridImage} resizeMode="cover" />
+                            <TouchableOpacity 
+                              style={styles.removeImageBadge} 
+                              onPress={() => handleRemoveImage(idx)}
+                            >
+                              <MaterialCommunityIcons name="close-circle" size={22} color="#EF4444" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {uploadingField === key ? (
+                      <View style={[styles.placeholderContainer, { borderColor: colors.border, justifyContent: 'center', alignItems: 'center' }]}>
+                        <View style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}>
+                          <ActivityIndicator size="large" color={colors.accent} />
+                        </View>
+                        <Text style={[styles.placeholderText, { color: colors.textSecondary, marginTop: 8 }]}>
+                          {t('profileDetail.uploading', 'Uploading...')}
+                        </Text>
                       </View>
                     ) : (
-                      <TouchableOpacity 
-                        style={[styles.placeholderContainer, { borderColor: colors.border }]}
-                        onPress={() => handleSelectImage(key)}
-                        disabled={uploadingField === key}
-                      >
-                        {uploadingField === key ? (
-                          <ActivityIndicator size="medium" color={colors.accent} />
-                        ) : (
-                          <>
-                            <MaterialCommunityIcons name="camera-plus" size={32} color={colors.textSecondary} />
-                            <Text style={[styles.placeholderText, { color: colors.textSecondary, marginTop: 8 }]}>
-                              {t('profileDetail.selectPhoto', 'Select Photo')}
-                            </Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
+                      images.length < 8 && (
+                        <TouchableOpacity 
+                          style={[styles.placeholderContainer, { borderColor: colors.border }]}
+                          onPress={handleSelectMultipleImage}
+                        >
+                          <MaterialCommunityIcons name="camera-plus" size={32} color={colors.textSecondary} />
+                          <Text style={[styles.placeholderText, { color: colors.textSecondary, marginTop: 8 }]}>
+                            {images.length > 0 ? t('profileDetail.addAnotherPhoto', 'Add Another Photo') : t('profileDetail.selectPhoto', 'Select Photo')}
+                          </Text>
+                        </TouchableOpacity>
+                      )
                     )}
                   </View>
                 </View>
@@ -267,12 +290,12 @@ const styles = StyleSheet.create({
   saveBtn: { minHeight: 48, paddingVertical: 14, borderRadius: 4, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 8 },
   saveText: { fontSize: 15, fontWeight: '900' },
   imageSelectorContainer: { marginTop: 8 },
-  placeholderContainer: { width: '100%', height: 160, borderRadius: 8, borderWidth: 1.5, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.02)' },
+  placeholderContainer: { width: '100%', height: 120, borderRadius: 8, borderWidth: 1.5, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.02)', marginTop: 8 },
   placeholderText: { fontSize: 13, fontWeight: '700' },
-  previewContainer: { width: '100%', alignItems: 'center', gap: 12 },
-  imagePreview: { width: '100%', height: 200, borderRadius: 8 },
-  selectBtn: { width: '100%', height: 42, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  selectBtnText: { color: '#FFF', fontSize: 13, fontWeight: '900' },
+  imagesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
+  gridImageItem: { width: '31%', aspectRatio: 1, position: 'relative' },
+  gridImage: { width: '100%', height: '100%', borderRadius: 8 },
+  removeImageBadge: { position: 'absolute', top: -6, right: -6, backgroundColor: '#FFF', borderRadius: 10, padding: 0 }
 });
 
 export default ProviderProfileEditItemScreen;

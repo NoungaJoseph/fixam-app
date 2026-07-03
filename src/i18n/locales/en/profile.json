@@ -212,6 +212,7 @@
     "selectPhoto": "Select Project Photo",
     "changePhoto": "Change Photo",
     "noPhotoSelected": "No photo selected yet",
+    "addAnotherPhoto": "Add Another Photo",
     "certificateName": "Certificate Name",
     "year": "Year",
     "certificateImageUrl": "Certificate Image URL",

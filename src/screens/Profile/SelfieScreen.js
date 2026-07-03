@@ -28,8 +28,7 @@ const SelfieScreen = ({ navigation, route }) => {
       const result = await ImagePicker.launchCameraAsync({
         cameraType: ImagePicker.CameraType.front,
         quality: 0.85,
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false,
       });
 
       if (!result.canceled) {

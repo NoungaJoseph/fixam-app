@@ -142,7 +142,6 @@ const DashboardScreen = ({ navigation }) => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
-        aspect: [1, 1],
         quality: 0.6,
       });
 

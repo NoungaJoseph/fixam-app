@@ -280,7 +280,7 @@
   "viewProfile": "View Profile",
   "invite": {
     "title": "Invite Friends & Earn Credits",
-    "subtitle": "Invite a friend and earn 1 credit when they join Fixam using your referral code.",
+    "subtitle": "Invite a friend and earn 1 credit when they join Fixam and verify their identity.",
     "codeLabel": "YOUR REFERRAL CODE",
     "copied": "Copied!",
     "copiedBody": "Referral code copied to clipboard.",
@@ -289,9 +289,9 @@
     "inviteNow": "Invite Friends Now",
     "howItWorks": "How it works",
     "step1": "Share your code with friends",
-    "step2": "They sign up and verify their account",
-    "step3": "You receive 1 credit after their signup is confirmed",
-    "shareMessage": "Join me on Fixam! Use my referral code {{code}} so I earn 1 credit when you sign up. Download here: https://fixam.app/download"
+    "step2": "They sign up and verify their identity",
+    "step3": "You both receive 1 credit after their verification is approved",
+    "shareMessage": "Join me on Fixam! Use my referral code {{code}} so we both earn 1 credit when your profile identity gets verified. Download here: https://fixam.app/download"
   },
   "feedback": {
     "title": "Send Feedback",

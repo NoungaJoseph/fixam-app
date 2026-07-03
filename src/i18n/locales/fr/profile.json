@@ -280,7 +280,7 @@
   "viewProfile": "Voir le profil",
   "invite": {
     "title": "Inviter des amis et gagner des crédits",
-    "subtitle": "Invitez un ami et gagnez 1 crédit lorsqu'il rejoint Fixam avec votre code.",
+    "subtitle": "Invitez un ami et gagnez 1 crédit lorsqu'il rejoint Fixam et valide son identité.",
     "codeLabel": "VOTRE CODE DE PARRAINAGE",
     "copied": "Copié !",
     "copiedBody": "Code de parrainage copié.",
@@ -289,9 +289,9 @@
     "inviteNow": "Inviter maintenant",
     "howItWorks": "Comment ça marche",
     "step1": "Partagez votre code avec vos amis",
-    "step2": "Ils s'inscrivent et vérifient leur compte",
-    "step3": "Vous recevez 1 crédit après confirmation de leur inscription",
-    "shareMessage": "Rejoins-moi sur Fixam ! Utilise mon code {{code}} afin que je gagne 1 crédit à ton inscription. Téléchargement : https://fixam.app/download"
+    "step2": "Ils s'inscrivent et font vérifier leur identité",
+    "step3": "Vous recevez tous les deux 1 crédit après l'approbation de leur identité",
+    "shareMessage": "Rejoins-moi sur Fixam ! Utilise mon code {{code}} afin que nous gagnions tous les deux 1 crédit lors de la validation de ton identité. Téléchargement : https://fixam.app/download"
   },
   "feedback": {
     "title": "Envoyer un retour",

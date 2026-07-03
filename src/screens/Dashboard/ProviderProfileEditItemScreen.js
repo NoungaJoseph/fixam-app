@@ -57,7 +57,7 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.7,
       });
 

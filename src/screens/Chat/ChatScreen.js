@@ -201,14 +201,19 @@ const ChatScreen = ({ route, navigation }) => {
       const res = await api.get(`/chat/${activeConvId}/messages?limit=80`, { timeout: 12000 });
       setMessages(normalizeMessages(res.data.data || []));
       console.log('[ChatScreen] Loaded', res.data.data?.length || 0, 'messages');
+      
+      // Hide loader instantly so messages display immediately
+      setLoading(false);
 
-      try {
-        await api.put(`/chat/${activeConvId}/read`, {}, { timeout: 8000 });
-        fetchConversations();
-        fetchNotifications();
-      } catch (readError) {
-        console.log('Warning: Could not mark messages as read:', readError.message);
-      }
+      // Perform secondary actions in the background without blocking render
+      api.put(`/chat/${activeConvId}/read`, {}, { timeout: 8000 })
+        .then(() => {
+          fetchConversations();
+          fetchNotifications();
+        })
+        .catch((readError) => {
+          console.log('Warning: Could not mark messages as read:', readError.message);
+        });
 
       api.get(`/chat/${activeConvId}/active-task`, { timeout: 12000 })
         .then((activeTaskRes) => setActiveTask(activeTaskRes.data.data || task || null))
@@ -216,14 +221,14 @@ const ChatScreen = ({ route, navigation }) => {
         .finally(() => setHasCheckedTask(true));
     } catch (error) {
       console.log('Error fetching messages:', error.message);
+      setLoading(false);
       if (error.code === 'ECONNABORTED') {
         console.log('[ChatScreen] Timeout, retrying...');
         setTimeout(() => fetchMessages(), 5000);
       }
-    } finally {
-      setLoading(false);
     }
-  }, [activeConvId, fetchConversations, fetchNotifications, task]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConvId, task]);
 
   useEffect(() => {
     if (!activeConvId) {
@@ -265,7 +270,8 @@ const ChatScreen = ({ route, navigation }) => {
       offMessage?.();
       offTyping?.();
     };
-  }, [activeConvId, fetchMessages, on, emit, receiverId, user?.id, fetchConversations, fetchNotifications]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConvId]);
 
   const trackingTask = activeTask || task;
   const canMessage = chatStatus.active;

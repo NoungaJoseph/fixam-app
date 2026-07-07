@@ -87,9 +87,12 @@ export const AppProvider = ({ children }) => {
       // First try to load cached data for instant UI
       const loadCached = async () => {
         try {
-          const cached = await AsyncStorage.getItem(`fixam:dashboard:${user?.id}`);
-          if (cached) {
-            const data = JSON.parse(cached);
+          const [cachedData, cachedNotifications] = await Promise.all([
+            AsyncStorage.getItem(`fixam:dashboard:${user?.id}`),
+            AsyncStorage.getItem(`fixam:notifications:${user?.id}`)
+          ]);
+          if (cachedData) {
+            const data = JSON.parse(cachedData);
             setProviders(data.providers || []);
             setJobs(data.jobs || []);
             setWalletBalance(data.walletBalance || 0);
@@ -103,6 +106,9 @@ export const AppProvider = ({ children }) => {
             setHasLoadedData(true);
             hasLoadedDataRef.current = true;
             setIsInitialLoad(false);
+          }
+          if (cachedNotifications) {
+            setNotifications(JSON.parse(cachedNotifications));
           }
         } catch (e) {
           console.log('Error loading cache', e);
@@ -422,10 +428,13 @@ export const AppProvider = ({ children }) => {
         return !notif.archivedAt;
       });
       setNotifications(unique);
+      if (user?.id) {
+        await AsyncStorage.setItem(`fixam:notifications:${user.id}`, JSON.stringify(unique));
+      }
     } catch (error) {
       console.log('Error fetching notifications:', error);
     }
-  }, []);
+  }, [user?.id]);
 
   const fetchUnreadMessageCount = useCallback(async () => {
     // No-op — unreadCount is derived from conversations (see below).

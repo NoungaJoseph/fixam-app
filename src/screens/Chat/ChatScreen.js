@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import api, { getMediaUrl } from '../../services/api';
 import { useAppContext } from '../../context/AppContext';
@@ -190,6 +191,35 @@ const ChatScreen = ({ route, navigation }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConvId, receiverId]);
 
+  // Load cached messages when activeConvId changes for instant UI
+  useEffect(() => {
+    if (!activeConvId) return;
+
+    const loadCachedMessages = async () => {
+      try {
+        const cached = await AsyncStorage.getItem(`fixam:chat_messages:${activeConvId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setMessages(normalizeMessages(parsed));
+          setLoading(false);
+        }
+      } catch (err) {
+        console.log('[ChatScreen] Error loading cached messages:', err);
+      }
+    };
+
+    loadCachedMessages();
+  }, [activeConvId]);
+
+  // Reactive Effect: cache messages automatically whenever the messages array updates
+  useEffect(() => {
+    if (!activeConvId || messages.length === 0) return;
+    const sentMessages = messages.filter(m => m.status !== 'sending');
+    if (sentMessages.length > 0) {
+      AsyncStorage.setItem(`fixam:chat_messages:${activeConvId}`, JSON.stringify(sentMessages)).catch(() => {});
+    }
+  }, [messages, activeConvId]);
+
   const fetchMessages = useCallback(async () => {
     if (!activeConvId) {
       console.log('[ChatScreen] No conversation ID, skipping message fetch');
@@ -199,7 +229,8 @@ const ChatScreen = ({ route, navigation }) => {
     try {
       console.log('[ChatScreen] Fetching messages for conversation:', activeConvId);
       const res = await api.get(`/chat/${activeConvId}/messages?limit=80`, { timeout: 12000 });
-      setMessages(normalizeMessages(res.data.data || []));
+      const normalized = normalizeMessages(res.data.data || []);
+      setMessages(normalized);
       console.log('[ChatScreen] Loaded', res.data.data?.length || 0, 'messages');
       
       // Hide loader instantly so messages display immediately

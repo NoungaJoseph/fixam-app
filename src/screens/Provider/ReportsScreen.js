@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Platform
+  ActivityIndicator, Alert, Platform, Share
 } from 'react-native';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -131,6 +131,210 @@ const ReportsScreen = ({ navigation }) => {
     }
   };
 
+  const handleShareReport = async () => {
+    if (!activeReport || !selectedMonth) return;
+    
+    const reportData = {
+      statementPeriod: selectedMonth.label,
+      provider: {
+        name: user?.fullName || '',
+        email: user?.email || '',
+      },
+      earnings: `${activeReport.earnings.toLocaleString()} ${getCurrencyForUser(user)}`,
+      stats: {
+        profileViews: activeReport.views,
+        searches: activeReport.searches,
+        completedJobs: activeReport.jobsCompleted,
+        avgRating: `${Number(activeReport.rating).toFixed(1)} / 5`,
+        successRate: `${Number(activeReport.successRate).toFixed(0)}%`,
+        coinsPurchased: activeReport.coinsPurchased,
+      }
+    };
+
+    // Check if native ExpoPrint module is available in global JS registries (without calling native bridge loaders)
+    const isPrintAvailable = !!(
+      (global.ExpoModules && (global.ExpoModules.ExpoPrint || global.ExpoModules['ExpoPrint'])) ||
+      (global.expo && global.expo.modules && global.expo.modules.ExpoPrint)
+    );
+
+    if (!isPrintAvailable) {
+      // Immediately fall back to JSON text sharing if PDF native module is missing
+      await Share.share({
+        message: `Fixam Performance & Earnings Statement - ${selectedMonth.label}\n\n${JSON.stringify(reportData, null, 2)}`,
+        title: `Fixam Statement - ${selectedMonth.label}`
+      });
+      return;
+    }
+
+    try {
+      const htmlContent = `
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              color: #1E293B;
+              padding: 40px 30px;
+              line-height: 1.6;
+            }
+            .header {
+              border-bottom: 2px solid #0D9488;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .logo {
+              font-size: 24px;
+              font-weight: 800;
+              color: #0D9488;
+              letter-spacing: 1px;
+            }
+            .title {
+              font-size: 18px;
+              font-weight: 700;
+              color: #1E293B;
+              text-transform: uppercase;
+              margin: 0;
+            }
+            .details {
+              margin-bottom: 30px;
+              font-size: 14px;
+              color: #475569;
+            }
+            .details td {
+              padding: 4px 10px 4px 0;
+            }
+            .earnings-box {
+              background-color: #F0FDFA;
+              border: 1px solid #CCFBF1;
+              border-radius: 12px;
+              padding: 24px;
+              margin-bottom: 35px;
+              text-align: center;
+            }
+            .earnings-label {
+              font-size: 13px;
+              font-weight: 600;
+              color: #0D9488;
+              text-transform: uppercase;
+              margin-bottom: 6px;
+              letter-spacing: 0.5px;
+            }
+            .earnings-value {
+              font-size: 34px;
+              font-weight: 900;
+              color: #0F766E;
+            }
+            .section-title {
+              font-size: 15px;
+              font-weight: 750;
+              color: #0D9488;
+              border-bottom: 1px solid #E2E8F0;
+              padding-bottom: 8px;
+              margin-top: 30px;
+              margin-bottom: 15px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .stats-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 30px;
+            }
+            .stats-table th, .stats-table td {
+              padding: 12px 15px;
+              text-align: left;
+              border-bottom: 1px solid #E2E8F0;
+              font-size: 14px;
+            }
+            .stats-table th {
+              background-color: #F8FAFC;
+              color: #475569;
+              font-weight: 600;
+              width: 40%;
+            }
+            .stats-table td {
+              color: #0F172A;
+              font-weight: 700;
+            }
+            .footer {
+              margin-top: 60px;
+              border-top: 1px solid #E2E8F0;
+              padding-top: 20px;
+              font-size: 11px;
+              color: #94A3B8;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">FIXAM</div>
+            <div class="title">Earnings & Stats Report</div>
+          </div>
+          
+          <table class="details">
+            <tr><td><strong>Provider Name:</strong></td><td>${reportData.provider.name}</td></tr>
+            <tr><td><strong>Email Address:</strong></td><td>${reportData.provider.email}</td></tr>
+            <tr><td><strong>Statement Period:</strong></td><td>${reportData.statementPeriod}</td></tr>
+            <tr><td><strong>Date Generated:</strong></td><td>${new Date().toLocaleDateString()}</td></tr>
+          </table>
+
+          <div class="earnings-box">
+            <div class="earnings-label">Total Net Earnings</div>
+            <div class="earnings-value">${reportData.earnings}</div>
+          </div>
+
+          <div class="section-title">Monthly Performance Analytics</div>
+          <table class="stats-table">
+            <tr><th>Profile Views</th><td>${reportData.stats.profileViews}</td></tr>
+            <tr><th>Search Appearances</th><td>${reportData.stats.searches}</td></tr>
+            <tr><th>Completed Jobs</th><td>${reportData.stats.completedJobs}</td></tr>
+            <tr><th>Average Rating</th><td>${reportData.stats.avgRating}</td></tr>
+            <tr><th>Success Rate</th><td>${reportData.stats.successRate}</td></tr>
+            <tr><th>Coins Purchased</th><td>${reportData.stats.coinsPurchased}</td></tr>
+          </table>
+
+          <div class="footer">
+            Fixam Technologies © ${new Date().getFullYear()}. All rights reserved.<br/>
+            This document is compiled automatically and serves as a valid statement of provider earnings for tax purposes.
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Dynamically load the modules only when they are verified to exist
+      const Print = require('expo-print');
+      const Sharing = require('expo-sharing');
+
+      try {
+        // Generate the PDF file
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+
+        // Open sharing dialog with the generated PDF file
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Fixam Statement - ${selectedMonth.label}`,
+          UTI: 'com.adobe.pdf'
+        });
+      } catch (pdfErr) {
+        console.log('PDF statement generation failed, falling back to JSON text:', pdfErr);
+        
+        // Fallback to text JSON sharing
+        await Share.share({
+          message: `Fixam Performance & Earnings Statement - ${selectedMonth.label}\n\n${JSON.stringify(reportData, null, 2)}`,
+          title: `Fixam Statement - ${selectedMonth.label}`
+        });
+      }
+    } catch (err) {
+      console.log('Outer error report:', err);
+      Alert.alert(t('common.error', 'Error'), 'Failed to export statement.');
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <CustomHeader navigation={navigation} title={t('home.reports', 'Reports')} colors={colors} />
@@ -236,6 +440,15 @@ const ReportsScreen = ({ navigation }) => {
                 <Text style={[styles.modalStatLabel, { color: colors.textSecondary }]}>{t('profile.coinsPurchased', 'Coins Purchased')}</Text>
               </View>
             </View>
+
+            <TouchableOpacity 
+              style={[styles.exportBtn, { backgroundColor: colors.accent }]}
+              onPress={handleShareReport}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="share-variant" size={20} color="#FFF" />
+              <Text style={styles.exportBtnText}>{t('profile.exportReport', 'Export Statement')}</Text>
+            </TouchableOpacity>
           </View>
         ) : ongoingCheck.isOngoing ? (
           // Case 2: Selected month is still active/ongoing
@@ -410,6 +623,20 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  exportBtn: {
+    height: 52,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 8,
+  },
+  exportBtnText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '805',
   },
 });
 

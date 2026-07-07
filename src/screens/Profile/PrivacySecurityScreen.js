@@ -265,7 +265,7 @@ const PrivacySecurityScreen = ({ navigation }) => {
               icon="file-document-outline" 
               title={t('profile.dataUsage')}
               desc={t('profile.dataUsageDesc')}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('DataUsage')}
             />
           </View>
 

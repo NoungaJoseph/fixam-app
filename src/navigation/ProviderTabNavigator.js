@@ -33,6 +33,7 @@ import NotificationsScreen from '../screens/Profile/NotificationsScreen';
 import NotificationDetailScreen from '../screens/Profile/NotificationDetailScreen';
 import NotificationSettingsScreen from '../screens/Profile/NotificationSettingsScreen';
 import PrivacySecurityScreen from '../screens/Profile/PrivacySecurityScreen';
+import DataUsageScreen from '../screens/Profile/DataUsageScreen';
 import ProfileLanguageScreen from '../screens/Profile/ProfileLanguageScreen';
 import FeedbackScreen from '../screens/Profile/FeedbackScreen';
 import VerificationScreen from '../screens/Profile/VerificationScreen';
@@ -309,6 +310,7 @@ const ProviderTabNavigator = () => {
       <Drawer.Screen name="BoostProfile" component={BoostProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="PrivacySecurity" component={PrivacySecurityScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="DataUsage" component={DataUsageScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="LanguageSelection" component={ProfileLanguageScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Feedback" component={FeedbackScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Verification" component={VerificationScreen} options={{ drawerItemStyle: { display: 'none' } }} />

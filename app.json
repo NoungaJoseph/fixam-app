@@ -23,7 +23,7 @@
       }
     },
     "android": {
-      "package": "com.fixam.app",
+      "package": "com.fixam.app.android",
       "googleServicesFile": "./firebase/google-services.json",
       "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize",

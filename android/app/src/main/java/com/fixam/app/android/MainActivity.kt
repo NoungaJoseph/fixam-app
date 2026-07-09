@@ -1,4 +1,4 @@
-package com.fixam.app
+package com.fixam.app.android
 
 import android.os.Build
 import android.os.Bundle

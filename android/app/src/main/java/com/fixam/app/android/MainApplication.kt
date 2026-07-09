@@ -1,4 +1,4 @@
-package com.fixam.app
+package com.fixam.app.android
 
 import android.app.Application
 import android.content.res.Configuration

@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.fixam.app'
+    namespace 'com.fixam.app.android'
     defaultConfig {
-        applicationId 'com.fixam.app'
+        applicationId 'com.fixam.app.android'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

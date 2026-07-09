@@ -81,7 +81,19 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
-apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle")
+def sentryPath = ""
+try {
+    sentryPath = ["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim()
+} catch (Exception e) {
+    // Ignore error, will use fallback path
+}
+def sentryGradleFile = sentryPath ? new File(sentryPath, "sentry.gradle") : new File(rootProject.projectDir, "../node_modules/@sentry/react-native/sentry.gradle")
+if (sentryGradleFile.exists()) {
+    apply from: sentryGradleFile
+} else {
+    apply from: "../../node_modules/@sentry/react-native/sentry.gradle"
+}
+
 
 android {
     ndkVersion rootProject.ext.ndkVersion

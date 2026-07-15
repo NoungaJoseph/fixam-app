@@ -182,8 +182,10 @@ class NotificationService {
               title: notification.title || 'New Notification',
               body: notification.body || '',
               data: data || {},
+              sound: true,
               android: {
                 channelId: 'default',
+                sound: true,
               }
             },
             trigger: null, // show immediately

@@ -30,6 +30,9 @@
     "goBack": "Go Back",
     "returnHome": "Return Home",
     "viewAll": "View all",
+    "showLess": "Show less",
+    "noItems": "No details available.",
+    "details": "Details",
     "recent": "Recent",
     "notAvailable": "N/A",
     "contactSupport": "Contact Support",
@@ -137,7 +140,13 @@
     "notOrangeNumber": "This number is not an Orange number. Orange numbers start with 690-699",
     "invalidAmount": "Please enter a valid amount",
     "invalidOtp": "Invalid or expired OTP",
-    "invalidCode": "Invalid or expired code. Please try again."
+    "invalidCode": "Invalid or expired code. Please try again.",
+    "reqMinLength": "At least 8 characters",
+    "reqNumber": "Contains a number",
+    "reqSpecial": "Contains a special character (!@#$...)",
+    "reqUppercase": "Contains uppercase letter",
+    "passwordStrength": "Password Strength",
+    "passwordStrengthGood": "Good"
   },
   "verification": {
     "takeSelfie": "Take a Live Selfie",

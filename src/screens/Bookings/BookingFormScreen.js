@@ -134,7 +134,8 @@ const BookingFormScreen = ({ route, navigation }) => {
       return;
     }
 
-    if (!providerId || !form.bookingDate || !form.bookingTime || !form.location || !form.budget) {
+    const isUrgentOrEmergency = ['URGENT', 'EMERGENCY'].includes(form.urgencyLevel);
+    if (!providerId || !form.bookingDate || !form.bookingTime || !form.location || (!isUrgentOrEmergency && !form.budget)) {
       Alert.alert(t('errors.required'), t('validation.bookingRequired'));
       return;
     }
@@ -154,7 +155,7 @@ const BookingFormScreen = ({ route, navigation }) => {
 
     try {
       setSubmitting(true);
-      const bookingBudget = Number(String(form.budget || 0).replace(/[^\d.]/g, '')) || 0;
+      const bookingBudget = isUrgentOrEmergency ? 0 : (Number(String(form.budget || 0).replace(/[^\d.]/g, '')) || 0);
       const res = await api.post('/bookings', {
         providerId,
         taskId: task?.id,
@@ -295,7 +296,21 @@ const BookingFormScreen = ({ route, navigation }) => {
               </View>
             </View>
 
-            <Input label={t('bookings.budget')} placeholder="15000" value={form.budget} onChangeText={(budget) => setForm({ ...form, budget })} keyboardType="numeric" colors={colors} />
+            {['URGENT', 'EMERGENCY'].includes(form.urgencyLevel) ? (
+              <View style={[styles.field, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: colors.border }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <MaterialCommunityIcons name="information-outline" size={18} color={colors.accent} />
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text }}>
+                    {t('bookings.emergencyPricingTitle', 'Urgent/Emergency Pricing')}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, lineHeight: 18 }}>
+                  {t('bookings.emergencyPricingDesc', 'For urgent and emergency requests, you do not set a budget. The service provider will review your request and quote their price first.')}
+                </Text>
+              </View>
+            ) : (
+              <Input label={t('bookings.budget')} placeholder="15000" value={form.budget} onChangeText={(budget) => setForm({ ...form, budget })} keyboardType="numeric" colors={colors} />
+            )}
             <Input label={t('bookings.details')} placeholder={t('bookings.detailsPlaceholder')} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} multiline colors={colors} />
 
             <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

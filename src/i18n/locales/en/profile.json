@@ -244,7 +244,8 @@
     "clientMode": "Client Mode",
     "switchToPersonalBrowsing": "Switch to personal browsing",
     "switchToWorkProfile": "Switch to work profile",
-    "advancedProfileSettings": "Advanced profile settings"
+    "advancedProfileSettings": "Advanced profile settings",
+    "viewAllSkills": "View All Skills"
   },
   "workProfile": {
     "editSkills": "Edit Skills",

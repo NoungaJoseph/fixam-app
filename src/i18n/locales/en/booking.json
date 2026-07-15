@@ -45,6 +45,12 @@
     "counterOfferReceived": "Counter-Offer Received!",
     "counterAcceptedSuccess": "Counter-offer accepted successfully.",
     "bookingCancelledSuccess": "Booking request cancelled.",
-    "waitingForClient": "Waiting for client to accept or decline..."
+    "waitingForClient": "Waiting for client to accept or decline...",
+    "toBeQuoted": "To be quoted",
+    "quotePriceAccept": "Quote Price",
+    "emergencyPricingTitle": "Urgent/Emergency Pricing",
+    "emergencyPricingDesc": "For urgent and emergency requests, you do not set a budget. The service provider will review your request and quote their price first.",
+    "emergencyBannerDesc": "This is a high-priority emergency. Response required immediately.",
+    "urgentBannerDesc": "This is a high-priority urgent request."
   }
 }

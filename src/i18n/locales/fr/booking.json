@@ -45,6 +45,12 @@
     "counterOfferReceived": "Contre-proposition reçue !",
     "counterAcceptedSuccess": "Contre-proposition acceptée avec succès.",
     "bookingCancelledSuccess": "Demande de réservation annulée.",
-    "waitingForClient": "En attente de la réponse du client..."
+    "waitingForClient": "En attente de la réponse du client...",
+    "toBeQuoted": "À chiffrer",
+    "quotePriceAccept": "Chiffrer le prix",
+    "emergencyPricingTitle": "Tarification urgente/d'urgence",
+    "emergencyPricingDesc": "Pour les demandes urgentes et d'urgence, vous ne définissez pas de budget. Le prestataire examinera votre demande et proposera son tarif en premier.",
+    "emergencyBannerDesc": "Il s'agit d'une urgence de haute priorité. Réponse immédiate requise.",
+    "urgentBannerDesc": "Il s'agit d'une demande urgente de haute priorité."
   }
 }

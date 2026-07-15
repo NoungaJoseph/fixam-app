@@ -187,6 +187,55 @@ const JobStatusScreen = ({ route, navigation }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {isBooking && ['URGENT', 'EMERGENCY'].includes(job.urgencyLevel) && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: job.urgencyLevel === 'EMERGENCY' ? (isDarkMode ? '#451A0320' : '#FEF2F2') : (isDarkMode ? '#451A0310' : '#FFF7ED'),
+              borderBottomWidth: 1.5,
+              borderColor: job.urgencyLevel === 'EMERGENCY' ? '#FEE2E2' : '#FFEDD5',
+              paddingHorizontal: 20,
+              paddingVertical: 14,
+              gap: 12
+            }}>
+              <View style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                backgroundColor: job.urgencyLevel === 'EMERGENCY' ? '#EF4444' : '#F97316',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <MaterialCommunityIcons
+                  name={job.urgencyLevel === 'EMERGENCY' ? 'alert-decagram' : 'alert-circle'}
+                  size={20}
+                  color="#FFF"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '900',
+                  color: job.urgencyLevel === 'EMERGENCY' ? '#EF4444' : '#F97316',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5
+                }}>
+                  {job.urgencyLevel === 'EMERGENCY' ? t('bookings.emergencyUrgency', 'Emergency Request') : t('bookings.urgentUrgency', 'Urgent Request')}
+                </Text>
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: colors.textSecondary,
+                  marginTop: 2
+                }}>
+                  {job.urgencyLevel === 'EMERGENCY' 
+                    ? t('bookings.emergencyBannerDesc', 'This is a high-priority emergency. Response required immediately.')
+                    : t('bookings.urgentBannerDesc', 'This is a high-priority urgent request.')}
+                </Text>
+              </View>
+            </View>
+          )}
+
           <View style={styles.jobHero}>
             <View style={[styles.idBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.accentSoft }]}>
               <Text style={[styles.idText, { color: colors.accent, fontWeight: '800' }]}>#{job.id?.slice(-6) || t('jobs.task')}</Text>
@@ -384,10 +433,22 @@ const JobStatusScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          <View style={[styles.costCard, { backgroundColor: colors.accent }]}>
-            <Text style={styles.costLabel}>{t('jobs.totalEstimatedBudget')}</Text>
-            <Text style={styles.costValue}>{Number(job.budget || 0).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}</Text>
-          </View>
+          {(() => {
+            const hasNoBudget = !job.budget || job.budget === 0;
+            const isUrgentOrEmergency = ['URGENT', 'EMERGENCY'].includes(job.urgencyLevel);
+            const displayCost = (hasNoBudget && isUrgentOrEmergency)
+              ? t('bookings.toBeQuoted', 'To be quoted')
+              : `${Number(job.budget || 0).toLocaleString()} ${getCurrencyForUser(job.country || user?.country || 'Cameroon')}`;
+            const cardBgColor = isUrgentOrEmergency 
+              ? (job.urgencyLevel === 'EMERGENCY' ? '#EF4444' : '#F97316') 
+              : colors.accent;
+            return (
+              <View style={[styles.costCard, { backgroundColor: cardBgColor }]}>
+                <Text style={styles.costLabel}>{t('jobs.totalEstimatedBudget')}</Text>
+                <Text style={styles.costValue}>{displayCost}</Text>
+              </View>
+            );
+          })()}
 
           <View style={styles.actions}>
             {canViewLocation && (

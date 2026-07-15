@@ -244,7 +244,8 @@
     "clientMode": "Mode client",
     "switchToPersonalBrowsing": "Passer à la navigation personnelle",
     "switchToWorkProfile": "Passer au profil professionnel",
-    "advancedProfileSettings": "Réglages avancés du profil"
+    "advancedProfileSettings": "Réglages avancés du profil",
+    "viewAllSkills": "Voir toutes les compétences"
   },
   "workProfile": {
     "editSkills": "Modifier les compétences",

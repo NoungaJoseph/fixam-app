@@ -21,21 +21,28 @@ const ChangePasswordScreen = ({ navigation }) => {
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState('');
 
-  const hasMinLength = newPass.length >= 8;
-  const hasNumber = /\d/.test(newPass);
-  const hasSpecial = /[^A-Za-z0-9]/.test(newPass);
-  const strength = !newPass ? 0 : hasMinLength && hasNumber && hasSpecial ? 3 : hasMinLength && (hasNumber || hasSpecial) ? 2 : 1;
-  const strengthColor = ['#E5E7EB', '#EF4444', '#F97316', '#22C55E'][strength];
-  const strengthLabel = ['', t('profile.passwordStrengthWeak'), t('profile.passwordStrengthFair'), t('profile.passwordStrengthStrong')][strength];
+  const requirements = [
+    { label: t('validation.reqMinLength', 'At least 8 characters'), met: newPass.length >= 8 },
+    { label: t('validation.reqNumber', 'Contains a number'), met: /\d/.test(newPass) },
+    { label: t('validation.reqSpecial', 'Contains a special character (!@#$...)'), met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPass) },
+    { label: t('validation.reqUppercase', 'Contains uppercase letter'), met: /[A-Z]/.test(newPass) },
+  ];
+  const metCount = requirements.filter(r => r.met).length;
+  const strength = metCount <= 1 ? 'weak' : metCount === 2 ? 'fair' : metCount === 3 ? 'good' : 'strong';
+  const strengthColor = { weak: '#EF4444', fair: '#F97316', good: '#EAB308', strong: '#22C55E' }[strength];
+  const strengthLabel = {
+    weak: t('profile.passwordStrengthWeak', 'Weak'),
+    fair: t('profile.passwordStrengthFair', 'Fair'),
+    good: t('validation.passwordStrengthGood', 'Good'),
+    strong: t('profile.passwordStrengthStrong', 'Strong')
+  }[strength];
 
   const handleSave = async () => {
     const nextErrors = {};
     if (!current) nextErrors.current = t('profile.currentPasswordRequired');
     
-    if (newPass.length > 0 && newPass.length < 8) {
-      nextErrors.newPass = t('profile.passwordTooShort');
-    } else if (strength < 2) {
-      nextErrors.newPass = t('profile.passwordTooWeak');
+    if (newPass.length > 0 && metCount < 3) {
+      nextErrors.newPass = t('validation.passwordFormat', 'Password must meet at least 3 requirements');
     }
 
     if (newPass !== confirm) nextErrors.confirm = t('profile.passwordMismatch');
@@ -109,11 +116,33 @@ const ChangePasswordScreen = ({ navigation }) => {
 
           {/* Strength indicator */}
           {newPass.length > 0 && (
-            <View style={styles.strengthRow}>
-              {[1, 2, 3].map(i => (
-                <View key={i} style={[styles.strengthBar, { backgroundColor: i <= strength ? strengthColor : colors.border }]} />
-              ))}
-              <Text style={[styles.strengthLabel, { color: strengthColor }]}>{strengthLabel}</Text>
+            <View style={{ marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary }}>
+                  {t('validation.passwordStrength', 'Password Strength')}:
+                </Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: strengthColor }}>
+                  {strengthLabel}
+                </Text>
+              </View>
+              <View style={{ height: 6, width: '100%', backgroundColor: isDarkMode ? '#1E293B' : '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+                <View style={{ height: '100%', width: ['0%', '25%', '50%', '75%', '100%'][metCount], backgroundColor: strengthColor, borderRadius: 3 }} />
+              </View>
+
+              <View style={{ marginTop: 10, gap: 4 }}>
+                {requirements.map((req, index) => (
+                  <View key={index} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <MaterialCommunityIcons 
+                      name={req.met ? "check-circle" : "close-circle"} 
+                      size={14} 
+                      color={req.met ? "#22C55E" : "#94A3B8"} 
+                    />
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: req.met ? colors.text : colors.textSecondary }}>
+                      {req.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
 

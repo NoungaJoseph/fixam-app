@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Set EXPO_PUBLIC_API_URL for device builds, e.g. http://192.168.1.185:5000/api
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://fixam-backend-production.up.railway.app/api';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.usefixam.com/api';
 export const API_ORIGIN = BASE_URL.replace(/\/api\/?$/, '');
 
 const api = axios.create({

@@ -45,6 +45,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   
   const [selectedProject, setSelectedProject] = React.useState(null);
   const [projectModalVisible, setProjectModalVisible] = React.useState(false);
+  const [showAllSkills, setShowAllSkills] = React.useState(false);
 
   const handleOpenProjectDetail = (project) => {
     setSelectedProject(project);
@@ -493,7 +494,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           <View style={styles.sectionContainer}>
             <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('profile.expertise')}</Text>
             <View style={styles.skillsList}>
-              {skills.slice(0, 4).map((skill, i) => {
+              {skills.slice(0, showAllSkills ? skills.length : 4).map((skill, i) => {
                 const itemStyles = getSkillStyles(skill);
                 return (
                   <View
@@ -508,12 +509,32 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                   </View>
                 );
               })}
-              {skills.length > 4 && (
-                <View style={[styles.skillTagMore, { backgroundColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
-                  <Text style={[styles.skillTagMoreText, { color: isDarkMode ? '#FFF' : '#475569' }]}>+{skills.length - 4}</Text>
-                </View>
-              )}
             </View>
+            {skills.length > 4 && (
+              <TouchableOpacity
+                onPress={() => setShowAllSkills(!showAllSkills)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 12,
+                  paddingVertical: 8,
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  borderColor: colors.border,
+                  backgroundColor: isDarkMode ? '#1E293B' : '#FFF'
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent, marginRight: 4 }}>
+                  {showAllSkills ? t('common.showLess', 'Show Less') : t('profileDetail.viewAllSkills', 'View All Skills')}
+                </Text>
+                <MaterialCommunityIcons
+                  name={showAllSkills ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.accent}
+                />
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -542,9 +563,16 @@ const ProviderProfileScreen = ({ route, navigation }) => {
 
         {portfolio.length > 0 && (
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>Projects</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A', marginBottom: 0 }]}>{t('profileDetail.portfolio', 'Projects')}</Text>
+              {portfolio.length > 3 && (
+                <TouchableOpacity onPress={() => navigation.navigate('PortfolioDetails', { title: t('profileDetail.portfolio', 'Projects'), items: portfolio, type: 'projects' })}>
+                  <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.projectScroll}>
-              {portfolio.map((item, index) => (
+              {portfolio.slice(0, 3).map((item, index) => (
                 <TouchableOpacity 
                   key={`${item.title || 'project'}-${index}`} 
                   style={[styles.projectCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}
@@ -568,8 +596,15 @@ const ProviderProfileScreen = ({ route, navigation }) => {
 
         {certificates.length > 0 && (
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>Certificates</Text>
-            {certificates.map((item, index) => (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A', marginBottom: 0 }]}>{t('profileDetail.certifications', 'Certificates')}</Text>
+              {certificates.length > 2 && (
+                <TouchableOpacity onPress={() => navigation.navigate('PortfolioDetails', { title: t('profileDetail.certifications', 'Certificates'), items: certificates, type: 'certificates' })}>
+                  <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {certificates.slice(0, 2).map((item, index) => (
               <View key={`${item.title || 'certificate'}-${index}`} style={[styles.credentialRow, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
                 <View style={styles.credentialIcon}>
                   <MaterialCommunityIcons name="certificate-outline" size={22} color="#0D9488" />
@@ -585,8 +620,15 @@ const ProviderProfileScreen = ({ route, navigation }) => {
 
         {employmentHistory.length > 0 && (
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>Work history</Text>
-            {employmentHistory.map((item, index) => (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A', marginBottom: 0 }]}>{t('profileDetail.workHistory', 'Work history')}</Text>
+              {employmentHistory.length > 2 && (
+                <TouchableOpacity onPress={() => navigation.navigate('PortfolioDetails', { title: t('profileDetail.workHistory', 'Work history'), items: employmentHistory, type: 'workHistory' })}>
+                  <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {employmentHistory.slice(0, 2).map((item, index) => (
               <View key={`${item.title || item.company || 'work'}-${index}`} style={[styles.credentialRow, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
                 <View style={styles.credentialIcon}>
                   <MaterialCommunityIcons name="briefcase-outline" size={22} color="#2563EB" />

@@ -102,7 +102,20 @@ const BookingsScreen = ({ navigation }) => {
   }, [fetchBookings, on]);
 
   const sortedBookings = useMemo(() => {
-    return [...bookings].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+    const urgencyWeight = {
+      EMERGENCY: 3,
+      URGENT: 2,
+      NORMAL: 1,
+      LOW: 1
+    };
+    return [...bookings].sort((a, b) => {
+      const weightA = urgencyWeight[a.urgencyLevel] || 1;
+      const weightB = urgencyWeight[b.urgencyLevel] || 1;
+      if (weightB !== weightA) {
+        return weightB - weightA;
+      }
+      return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+    });
   }, [bookings]);
 
   const updateStatus = async (bookingId, status) => {
@@ -131,8 +144,46 @@ const BookingsScreen = ({ navigation }) => {
     const reviewed = hasUserReviewed(item, user?.id);
     const isUpdating = updatingId === item.id;
 
+    const isUrgent = item.urgencyLevel === 'URGENT';
+    const isEmergency = item.urgencyLevel === 'EMERGENCY';
+    const highlightBorderColor = isEmergency ? '#EF4444' : (isUrgent ? '#F97316' : colors.border);
+    const highlightBorderWidth = (isEmergency || isUrgent) ? 2 : 1;
+
+    const hasNoBudget = !item.budget || item.budget === 0;
+    const budgetLabel = (hasNoBudget && (isUrgent || isEmergency))
+      ? t('bookings.toBeQuoted', 'To be quoted')
+      : `${Number(item.budget || 0).toLocaleString()} ${getCurrencyForUser(item.country || user?.country || 'Cameroon')}`;
+
     return (
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: highlightBorderColor, borderWidth: highlightBorderWidth }]}>
+        {item.urgencyLevel && item.urgencyLevel !== 'NORMAL' && (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            alignSelf: 'flex-start',
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 4,
+            backgroundColor: isEmergency ? '#EF4444' : '#F97316',
+            marginBottom: 10,
+            gap: 4
+          }}>
+            <MaterialCommunityIcons
+              name={isEmergency ? 'alert-decagram' : 'alert-circle'}
+              size={14}
+              color="#FFFFFF"
+            />
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 11,
+              fontWeight: '900',
+              textTransform: 'uppercase'
+            }}>
+              {isEmergency ? t('bookings.emergencyUrgency', 'Emergency') : t('bookings.urgentUrgency', 'Urgent')}
+            </Text>
+          </View>
+        )}
+
         <View style={styles.cardTop}>
           <View style={[styles.iconWrap, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.16)' : '#E6FDF3' }]}>
             <MaterialCommunityIcons name="calendar-clock" size={24} color={colors.accent} />
@@ -155,7 +206,7 @@ const BookingsScreen = ({ navigation }) => {
           <Detail icon="calendar" label={date} colors={colors} />
           <Detail icon="clock-outline" label={item.bookingTime || t('jobs.asap')} colors={colors} />
           <Detail icon="map-marker-outline" label={item.location || t('jobs.onSite')} colors={colors} />
-          <Detail icon="cash" label={`${Number(item.budget || 0).toLocaleString()} ${getCurrencyForUser(item.country || user?.country || 'Cameroon')}`} colors={colors} />
+          <Detail icon="cash" label={budgetLabel} colors={colors} />
         </View>
 
         {status === 'COUNTER_PROPOSED' && (
@@ -201,21 +252,33 @@ const BookingsScreen = ({ navigation }) => {
                 <Text style={[styles.secondaryText, { color: '#EF4444' }]}>{t('jobs.reject')}</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity
-                style={[styles.secondaryBtn, { borderColor: '#8B5CF6', flex: 1, marginRight: 2 }]}
-                disabled={isUpdating}
-                onPress={() => handleOpenCounterModal(item)}
-              >
-                <Text style={[styles.secondaryText, { color: '#8B5CF6' }]}>{t('booking.bookings.counter', 'Counter')}</Text>
-              </TouchableOpacity>
+              {['URGENT', 'EMERGENCY'].includes(item.urgencyLevel) && (!item.budget || item.budget === 0) ? (
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { backgroundColor: '#8B5CF6', flex: 2 }]}
+                  disabled={isUpdating}
+                  onPress={() => handleOpenCounterModal(item)}
+                >
+                  <Text style={styles.primaryText}>{t('bookings.quotePriceAccept', 'Quote Price')}</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[styles.secondaryBtn, { borderColor: '#8B5CF6', flex: 1, marginRight: 2 }]}
+                    disabled={isUpdating}
+                    onPress={() => handleOpenCounterModal(item)}
+                  >
+                    <Text style={[styles.secondaryText, { color: '#8B5CF6' }]}>{t('booking.bookings.counter', 'Counter')}</Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
-                disabled={isUpdating}
-                onPress={() => updateStatus(item.id, 'ACCEPTED')}
-              >
-                {isUpdating ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryText}>{t('jobs.accept')}</Text>}
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
+                    disabled={isUpdating}
+                    onPress={() => updateStatus(item.id, 'ACCEPTED')}
+                  >
+                    {isUpdating ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryText}>{t('jobs.accept')}</Text>}
+                  </TouchableOpacity>
+                </>
+              )}
             </>
           ) : null}
 

@@ -13,6 +13,7 @@ const ICON_CONFIG = {
   APPLICATION_ACCEPTED: { icon: 'briefcase-check-outline', color: '#2563EB', bg: '#EFF6FF' },
   JOB_COMPLETED: { icon: 'check-circle-outline', color: '#22C55E', bg: '#ECFDF5' },
   BOOKING_SENT: { icon: 'calendar-check-outline', color: '#8B5CF6', bg: '#F5F3FF' },
+  COUNTER_PROPOSED: { icon: 'cash-multiple', color: '#8B5CF6', bg: '#F5F3FF' },
   COINS_ADDED: { icon: 'wallet-plus-outline', color: '#0D9488', bg: '#F0FDFA' },
   PROVIDER_OF_MONTH: { icon: 'trophy-outline', color: '#F59E0B', bg: '#FFFBEB' },
   TRANSACTION: { icon: 'wallet', color: '#0D9488', bg: '#F0FDFA' },
@@ -94,8 +95,9 @@ const NotificationDetailScreen = ({ route, navigation }) => {
       case 'NEW_BOOKING':
       case 'BOOKING_CONFIRMED':
       case 'BOOKING_SENT':
+      case 'COUNTER_PROPOSED':
         return {
-          label: 'View Booking',
+          label: t('notifications.viewBooking', 'View Booking'),
           onPress: () => {
             if (data.bookingId) goToBooking(data.bookingId);
           }

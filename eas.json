@@ -14,8 +14,8 @@
         "gradleCommand": ":app:assembleRelease"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://fixam-backend-production.up.railway.app/api",
-        "EXPO_PUBLIC_SOCKET_URL": "https://fixam-backend-production.up.railway.app",
+        "EXPO_PUBLIC_API_URL": "https://api.usefixam.com/api",
+        "EXPO_PUBLIC_SOCKET_URL": "https://api.usefixam.com",
         "GRADLE_OPTS": "-Dorg.gradle.jvmargs=-Xmx4096m",
         "SENTRY_ORG": "fixam",
         "SENTRY_PROJECT": "react-native",
@@ -28,8 +28,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://fixam-backend-production.up.railway.app/api",
-        "EXPO_PUBLIC_SOCKET_URL": "https://fixam-backend-production.up.railway.app",
+        "EXPO_PUBLIC_API_URL": "https://api.usefixam.com/api",
+        "EXPO_PUBLIC_SOCKET_URL": "https://api.usefixam.com",
         "SENTRY_ORG": "fixam",
         "SENTRY_PROJECT": "react-native",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"

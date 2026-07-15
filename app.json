@@ -19,7 +19,8 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "This app accesses your microphone to allow you to record and send voice messages in chats."
       }
     },
     "android": {

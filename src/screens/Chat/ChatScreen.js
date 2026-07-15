@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useSocket } from '../../context/SocketContext';
@@ -16,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api, { getMediaUrl } from '../../services/api';
 import { useAppContext } from '../../context/AppContext';
 import UserAvatar from '../../components/UserAvatar';
+import AudioPlayer from '../../components/AudioPlayer';
 
 const SUPPORTED_MESSAGE_TYPES = new Set(['TEXT', 'IMAGE', 'FILE']);
 
@@ -105,9 +107,21 @@ const ChatScreen = ({ route, navigation }) => {
   const [isSending, setIsSending] = useState(false);
   const [activeTask, setActiveTask] = useState(task || null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [recording, setRecording] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordDuration, setRecordDuration] = useState(0);
+  const recordTimerRef = useRef(null);
   const flatListRef = useRef();
   const activeConvIdRef = useRef(conversationId);
   console.log('[ChatScreen] Initial loading state:', !!conversationId);
+
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) {
+        clearInterval(recordTimerRef.current);
+      }
+    };
+  }, []);
 
   // Sync state with route.params when navigating to an already mounted ChatScreen
   useEffect(() => {
@@ -424,6 +438,88 @@ const ChatScreen = ({ route, navigation }) => {
     }
   };
 
+  const startRecording = async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert(t('common.required'), t('messages.permissionRequired'));
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordDuration(0);
+
+      recordTimerRef.current = setInterval(() => {
+        setRecordDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('[ChatScreen] startRecording error:', err);
+      Alert.alert(t('common.error'), t('messages.sendFailed'));
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recording) return;
+
+    setIsRecording(false);
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+
+      // Revert audio mode to allow normal playback
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+      });
+
+      if (uri) {
+        uploadChatFile(uri, 'audio/m4a', 'voice_note.m4a', 'AUDIO');
+      }
+    } catch (err) {
+      console.error('[ChatScreen] stopRecording error:', err);
+    }
+  };
+
+  const cancelRecording = async () => {
+    if (!recording) return;
+
+    setIsRecording(false);
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+
+    try {
+      await recording.stopAndUnloadAsync();
+      setRecording(null);
+
+      // Revert audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+      });
+    } catch (err) {
+      console.error('[ChatScreen] cancelRecording error:', err);
+    }
+    setRecordDuration(0);
+  };
+
   const handleImagePick = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== 'granted') {
@@ -481,7 +577,9 @@ const ChatScreen = ({ route, navigation }) => {
             <TouchableOpacity onPress={() => setPreviewImage(item.content)} activeOpacity={0.9}>
               <Image source={{ uri: item.content }} style={styles.chatImage} resizeMode="cover" />
             </TouchableOpacity>
-          ) : isAudio ? null : (
+          ) : isAudio ? (
+            <AudioPlayer uri={item.content} color={isMe ? '#FFF' : colors.text} />
+          ) : (
             <Text style={[styles.bubbleText, isMe && styles.bubbleTextRight, { color: isMe ? '#FFF' : colors.text }]}>
               {item.content}
             </Text>
@@ -546,19 +644,40 @@ const ChatScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8), opacity: canMessage ? 1 : 0.6 }]}>
-          <TouchableOpacity style={styles.attachBtn} onPress={canMessage ? handleImagePick : showCannotMessageAlert} disabled={isUploading || !canMessage}>
-            {isUploading ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="plus" size={24} color={canMessage ? colors.accent : colors.placeholder} />}
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background }]} onPress={!canMessage ? showCannotMessageAlert : undefined} activeOpacity={canMessage ? 1 : 0.7} disabled={!canMessage}>
-            <View pointerEvents={canMessage ? 'auto' : 'none'} style={{ flex: 1 }}>
-              <TextInput style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]} placeholder={canMessage ? t('messages.type') : t('profile.chatClosedBanner')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline editable={canMessage} />
+        {isRecording ? (
+          <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
+            <TouchableOpacity style={styles.cancelRecordBtn} onPress={cancelRecording}>
+              <MaterialCommunityIcons name="delete" size={24} color="#EF4444" />
+            </TouchableOpacity>
+            <View style={styles.recordingStatusContainer}>
+              <View style={styles.recordingDot} />
+              <Text style={[styles.recordingText, { color: colors.text }]}>Recording {formatTime(recordDuration * 1000)}</Text>
             </View>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.sendButton, { backgroundColor: canMessage ? colors.accent : colors.border, opacity: input.trim() && !isSending && canMessage ? 1 : 0.45 }]} onPress={canMessage ? () => handleSend() : showCannotMessageAlert} disabled={!input.trim() || isSending || !canMessage}>
-            <MaterialCommunityIcons name="send" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.accent }]} onPress={stopRecording}>
+              <MaterialCommunityIcons name="check" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8), opacity: canMessage ? 1 : 0.6 }]}>
+            <TouchableOpacity style={styles.attachBtn} onPress={canMessage ? handleImagePick : showCannotMessageAlert} disabled={isUploading || !canMessage}>
+              {isUploading ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="plus" size={24} color={canMessage ? colors.accent : colors.placeholder} />}
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background }]} onPress={!canMessage ? showCannotMessageAlert : undefined} activeOpacity={canMessage ? 1 : 0.7} disabled={!canMessage}>
+              <View pointerEvents={canMessage ? 'auto' : 'none'} style={{ flex: 1 }}>
+                <TextInput style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]} placeholder={canMessage ? t('messages.type') : t('profile.chatClosedBanner')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline editable={canMessage} />
+              </View>
+            </TouchableOpacity>
+            {input.trim() ? (
+              <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.accent, opacity: !isSending && canMessage ? 1 : 0.45 }]} onPress={canMessage ? () => handleSend() : showCannotMessageAlert} disabled={isSending || !canMessage}>
+                <MaterialCommunityIcons name="send" size={20} color="#FFF" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.sendButton, { backgroundColor: canMessage ? colors.accent : colors.border, opacity: canMessage ? 1 : 0.45 }]} onPress={canMessage ? startRecording : showCannotMessageAlert} disabled={!canMessage}>
+                <MaterialCommunityIcons name="microphone" size={20} color="#FFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </KeyboardAvoidingView>
     </View>
 
@@ -643,6 +762,26 @@ const styles = StyleSheet.create({
   previewImage: {
     width: '100%',
     height: '80%',
+  },
+  cancelRecordBtn: {
+    marginRight: 15,
+    padding: 5,
+  },
+  recordingStatusContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+  },
+  recordingText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 

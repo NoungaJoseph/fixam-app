@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.fixam.app.ios</string>
+	<string>com.fixam.app.iosapp</string>
 	<key>PROJECT_ID</key>
 	<string>fixam-17560</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1022842332839:ios:82a355f176b1bef9c61d82</string>
+	<string>1:1022842332839:ios:c167833134c34a9ec61d82</string>
 </dict>
 </plist>

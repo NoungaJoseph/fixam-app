@@ -209,6 +209,8 @@ const RegisterScreen = ({ navigation, route }) => {
               value={formData.email}
               onChangeText={(v) => setField('email', v)}
               selectionColor="#FFF"
+              autoCapitalize="none"
+              autoCorrect={false}
             />
 
             {/* Phone */}
@@ -280,6 +282,8 @@ const RegisterScreen = ({ navigation, route }) => {
                 onFocus={() => setPasswordFocused(true)}
                 onBlur={() => setPasswordFocused(false)}
                 selectionColor="#FFF"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <MaterialCommunityIcons
@@ -334,6 +338,8 @@ const RegisterScreen = ({ navigation, route }) => {
                 value={formData.repeatPassword}
                 onChangeText={(v) => setField('repeatPassword', v)}
                 selectionColor="#FFF"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <MaterialCommunityIcons

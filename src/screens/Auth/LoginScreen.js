@@ -181,7 +181,7 @@ const LoginScreen = ({ navigation }) => {
                     <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
                   )}
                   <TextInput
-                    style={[styles.textInput, authInputTextStyle]}
+                    style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
                     placeholder={loginMethod === 'phone' ? selectedCountry.placeholder : t('register.emailPlaceholder')}
                     placeholderTextColor="rgba(255,255,255,0.66)"
                     value={loginMethod === 'phone' ? phoneDigits : contact}
@@ -189,6 +189,8 @@ const LoginScreen = ({ navigation }) => {
                     keyboardType={loginMethod === 'phone' ? 'phone-pad' : 'email-address'}
                     maxLength={loginMethod === 'phone' ? selectedCountry.phoneLength : undefined}
                     selectionColor="#FFF"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                   />
                 </View>
 
@@ -196,13 +198,15 @@ const LoginScreen = ({ navigation }) => {
                 <View style={[styles.inputWrapper, authInputStyle]}>
                   <MaterialIcons name="lock-outline" size={22} color="#FFF" style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.textInput, authInputTextStyle]}
+                    style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
                     placeholder={t('register.password')}
                     placeholderTextColor="rgba(255,255,255,0.66)"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     selectionColor="#FFF"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     <MaterialIcons

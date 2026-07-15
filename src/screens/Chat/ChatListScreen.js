@@ -495,9 +495,9 @@ const styles = StyleSheet.create({
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, height: 48, borderRadius: 14, paddingHorizontal: 14, borderWidth: 1, marginBottom: 12 },
   searchInput: { flex: 1, fontSize: 15 },
 
-  chipsScroller: { flexGrow: 0, marginBottom: 12 },
-  chipsRow: { paddingHorizontal: 20, paddingBottom: 4, gap: 6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 18, borderRadius: 19, borderWidth: 1 },
+  chipsScroller: { flexGrow: 0, height: 56, marginBottom: 12 },
+  chipsRow: { paddingHorizontal: 20, alignItems: 'center', gap: 6 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 18, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 13.5, fontWeight: '700', includeFontPadding: false, textAlignVertical: 'center' },
   chipBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   chipBadgeText: { fontSize: 9, fontWeight: '900', color: '#FFF' },

@@ -94,6 +94,14 @@
           "organization": "fixam",
           "project": "react-native"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
       ]
     ],
     "extra": {

@@ -29,6 +29,18 @@ const formatTime = (millis) => {
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
+const unloadActiveRecording = async (rec) => {
+  if (!rec) return;
+  try {
+    global.expoRecordingUnloadPromise = rec.stopAndUnloadAsync();
+    await global.expoRecordingUnloadPromise;
+  } catch (e) {
+    console.log('[ChatScreen] Error unloading recording:', e.message);
+  } finally {
+    global.expoRecordingUnloadPromise = null;
+  }
+};
+
 const normalizeMessage = (message) => {
   if (!message) return null;
   const type = String(message.type || 'TEXT').toUpperCase();
@@ -132,13 +144,25 @@ const ChatScreen = ({ route, navigation }) => {
       playsInSilentModeIOS: true,
     }).catch(() => {});
 
+    // Try to safely clear any previously hung global recording on mount too
+    if (global.expoActiveRecording) {
+      unloadActiveRecording(global.expoActiveRecording)
+        .then(() => { global.expoActiveRecording = null; })
+        .catch(() => {});
+    }
+
     return () => {
       if (recordTimerRef.current) {
         clearInterval(recordTimerRef.current);
       }
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
-        recordingRef.current = null;
+      const rec = global.expoActiveRecording || recordingRef.current;
+      if (rec) {
+        unloadActiveRecording(rec)
+          .then(() => {
+            global.expoActiveRecording = null;
+            recordingRef.current = null;
+          })
+          .catch(() => {});
       }
     };
   }, []);
@@ -459,13 +483,26 @@ const ChatScreen = ({ route, navigation }) => {
   };
 
   const startRecording = async () => {
-    if (isProcessingRecord || recordingRef.current) {
+    if (isProcessingRecord || recordingRef.current || global.expoActiveRecording) {
       console.log('[ChatScreen] Recording already in progress, skipping startRecording');
       return;
     }
     setIsProcessingRecord(true);
 
     try {
+      // 1. Wait for any active unload promise to finish
+      if (global.expoRecordingUnloadPromise) {
+        console.log('[ChatScreen] Waiting for previous recording to finish unloading...');
+        await global.expoRecordingUnloadPromise.catch(() => {});
+      }
+
+      // 2. Double check if there is an active recording that wasn't unloaded
+      const rec = global.expoActiveRecording || recordingRef.current;
+      if (rec) {
+        console.log('[ChatScreen] Unloading active recording before preparing new one...');
+        await unloadActiveRecording(rec);
+      }
+
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== 'granted') {
         Alert.alert(t('common.required'), t('messages.permissionRequired'));
@@ -484,6 +521,8 @@ const ChatScreen = ({ route, navigation }) => {
 
       const newRecording = new Audio.Recording();
       await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      
+      global.expoActiveRecording = newRecording;
       recordingRef.current = newRecording;
       setRecording(newRecording);
       
@@ -496,6 +535,7 @@ const ChatScreen = ({ route, navigation }) => {
       }, 1000);
     } catch (err) {
       console.error('[ChatScreen] startRecording error:', err);
+      global.expoActiveRecording = null;
       recordingRef.current = null;
       setRecording(null);
       setIsRecording(false);
@@ -509,7 +549,7 @@ const ChatScreen = ({ route, navigation }) => {
     if (isProcessingRecord) return;
     setIsProcessingRecord(true);
 
-    const recInstance = recordingRef.current || recording;
+    const recInstance = global.expoActiveRecording || recordingRef.current || recording;
     if (!recInstance) {
       setIsProcessingRecord(false);
       return;
@@ -522,8 +562,9 @@ const ChatScreen = ({ route, navigation }) => {
     }
 
     try {
-      await recInstance.stopAndUnloadAsync();
       const uri = recInstance.getURI();
+      await unloadActiveRecording(recInstance);
+      global.expoActiveRecording = null;
       recordingRef.current = null;
       setRecording(null);
 
@@ -538,6 +579,7 @@ const ChatScreen = ({ route, navigation }) => {
       }
     } catch (err) {
       console.error('[ChatScreen] stopRecording error:', err);
+      global.expoActiveRecording = null;
       recordingRef.current = null;
       setRecording(null);
     } finally {
@@ -549,7 +591,7 @@ const ChatScreen = ({ route, navigation }) => {
     if (isProcessingRecord) return;
     setIsProcessingRecord(true);
 
-    const recInstance = recordingRef.current || recording;
+    const recInstance = global.expoActiveRecording || recordingRef.current || recording;
     if (!recInstance) {
       setIsProcessingRecord(false);
       return;
@@ -562,7 +604,8 @@ const ChatScreen = ({ route, navigation }) => {
     }
 
     try {
-      await recInstance.stopAndUnloadAsync();
+      await unloadActiveRecording(recInstance);
+      global.expoActiveRecording = null;
       recordingRef.current = null;
       setRecording(null);
 
@@ -573,6 +616,7 @@ const ChatScreen = ({ route, navigation }) => {
       });
     } catch (err) {
       console.error('[ChatScreen] cancelRecording error:', err);
+      global.expoActiveRecording = null;
       recordingRef.current = null;
       setRecording(null);
     } finally {

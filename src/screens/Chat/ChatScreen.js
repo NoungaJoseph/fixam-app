@@ -119,6 +119,7 @@ const ChatScreen = ({ route, navigation }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
   const recordTimerRef = useRef(null);
+  const recordingRef = useRef(null);
   const flatListRef = useRef();
   const activeConvIdRef = useRef(conversationId);
   console.log('[ChatScreen] Initial loading state:', !!conversationId);
@@ -127,6 +128,9 @@ const ChatScreen = ({ route, navigation }) => {
     return () => {
       if (recordTimerRef.current) {
         clearInterval(recordTimerRef.current);
+      }
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
       }
     };
   }, []);
@@ -447,6 +451,11 @@ const ChatScreen = ({ route, navigation }) => {
   };
 
   const startRecording = async () => {
+    if (recordingRef.current) {
+      console.log('[ChatScreen] Recording already in progress, skipping startRecording');
+      return;
+    }
+
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== 'granted') {
@@ -459,11 +468,16 @@ const ChatScreen = ({ route, navigation }) => {
         playsInSilentModeIOS: true,
       });
 
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      if (recordTimerRef.current) {
+        clearInterval(recordTimerRef.current);
+      }
 
+      const newRecording = new Audio.Recording();
+      await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recordingRef.current = newRecording;
       setRecording(newRecording);
+      
+      await newRecording.startAsync();
       setIsRecording(true);
       setRecordDuration(0);
 
@@ -472,12 +486,16 @@ const ChatScreen = ({ route, navigation }) => {
       }, 1000);
     } catch (err) {
       console.error('[ChatScreen] startRecording error:', err);
+      recordingRef.current = null;
+      setRecording(null);
+      setIsRecording(false);
       Alert.alert(t('common.error'), t('messages.sendFailed'));
     }
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
+    const recInstance = recordingRef.current || recording;
+    if (!recInstance) return;
 
     setIsRecording(false);
     if (recordTimerRef.current) {
@@ -486,8 +504,9 @@ const ChatScreen = ({ route, navigation }) => {
     }
 
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      await recInstance.stopAndUnloadAsync();
+      const uri = recInstance.getURI();
+      recordingRef.current = null;
       setRecording(null);
 
       // Revert audio mode to allow normal playback
@@ -501,11 +520,14 @@ const ChatScreen = ({ route, navigation }) => {
       }
     } catch (err) {
       console.error('[ChatScreen] stopRecording error:', err);
+      recordingRef.current = null;
+      setRecording(null);
     }
   };
 
   const cancelRecording = async () => {
-    if (!recording) return;
+    const recInstance = recordingRef.current || recording;
+    if (!recInstance) return;
 
     setIsRecording(false);
     if (recordTimerRef.current) {
@@ -514,7 +536,8 @@ const ChatScreen = ({ route, navigation }) => {
     }
 
     try {
-      await recording.stopAndUnloadAsync();
+      await recInstance.stopAndUnloadAsync();
+      recordingRef.current = null;
       setRecording(null);
 
       // Revert audio mode
@@ -524,6 +547,8 @@ const ChatScreen = ({ route, navigation }) => {
       });
     } catch (err) {
       console.error('[ChatScreen] cancelRecording error:', err);
+      recordingRef.current = null;
+      setRecording(null);
     }
     setRecordDuration(0);
   };

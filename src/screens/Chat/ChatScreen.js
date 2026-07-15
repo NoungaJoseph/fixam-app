@@ -118,6 +118,7 @@ const ChatScreen = ({ route, navigation }) => {
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
+  const [isProcessingRecord, setIsProcessingRecord] = useState(false);
   const recordTimerRef = useRef(null);
   const recordingRef = useRef(null);
   const flatListRef = useRef();
@@ -125,12 +126,19 @@ const ChatScreen = ({ route, navigation }) => {
   console.log('[ChatScreen] Initial loading state:', !!conversationId);
 
   useEffect(() => {
+    // Reset audio session to non-recording mode on mount
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+    }).catch(() => {});
+
     return () => {
       if (recordTimerRef.current) {
         clearInterval(recordTimerRef.current);
       }
       if (recordingRef.current) {
         recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
       }
     };
   }, []);
@@ -451,15 +459,17 @@ const ChatScreen = ({ route, navigation }) => {
   };
 
   const startRecording = async () => {
-    if (recordingRef.current) {
+    if (isProcessingRecord || recordingRef.current) {
       console.log('[ChatScreen] Recording already in progress, skipping startRecording');
       return;
     }
+    setIsProcessingRecord(true);
 
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== 'granted') {
         Alert.alert(t('common.required'), t('messages.permissionRequired'));
+        setIsProcessingRecord(false);
         return;
       }
 
@@ -490,12 +500,20 @@ const ChatScreen = ({ route, navigation }) => {
       setRecording(null);
       setIsRecording(false);
       Alert.alert(t('common.error'), t('messages.sendFailed'));
+    } finally {
+      setTimeout(() => setIsProcessingRecord(false), 500);
     }
   };
 
   const stopRecording = async () => {
+    if (isProcessingRecord) return;
+    setIsProcessingRecord(true);
+
     const recInstance = recordingRef.current || recording;
-    if (!recInstance) return;
+    if (!recInstance) {
+      setIsProcessingRecord(false);
+      return;
+    }
 
     setIsRecording(false);
     if (recordTimerRef.current) {
@@ -522,12 +540,20 @@ const ChatScreen = ({ route, navigation }) => {
       console.error('[ChatScreen] stopRecording error:', err);
       recordingRef.current = null;
       setRecording(null);
+    } finally {
+      setTimeout(() => setIsProcessingRecord(false), 500);
     }
   };
 
   const cancelRecording = async () => {
+    if (isProcessingRecord) return;
+    setIsProcessingRecord(true);
+
     const recInstance = recordingRef.current || recording;
-    if (!recInstance) return;
+    if (!recInstance) {
+      setIsProcessingRecord(false);
+      return;
+    }
 
     setIsRecording(false);
     if (recordTimerRef.current) {
@@ -549,8 +575,10 @@ const ChatScreen = ({ route, navigation }) => {
       console.error('[ChatScreen] cancelRecording error:', err);
       recordingRef.current = null;
       setRecording(null);
+    } finally {
+      setRecordDuration(0);
+      setTimeout(() => setIsProcessingRecord(false), 500);
     }
-    setRecordDuration(0);
   };
 
   const handleImagePick = async () => {

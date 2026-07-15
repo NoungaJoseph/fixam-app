@@ -104,6 +104,7 @@ const ChatScreen = ({ route, navigation }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [activeTask, setActiveTask] = useState(task || null);
+  const [previewImage, setPreviewImage] = useState(null);
   const flatListRef = useRef();
   const activeConvIdRef = useRef(conversationId);
   console.log('[ChatScreen] Initial loading state:', !!conversationId);
@@ -442,7 +443,7 @@ const ChatScreen = ({ route, navigation }) => {
     try {
       const formData = new FormData();
       formData.append('file', {
-        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+        uri: uri,
         type: mimeType,
         name: fileName,
       });
@@ -469,11 +470,17 @@ const ChatScreen = ({ route, navigation }) => {
         <View style={[
           styles.bubble, 
           isMe ? styles.bubbleRight : styles.bubbleLeft, 
-          { backgroundColor: isMe ? colors.accent : (isDarkMode ? '#1E293B' : '#F3F4F6') },
-          (isImage || isAudio) && { padding: 5, borderRadius: 15 }
+          { 
+            backgroundColor: isImage 
+              ? 'transparent' 
+              : (isMe ? colors.accent : (isDarkMode ? '#1E293B' : '#F3F4F6')) 
+          },
+          (isImage || isAudio) && { padding: 0, borderRadius: 15 }
         ]}>
           {isImage ? (
-            <Image source={{ uri: getMediaUrl(item.content) }} style={styles.chatImage} resizeMode="cover" />
+            <TouchableOpacity onPress={() => setPreviewImage(item.content)} activeOpacity={0.9}>
+              <Image source={{ uri: item.content }} style={styles.chatImage} resizeMode="cover" />
+            </TouchableOpacity>
           ) : isAudio ? null : (
             <Text style={[styles.bubbleText, isMe && styles.bubbleTextRight, { color: isMe ? '#FFF' : colors.text }]}>
               {item.content}
@@ -554,6 +561,17 @@ const ChatScreen = ({ route, navigation }) => {
         </View>
       </KeyboardAvoidingView>
     </View>
+
+    <Modal visible={!!previewImage} transparent animationType="fade" onRequestClose={() => setPreviewImage(null)}>
+      <View style={styles.previewContainer}>
+        <TouchableOpacity style={styles.previewCloseBtn} onPress={() => setPreviewImage(null)}>
+          <Ionicons name="close" size={32} color="#FFF" />
+        </TouchableOpacity>
+        {previewImage && (
+          <Image source={{ uri: previewImage }} style={styles.previewImage} resizeMode="contain" />
+        )}
+      </View>
+    </Modal>
     </SafeAreaView>
   );
 };
@@ -608,6 +626,23 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: '700',
+  },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewCloseBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 30,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  previewImage: {
+    width: '100%',
+    height: '80%',
   },
 });
 

@@ -21,6 +21,14 @@ import AudioPlayer from '../../components/AudioPlayer';
 
 const SUPPORTED_MESSAGE_TYPES = new Set(['TEXT', 'IMAGE', 'FILE']);
 
+const formatTime = (millis) => {
+  if (isNaN(millis) || millis < 0) return '0:00';
+  const totalSeconds = Math.floor(millis / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+};
+
 const normalizeMessage = (message) => {
   if (!message) return null;
   const type = String(message.type || 'TEXT').toUpperCase();

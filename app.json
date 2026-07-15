@@ -88,6 +88,7 @@
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
       "./plugins/withAndroidFirebaseStabilization",
+      "./plugins/withIosFirebaseStabilization",
       [
         "@sentry/react-native/expo",
         {

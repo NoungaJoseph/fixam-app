@@ -5,18 +5,9 @@ const path = require('path');
 function modifyPodfile(podfileContent) {
   let contents = podfileContent;
   
-  // Inject pre_install at the very top of the Podfile to enable modular headers for Firebase pods
-  if (!contents.includes("pod.use_modular_headers!")) {
-    const preInstallHook = `
-pre_install do |installer|
-  installer.pod_targets.each do |pod|
-    if pod.name.start_with?('Firebase') || pod.name.start_with?('Google') || pod.name.start_with?('PromisesObjC') || pod.name.start_with?('nanopb')
-      pod.use_modular_headers!
-    end
-  end
-end
-`;
-    contents = preInstallHook + "\n" + contents;
+  // Inject global use_modular_headers! at the very top of the Podfile
+  if (!contents.includes("use_modular_headers!")) {
+    contents = "use_modular_headers!\n\n" + contents;
   }
 
   // Keep post_install patch as a safety override for other modules
@@ -44,7 +35,7 @@ module.exports = function withIosFirebaseStabilization(config) {
         let podfileContent = fs.readFileSync(podfilePath, 'utf8');
         podfileContent = modifyPodfile(podfileContent);
         fs.writeFileSync(podfilePath, podfileContent, 'utf8');
-        console.log('[withIosFirebaseStabilization] Modified Podfile successfully with pre_install modular headers');
+        console.log('[withIosFirebaseStabilization] Modified Podfile successfully with global use_modular_headers!');
       }
       return config;
     },

@@ -27,7 +27,7 @@
     "android": {
       "package": "com.fixam.app.android",
       "googleServicesFile": "./firebase/google-services.json",
-      "versionCode": 4,
+      "versionCode": 3,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",

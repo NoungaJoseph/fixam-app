@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  Image, StatusBar, Modal, Alert, Share, TextInput, ActivityIndicator
+  Image, StatusBar, Modal, Alert, Share, TextInput, ActivityIndicator,
+  TouchableWithoutFeedback, Keyboard
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -472,50 +473,56 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         <Text style={[styles.secureText, { color: colors.textSecondary }]}>{t('jobs.proposalSecure')}</Text>
       </View>
 
-      <Modal visible={showConfirm} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFFFFF' }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('jobs.sendProposalQuestion')}</Text>
-            <Text style={[styles.modalText, { color: colors.textSecondary, marginBottom: 12 }]}>{t('jobs.applyCoinNotice', { count: coinCost })}</Text>
-            
-            <Text style={[styles.boostLabel, { color: colors.textSecondary }]}>
-              {t('profile.bidBoostTitle')}
-            </Text>
-            <TextInput
-              style={[styles.boostInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC' }]}
-              placeholder={t('profile.bidBoostPlaceholder')}
-              placeholderTextColor={colors.placeholder}
-              keyboardType="numeric"
-              value={boostCoins}
-              onChangeText={(val) => setBoostCoins(val.replace(/[^0-9]/g, ''))}
-            />
-            
-            <View style={[styles.totalCostBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#ECFDF5' }]}>
-              <Text style={[styles.totalCostText, { color: colors.accent }]}>
-                Total: {coinCost + (Number(boostCoins) || 0)} Credits
-              </Text>
-            </View>
+      <Modal visible={showConfirm} transparent animationType="fade" onRequestClose={() => setShowConfirm(false)}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFFFFF' }]}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('jobs.sendProposalQuestion')}</Text>
+                <Text style={[styles.modalText, { color: colors.textSecondary, marginBottom: 12 }]}>{t('jobs.applyCoinNotice', { count: coinCost })}</Text>
+                
+                <Text style={[styles.boostLabel, { color: colors.textSecondary }]}>
+                  {t('profile.bidBoostTitle')}
+                </Text>
+                <TextInput
+                  style={[styles.boostInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC' }]}
+                  placeholder={t('profile.bidBoostPlaceholder')}
+                  placeholderTextColor={colors.placeholder}
+                  keyboardType="numeric"
+                  value={boostCoins}
+                  onChangeText={(val) => setBoostCoins(val.replace(/[^0-9]/g, ''))}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                
+                <View style={[styles.totalCostBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#ECFDF5' }]}>
+                  <Text style={[styles.totalCostText, { color: colors.accent }]}>
+                    Total: {coinCost + (Number(boostCoins) || 0)} Credits
+                  </Text>
+                </View>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={[
-                  styles.cancelBtn, 
-                  { 
-                    borderColor: colors.border, 
-                    backgroundColor: isDarkMode ? '#1F2937' : '#F1F5F9',
-                    borderWidth: isDarkMode ? 1 : 0
-                  }
-                ]} 
-                onPress={() => setShowConfirm(false)}
-              >
-                <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmBtn} onPress={confirmAccept}>
-                <Text style={styles.confirmBtnText}>{t('jobs.yesApply')}</Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.modalActions}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.cancelBtn, 
+                      { 
+                        borderColor: colors.border, 
+                        backgroundColor: isDarkMode ? '#1F2937' : '#F1F5F9',
+                        borderWidth: isDarkMode ? 1 : 0
+                      }
+                    ]} 
+                    onPress={() => setShowConfirm(false)}
+                  >
+                    <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.confirmBtn} onPress={confirmAccept}>
+                    <Text style={styles.confirmBtnText}>{t('jobs.yesApply')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       <VerificationRequiredModal 

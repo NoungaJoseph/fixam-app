@@ -81,6 +81,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               selectionColor={colors.accent}
             />
           </View>
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, textAlign: 'center', lineHeight: 24, marginBottom: 40 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, paddingHorizontal: 15, height: 65, width: '100%', borderWidth: 1, marginBottom: 30 },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, fontWeight: '600' },
+  input: { flex: 1, fontSize: 16, fontWeight: '600', height: '100%' },
   resetBtn: { width: '100%', paddingVertical: 18, borderRadius: 20, alignItems: 'center' },
   resetBtnText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
   errorText: { color: '#FF3B30', fontSize: 14, marginBottom: 15, textAlign: 'center', fontWeight: '500' },

@@ -89,6 +89,8 @@ const NewPasswordScreen = ({ route, navigation }) => {
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <MaterialCommunityIcons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.textSecondary} />
@@ -135,6 +137,8 @@ const NewPasswordScreen = ({ route, navigation }) => {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
             />
             <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
               <MaterialCommunityIcons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.textSecondary} />
@@ -165,7 +169,7 @@ const styles = StyleSheet.create({
   errorText: { color: '#FF3B30', fontSize: 14, marginBottom: 15, fontWeight: '500' },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, paddingHorizontal: 15, height: 65, width: '100%', borderWidth: 1, marginBottom: 20 },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, fontWeight: '600' },
+  input: { flex: 1, fontSize: 16, fontWeight: '600', height: '100%' },
   updateBtn: { width: '100%', paddingVertical: 18, borderRadius: 20, alignItems: 'center', marginTop: 10 },
   updateBtnText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
 });

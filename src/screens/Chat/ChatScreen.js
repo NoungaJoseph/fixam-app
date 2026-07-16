@@ -19,7 +19,7 @@ import { useAppContext } from '../../context/AppContext';
 import UserAvatar from '../../components/UserAvatar';
 import AudioPlayer from '../../components/AudioPlayer';
 
-const SUPPORTED_MESSAGE_TYPES = new Set(['TEXT', 'IMAGE', 'FILE']);
+const SUPPORTED_MESSAGE_TYPES = new Set(['TEXT', 'IMAGE', 'FILE', 'AUDIO']);
 
 const formatTime = (millis) => {
   if (isNaN(millis) || millis < 0) return '0:00';
@@ -45,7 +45,7 @@ const normalizeMessage = (message) => {
   if (!message) return null;
   const type = String(message.type || 'TEXT').toUpperCase();
   const content = message.content || message.mediaUrl || '';
-  const isUnsupportedCallMessage = ['AUDIO', 'AUDIO_CALL', 'VIDEO_CALL'].includes(type)
+  const isUnsupportedCallMessage = ['AUDIO_CALL', 'VIDEO_CALL'].includes(type)
     || String(content).toLowerCase().includes('audio not supported');
 
   if (isUnsupportedCallMessage || !SUPPORTED_MESSAGE_TYPES.has(type)) return null;
@@ -125,6 +125,7 @@ const ChatScreen = ({ route, navigation }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [activeTask, setActiveTask] = useState(task || null);
   const [previewImage, setPreviewImage] = useState(null);
   const [recording, setRecording] = useState(null);
@@ -633,10 +634,57 @@ const ChatScreen = ({ route, navigation }) => {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
+      allowsMultipleSelection: true,
       allowsEditing: false,
       quality: 0.7,
     });
-    if (!result.canceled) uploadChatFile(result.assets[0].uri, 'image/jpeg', 'chat_image.jpg', 'IMAGE');
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setSelectedImages(prev => [
+        ...prev,
+        ...result.assets.map(asset => ({
+          uri: asset.uri,
+          type: asset.mimeType || 'image/jpeg',
+          name: asset.fileName || `chat_image_${Date.now()}.jpg`
+        }))
+      ]);
+    }
+  };
+
+  const handleSendAll = async () => {
+    if (!canMessage) return;
+    setIsSending(true);
+
+    try {
+      if (selectedImages.length > 0) {
+        setIsUploading(true);
+        for (const img of selectedImages) {
+          const formData = new FormData();
+          formData.append('file', {
+            uri: img.uri,
+            type: img.type,
+            name: img.name,
+          });
+          formData.append('type', 'chat');
+
+          const res = await uploadFile(formData);
+          const url = res.url || res.data?.url;
+          if (!url) throw new Error('Upload did not return a URL');
+          
+          await handleSend(url, 'IMAGE');
+        }
+        setSelectedImages([]);
+      }
+
+      if (input.trim()) {
+        await handleSend(input, 'TEXT');
+      }
+    } catch (error) {
+      console.log('[ChatScreen] handleSendAll error:', error.message);
+      Alert.alert(t('common.error'), t('messages.sendFailed'));
+    } finally {
+      setIsUploading(false);
+      setIsSending(false);
+    }
   };
 
   const uploadChatFile = async (uri, mimeType, fileName, msgType) => {
@@ -749,6 +797,29 @@ const ChatScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {selectedImages.length > 0 && !isRecording && (
+          <View style={[styles.imagePreviewContainer, { backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1 }]}>
+            <FlatList
+              horizontal
+              data={selectedImages}
+              keyExtractor={(item, index) => `${item.uri}-${index}`}
+              renderItem={({ item, index }) => (
+                <View style={styles.imagePreviewWrapper}>
+                  <Image source={{ uri: item.uri }} style={styles.imagePreviewItem} />
+                  <TouchableOpacity
+                    style={styles.removeImageBtn}
+                    onPress={() => setSelectedImages(prev => prev.filter((_, i) => i !== index))}
+                  >
+                    <Ionicons name="close-circle" size={20} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.imagePreviewList}
+            />
+          </View>
+        )}
+
         {isRecording ? (
           <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
             <TouchableOpacity style={styles.cancelRecordBtn} onPress={cancelRecording}>
@@ -772,8 +843,8 @@ const ChatScreen = ({ route, navigation }) => {
                 <TextInput style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]} placeholder={canMessage ? t('messages.type') : t('profile.chatClosedBanner')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline editable={canMessage} />
               </View>
             </TouchableOpacity>
-            {input.trim() ? (
-              <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.accent, opacity: !isSending && canMessage ? 1 : 0.45 }]} onPress={canMessage ? () => handleSend() : showCannotMessageAlert} disabled={isSending || !canMessage}>
+            {(input.trim() || selectedImages.length > 0) ? (
+              <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.accent, opacity: !(isSending || isUploading) && canMessage ? 1 : 0.45 }]} onPress={canMessage ? handleSendAll : showCannotMessageAlert} disabled={isSending || isUploading || !canMessage}>
                 <MaterialCommunityIcons name="send" size={20} color="#FFF" />
               </TouchableOpacity>
             ) : (
@@ -887,6 +958,32 @@ const styles = StyleSheet.create({
   recordingText: {
     fontSize: 15,
     fontWeight: '600',
+  },
+  imagePreviewContainer: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+  },
+  imagePreviewList: {
+    gap: 12,
+  },
+  imagePreviewWrapper: {
+    position: 'relative',
+    width: 70,
+    height: 70,
+  },
+  imagePreviewItem: {
+    width: 70,
+    height: 70,
+    borderRadius: 10,
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
   },
 });
 

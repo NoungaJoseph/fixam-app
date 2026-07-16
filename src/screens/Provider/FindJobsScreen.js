@@ -12,60 +12,15 @@ import { getCurrencyForUser } from '../../constants/countries';
 
 const FindJobsScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
-  const { visibleJobs, notificationCount } = useAppContext();
+  const { visibleJobs, notificationCount, favoriteJobIds, toggleFavoriteJob, hideJob } = useAppContext();
   const { t } = useLanguage();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all'); // 'all' or 'favorites'
-  const [favorites, setFavorites] = useState([]);
-  const [dismissed, setDismissed] = useState([]);
-
-  useEffect(() => {
-    loadPreferences();
-  }, []);
-
-  const loadPreferences = async () => {
-    try {
-      const favs = await AsyncStorage.getItem('@job_favorites');
-      const dism = await AsyncStorage.getItem('@job_dismissed');
-      if (favs) setFavorites(JSON.parse(favs));
-      if (dism) setDismissed(JSON.parse(dism));
-    } catch (e) {
-      console.log('Failed to load preferences', e);
-    }
-  };
-
-  const toggleFavorite = async (jobId) => {
-    try {
-      let newFavs;
-      if (favorites.includes(jobId)) {
-        newFavs = favorites.filter(id => id !== jobId);
-      } else {
-        newFavs = [...favorites, jobId];
-      }
-      setFavorites(newFavs);
-      await AsyncStorage.setItem('@job_favorites', JSON.stringify(newFavs));
-    } catch (e) {
-      console.log('Failed to save favorite', e);
-    }
-  };
-
-  const dismissJob = async (jobId) => {
-    try {
-      const newDism = [...dismissed, jobId];
-      setDismissed(newDism);
-      await AsyncStorage.setItem('@job_dismissed', JSON.stringify(newDism));
-    } catch (e) {
-      console.log('Failed to dismiss job', e);
-    }
-  };
 
   const filteredJobs = (visibleJobs || []).filter(j => {
-    // Exclude dismissed jobs
-    if (dismissed.includes(j.id)) return false;
-
     // Filter by tab
-    if (activeTab === 'favorites' && !favorites.includes(j.id)) return false;
+    if (activeTab === 'favorites' && !favoriteJobIds.includes(j.id)) return false;
 
     // Search query match
     if (searchQuery) {
@@ -175,7 +130,7 @@ const FindJobsScreen = ({ navigation }) => {
           </View>
         ) : (
           filteredJobs.map(job => {
-            const isFav = favorites.includes(job.id);
+            const isFav = favoriteJobIds.includes(job.id);
             return (
               <TouchableOpacity
                 key={job.id}
@@ -188,10 +143,10 @@ const FindJobsScreen = ({ navigation }) => {
                 <View style={styles.jobTopRow}>
                   <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={2}>{job.title || t('home.taskOpportunity')}</Text>
                   <View style={styles.actionIcons}>
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => dismissJob(job.id)}>
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => hideJob(job.id)}>
                       <MaterialCommunityIcons name="thumb-down-outline" size={26} color={colors.text} />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => toggleFavorite(job.id)}>
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => toggleFavoriteJob(job.id)}>
                       <MaterialCommunityIcons name={isFav ? "heart" : "heart-outline"} size={26} color={isFav ? "#EF4444" : colors.text} />
                     </TouchableOpacity>
                   </View>

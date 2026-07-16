@@ -46,7 +46,9 @@ export default function AudioPlayer({ uri, color = '#333' }) {
         setIsPlaying(false);
         setPosition(0);
         if (soundRef.current) {
-          soundRef.current.setPositionAsync(0).catch(() => {});
+          setTimeout(() => {
+            soundRef.current?.setStatusAsync({ shouldPlay: false, positionMillis: 0 }).catch(() => {});
+          }, 0);
         }
       }
     } else if (status.error) {
@@ -67,7 +69,7 @@ export default function AudioPlayer({ uri, color = '#333' }) {
 
       const { sound } = await Audio.Sound.createAsync(
         { uri },
-        { shouldPlay: false },
+        { shouldPlay: false, isLooping: false },
         onPlaybackStatusUpdate
       );
       soundRef.current = sound;

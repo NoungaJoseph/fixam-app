@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator, TextInput, Modal } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator, TextInput, Modal, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -565,61 +565,69 @@ const JobStatusScreen = ({ route, navigation }) => {
         transparent={true}
         onRequestClose={() => setCounterModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('booking.bookings.proposeCounter', 'Propose Counter-Offer')}</Text>
-              <TouchableOpacity onPress={() => setCounterModalVisible(false)}>
-                <MaterialCommunityIcons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.modalBody}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('booking.bookings.proposedBudget', 'Proposed Budget')}</Text>
-              <View style={[styles.modalInputContainer, { borderColor: colors.border, backgroundColor: colors.background }]}>
-                <MaterialCommunityIcons name="cash" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                <TextInput
-                  style={[styles.modalTextInput, { color: colors.text }]}
-                  keyboardType="numeric"
-                  value={counterBudget}
-                  onChangeText={setCounterBudget}
-                  placeholder="e.g. 15000"
-                  placeholderTextColor={colors.placeholder}
-                />
-              </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.modalHeader}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('booking.bookings.proposeCounter', 'Propose Counter-Offer')}</Text>
+                  <TouchableOpacity onPress={() => setCounterModalVisible(false)}>
+                    <MaterialCommunityIcons name="close" size={24} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+                
+                <View style={styles.modalBody}>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('booking.bookings.proposedBudget', 'Proposed Budget')}</Text>
+                  <View style={[styles.modalInputContainer, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                    <MaterialCommunityIcons name="cash" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
+                    <TextInput
+                      style={[styles.modalTextInput, { color: colors.text }]}
+                      keyboardType="numeric"
+                      value={counterBudget}
+                      onChangeText={setCounterBudget}
+                      placeholder="e.g. 15000"
+                      placeholderTextColor={colors.placeholder}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 16 }]}>{t('booking.bookings.explanation', 'Message / Explanation')}</Text>
-              <View style={[styles.modalInputContainer, { borderColor: colors.border, backgroundColor: colors.background, height: 'auto', minHeight: 90, alignItems: 'flex-start', paddingTop: 8, marginBottom: 24 }]}>
-                <TextInput
-                  style={[styles.modalTextInput, { color: colors.text, height: '100%', textAlignVertical: 'top' }]}
-                  multiline
-                  numberOfLines={3}
-                  value={counterNotes}
-                  onChangeText={setCounterNotes}
-                  placeholder={t('booking.bookings.counterNotesPlaceholder', 'Why are you countering? (e.g. materials needed)')}
-                  placeholderTextColor={colors.placeholder}
-                />
-              </View>
-            </View>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 16 }]}>{t('booking.bookings.explanation', 'Message / Explanation')}</Text>
+                  <View style={[styles.modalInputContainer, { borderColor: colors.border, backgroundColor: colors.background, height: 'auto', minHeight: 90, alignItems: 'flex-start', paddingTop: 8, marginBottom: 24 }]}>
+                    <TextInput
+                      style={[styles.modalTextInput, { color: colors.text, height: '100%', textAlignVertical: 'top' }]}
+                      multiline
+                      numberOfLines={3}
+                      value={counterNotes}
+                      onChangeText={setCounterNotes}
+                      placeholder={t('booking.bookings.counterNotesPlaceholder', 'Why are you countering? (e.g. materials needed)')}
+                      placeholderTextColor={colors.placeholder}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity style={[styles.modalCancelBtn, { borderColor: colors.border }]} onPress={() => setCounterModalVisible(false)}>
-                <Text style={[styles.modalCancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalSubmitBtn, { backgroundColor: colors.accent }]}
-                onPress={submitCounterOffer}
-                disabled={updatingStatus}
-              >
-                {updatingStatus ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={styles.modalSubmitBtnText}>{t('common.submit', 'Submit')}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+                <View style={styles.modalFooter}>
+                  <TouchableOpacity style={[styles.modalCancelBtn, { borderColor: colors.border }]} onPress={() => setCounterModalVisible(false)}>
+                    <Text style={[styles.modalCancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalSubmitBtn, { backgroundColor: colors.accent }]}
+                    onPress={submitCounterOffer}
+                    disabled={updatingStatus}
+                  >
+                    {updatingStatus ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <Text style={styles.modalSubmitBtnText}>{t('common.submit', 'Submit')}</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
@@ -707,7 +715,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '900' },
   modalBody: { marginBottom: 20 },
   modalInputContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, height: 46 },
-  modalTextInput: { flex: 1, fontSize: 14, fontWeight: '600', padding: 0 },
+  modalTextInput: { flex: 1, fontSize: 14, fontWeight: '600', padding: 0, height: '100%' },
   modalFooter: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
   modalSubmitBtn: { minWidth: 100, height: 42, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   modalSubmitBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },

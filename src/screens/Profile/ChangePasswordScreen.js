@@ -80,6 +80,7 @@ const ChangePasswordScreen = ({ navigation }) => {
           placeholderTextColor={colors.placeholder}
           secureTextEntry={!show}
           autoCapitalize="none"
+          autoCorrect={false}
         />
         <TouchableOpacity onPress={onToggle}>
           <MaterialCommunityIcons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.placeholder} />
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   field: { marginBottom: 18 },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, marginBottom: 8, textTransform: 'uppercase' },
   inputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, borderWidth: 1, paddingHorizontal: 16, height: 52 },
-  input: { flex: 1, fontSize: 15, fontWeight: '500' },
+  input: { flex: 1, fontSize: 15, fontWeight: '500', height: '100%' },
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -8, marginBottom: 16 },
   strengthBar: { flex: 1, height: 4, borderRadius: 2 },
   strengthLabel: { fontSize: 12, fontWeight: '700' },

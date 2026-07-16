@@ -67,7 +67,8 @@ const LEARN_CARDS = [
 const ProviderHomeScreen = ({ navigation }) => {
   const {
     isProviderOnline, updateProviderStatus,
-    walletBalance, visibleJobs, notificationCount, unreadCount, isInitialLoad, myBookingsList
+    walletBalance, visibleJobs, notificationCount, unreadCount, isInitialLoad, myBookingsList,
+    favoriteJobIds, toggleFavoriteJob, hideJob
   } = useAppContext();
   const { user, isNewUser, clearNewUser } = useAuth();
   const { colors, isDarkMode } = useTheme();
@@ -79,8 +80,6 @@ const ProviderHomeScreen = ({ navigation }) => {
   const [slideIndex, setSlideIndex] = useState(0);
   const learnScrollRef = useRef(null);
 
-  const [favorites, setFavorites] = useState([]);
-  const [dismissed, setDismissed] = useState([]);
   const [rankModalVisible, setRankModalVisible] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTour, setShowTour] = useState(false);
@@ -159,45 +158,6 @@ const ProviderHomeScreen = ({ navigation }) => {
   }, [fetchMyJobs, navigation]);
 
   useEffect(() => {
-    const loadPreferences = async () => {
-      try {
-        const favs = await AsyncStorage.getItem('@job_favorites');
-        const dism = await AsyncStorage.getItem('@job_dismissed');
-        if (favs) setFavorites(JSON.parse(favs));
-        if (dism) setDismissed(JSON.parse(dism));
-      } catch (e) {
-        console.log('Failed to load preferences', e);
-      }
-    };
-    loadPreferences();
-  }, []);
-
-  const toggleFavorite = async (jobId) => {
-    try {
-      let newFavs;
-      if (favorites.includes(jobId)) {
-        newFavs = favorites.filter(id => id !== jobId);
-      } else {
-        newFavs = [...favorites, jobId];
-      }
-      setFavorites(newFavs);
-      await AsyncStorage.setItem('@job_favorites', JSON.stringify(newFavs));
-    } catch (e) {
-      console.log('Failed to save favorite', e);
-    }
-  };
-
-  const dismissJob = async (jobId) => {
-    try {
-      const newDism = [...dismissed, jobId];
-      setDismissed(newDism);
-      await AsyncStorage.setItem('@job_dismissed', JSON.stringify(newDism));
-    } catch (e) {
-      console.log('Failed to dismiss job', e);
-    }
-  };
-
-  useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
@@ -234,7 +194,6 @@ const ProviderHomeScreen = ({ navigation }) => {
   };
 
   const filteredJobs = visibleJobs.filter(job => {
-    if (dismissed.includes(job.id)) return false;
     const q = search.toLowerCase();
     const category = String(job.category || '');
     const categoryText = category.toLowerCase();
@@ -296,7 +255,7 @@ const ProviderHomeScreen = ({ navigation }) => {
   };
 
   const JobCard = ({ item: job }) => {
-    const isFav = favorites.includes(job.id);
+    const isFav = favoriteJobIds.includes(job.id);
 
     const getTags = (j) => {
       const tags = [];
@@ -318,10 +277,10 @@ const ProviderHomeScreen = ({ navigation }) => {
         <View style={styles.jobTopRow}>
           <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={2}>{job.title || t('home.taskOpportunity')}</Text>
           <View style={styles.actionIcons}>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => dismissJob(job.id)}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => hideJob(job.id)}>
               <MaterialCommunityIcons name="thumb-down-outline" size={26} color={colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => toggleFavorite(job.id)}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => toggleFavoriteJob(job.id)}>
               <MaterialCommunityIcons name={isFav ? "heart" : "heart-outline"} size={26} color={isFav ? "#EF4444" : colors.text} />
             </TouchableOpacity>
           </View>

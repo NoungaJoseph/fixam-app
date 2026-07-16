@@ -189,8 +189,6 @@ const LoginScreen = ({ navigation }) => {
                         selectionColor="#FFF"
                         autoCapitalize="none"
                         autoCorrect={false}
-                        textContentType="telephoneNumber"
-                        editable={true}
                       />
                     </>
                   ) : (
@@ -206,10 +204,6 @@ const LoginScreen = ({ navigation }) => {
                         selectionColor="#FFF"
                         autoCapitalize="none"
                         autoCorrect={false}
-                        spellCheck={false}
-                        autoComplete="off"
-                        textContentType="oneTimeCode"
-                        editable={true}
                       />
                     </>
                   )}

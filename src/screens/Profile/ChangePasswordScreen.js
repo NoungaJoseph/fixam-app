@@ -81,9 +81,6 @@ const ChangePasswordScreen = ({ navigation }) => {
           secureTextEntry={!show}
           autoCapitalize="none"
           autoCorrect={false}
-          textContentType="oneTimeCode"
-          autoComplete="off"
-          editable={true}
         />
         <TouchableOpacity onPress={onToggle}>
           <MaterialCommunityIcons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.placeholder} />

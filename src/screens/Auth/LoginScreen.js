@@ -179,6 +179,7 @@ const LoginScreen = ({ navigation }) => {
                         <MaterialIcons name="arrow-drop-down" size={18} color="#FFF" />
                       </TouchableOpacity>
                       <TextInput
+                        key="phone-input"
                         style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
                         placeholder={selectedCountry.placeholder}
                         placeholderTextColor="rgba(255,255,255,0.66)"
@@ -195,6 +196,7 @@ const LoginScreen = ({ navigation }) => {
                     <>
                       <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
                       <TextInput
+                        key="email-input"
                         style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
                         value={contact}
                         onChangeText={handleContactChange}
@@ -204,7 +206,7 @@ const LoginScreen = ({ navigation }) => {
                         autoCapitalize="none"
                         autoCorrect={false}
                         autoComplete="off"
-                        textContentType="username"
+                        textContentType="oneTimeCode"
                         importantForAutofill="no"
                         secureTextEntry={false}
                         editable={true}

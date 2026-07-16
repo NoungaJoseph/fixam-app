@@ -11,21 +11,21 @@ const ChangePasswordScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { refreshUser } = useAuth();
   const { t } = useLanguage();
-  const [current, setCurrent] = useState('');
-  const [newPass, setNewPass] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState('');
 
   const requirements = [
-    { label: t('validation.reqMinLength', 'At least 8 characters'), met: newPass.length >= 8 },
-    { label: t('validation.reqNumber', 'Contains a number'), met: /\d/.test(newPass) },
-    { label: t('validation.reqSpecial', 'Contains a special character (!@#$...)'), met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPass) },
-    { label: t('validation.reqUppercase', 'Contains uppercase letter'), met: /[A-Z]/.test(newPass) },
+    { label: t('validation.reqMinLength', 'At least 8 characters'), met: newPassword.length >= 8 },
+    { label: t('validation.reqNumber', 'Contains a number'), met: /\d/.test(newPassword) },
+    { label: t('validation.reqSpecial', 'Contains a special character (!@#$...)'), met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword) },
+    { label: t('validation.reqUppercase', 'Contains uppercase letter'), met: /[A-Z]/.test(newPassword) },
   ];
   const metCount = requirements.filter(r => r.met).length;
   const strength = metCount <= 1 ? 'weak' : metCount === 2 ? 'fair' : metCount === 3 ? 'good' : 'strong';
@@ -39,14 +39,14 @@ const ChangePasswordScreen = ({ navigation }) => {
 
   const handleSave = async () => {
     const nextErrors = {};
-    if (!current) nextErrors.current = t('profile.currentPasswordRequired');
+    if (!currentPassword) nextErrors.current = t('profile.currentPasswordRequired');
     
-    if (newPass.length > 0 && metCount < 3) {
+    if (newPassword.length > 0 && metCount < 3) {
       nextErrors.newPass = t('validation.passwordFormat', 'Password must meet at least 3 requirements');
     }
 
-    if (newPass !== confirm) nextErrors.confirm = t('profile.passwordMismatch');
-    if (!confirm) nextErrors.confirm = t('profile.confirmPasswordRequired');
+    if (newPassword !== confirmPassword) nextErrors.confirm = t('profile.passwordMismatch');
+    if (!confirmPassword) nextErrors.confirm = t('profile.confirmPasswordRequired');
     setErrors(nextErrors);
     setSuccess('');
     if (Object.keys(nextErrors).length > 0) return;
@@ -54,9 +54,9 @@ const ChangePasswordScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const res = await api.post('/users/change-password', {
-        currentPassword: current,
-        newPassword: newPass,
-        confirmNewPassword: confirm,
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        confirmNewPassword: confirmPassword,
       });
       await refreshUser?.();
       setSuccess(res.data?.message || t('profile.passwordUpdatedSuccess'));
@@ -67,28 +67,6 @@ const ChangePasswordScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-
-  const InputField = ({ label, value, onChange, show, onToggle, placeholder, error }) => (
-    <View style={styles.field}>
-      <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
-      <View style={[styles.inputWrap, { borderColor: colors.border }]}>
-        <TextInput
-          style={[styles.input, { color: colors.text }]}
-          value={value}
-          onChangeText={onChange}
-          placeholder={placeholder}
-          placeholderTextColor={colors.placeholder}
-          secureTextEntry={!show}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TouchableOpacity onPress={onToggle}>
-          <MaterialCommunityIcons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.placeholder} />
-        </TouchableOpacity>
-      </View>
-      {error ? <Text style={styles.inlineError}>{error}</Text> : null}
-    </View>
-  );
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>
@@ -112,11 +90,58 @@ const ChangePasswordScreen = ({ navigation }) => {
             {t('profile.passwordHelp')}
           </Text>
 
-          <InputField label={t('profile.currentPassword')} value={current} onChange={setCurrent} show={showCurrent} onToggle={() => setShowCurrent(v => !v)} placeholder={t('profile.enterCurrentPassword')} error={errors.current} />
-          <InputField label={t('profile.newPassword')} value={newPass} onChange={setNewPass} show={showNew} onToggle={() => setShowNew(v => !v)} placeholder={t('profile.enterNewPassword')} error={errors.newPass} />
+          {/* Current Password */}
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('profile.currentPassword')}</Text>
+            <View style={[styles.inputWrap, { borderColor: colors.border }]}>
+              <TextInput
+                value={currentPassword}
+                onChangeText={(text) => setCurrentPassword(text)}
+                placeholder="Enter current password"
+                placeholderTextColor="rgba(0,0,0,0.4)"
+                style={[styles.input, { color: colors.text }]}
+                secureTextEntry={!showCurrentPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="off"
+                textContentType="oneTimeCode"
+                importantForAutofill="no"
+                editable={true}
+              />
+              <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                <MaterialCommunityIcons name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.placeholder} />
+              </TouchableOpacity>
+            </View>
+            {errors.current ? <Text style={styles.inlineError}>{errors.current}</Text> : null}
+          </View>
+
+          {/* New Password */}
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('profile.newPassword')}</Text>
+            <View style={[styles.inputWrap, { borderColor: colors.border }]}>
+              <TextInput
+                value={newPassword}
+                onChangeText={(text) => setNewPassword(text)}
+                placeholder="Enter new password"
+                placeholderTextColor="rgba(0,0,0,0.4)"
+                style={[styles.input, { color: colors.text }]}
+                secureTextEntry={!showNewPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="off"
+                textContentType="oneTimeCode"
+                importantForAutofill="no"
+                editable={true}
+              />
+              <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                <MaterialCommunityIcons name={showNewPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.placeholder} />
+              </TouchableOpacity>
+            </View>
+            {errors.newPass ? <Text style={styles.inlineError}>{errors.newPass}</Text> : null}
+          </View>
 
           {/* Strength indicator */}
-          {newPass.length > 0 && (
+          {newPassword.length > 0 && (
             <View style={{ marginBottom: 20 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary }}>
@@ -147,9 +172,32 @@ const ChangePasswordScreen = ({ navigation }) => {
             </View>
           )}
 
-          <InputField label={t('profile.confirmNewPassword')} value={confirm} onChange={setConfirm} show={showConfirm} onToggle={() => setShowConfirm(v => !v)} placeholder={t('profile.reEnterNewPassword')} error={errors.confirm} />
+          {/* Confirm Password */}
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('profile.confirmNewPassword')}</Text>
+            <View style={[styles.inputWrap, { borderColor: colors.border }]}>
+              <TextInput
+                value={confirmPassword}
+                onChangeText={(text) => setConfirmPassword(text)}
+                placeholder="Re-enter new password"
+                placeholderTextColor="rgba(0,0,0,0.4)"
+                style={[styles.input, { color: colors.text }]}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="off"
+                textContentType="oneTimeCode"
+                importantForAutofill="no"
+                editable={true}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <MaterialCommunityIcons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.placeholder} />
+              </TouchableOpacity>
+            </View>
+            {errors.confirm ? <Text style={styles.inlineError}>{errors.confirm}</Text> : null}
+          </View>
 
-          {!errors.confirm && confirm.length > 0 && newPass !== confirm && (
+          {!errors.confirm && confirmPassword.length > 0 && newPassword !== confirmPassword && (
             <Text style={styles.matchError}>{t('profile.passwordMismatch')}</Text>
           )}
           {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
@@ -157,7 +205,7 @@ const ChangePasswordScreen = ({ navigation }) => {
 
           <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.accent, opacity: loading ? 0.7 : 1 }]} onPress={handleSave} disabled={loading}>
             <MaterialCommunityIcons name="lock-check-outline" size={20} color="#FFF" />
-            <Text style={styles.saveBtnText}>{loading ? t('profile.updating') : t('profile.updatePasswordButton')}</Text>
+            <Text style={styles.saveBtnText}>{loading ? t('profile.updating') : t('profile.updatePassword', 'Update Password')}</Text>
           </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -172,7 +220,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 },
   backBtn: { width: 42, height: 42, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800' },
-  content: { padding: 24, paddingBottom: 48 },
+  content: { padding: 24, paddingBottom: 120 },
   lockIcon: { width: 70, height: 70, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 18, alignSelf: 'center' },
   title: { fontSize: 22, fontWeight: '900', textAlign: 'center', marginBottom: 10 },
   subtitle: { fontSize: 14, lineHeight: 21, textAlign: 'center', marginBottom: 30 },

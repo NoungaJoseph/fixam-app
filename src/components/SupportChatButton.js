@@ -104,6 +104,7 @@ const SupportChatButton = () => {
     'DocUpload',
     'Selfie',
     'VerificationSuccess',
+    'ChangePassword',
   ]);
 
   if (!user || hiddenRoutes.has(currentRouteName)) return null;

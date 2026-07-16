@@ -196,14 +196,19 @@ const LoginScreen = ({ navigation }) => {
                       <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
                       <TextInput
                         style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
-                        placeholder={t('register.emailPlaceholder')}
-                        placeholderTextColor="rgba(255,255,255,0.66)"
                         value={contact}
                         onChangeText={handleContactChange}
+                        placeholder="Email address"
+                        placeholderTextColor="rgba(255,255,255,0.5)"
                         keyboardType="email-address"
-                        selectionColor="#FFF"
                         autoCapitalize="none"
                         autoCorrect={false}
+                        autoComplete="off"
+                        textContentType="username"
+                        importantForAutofill="no"
+                        secureTextEntry={false}
+                        editable={true}
+                        selectTextOnFocus={false}
                       />
                     </>
                   )}

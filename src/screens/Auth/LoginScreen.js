@@ -172,26 +172,47 @@ const LoginScreen = ({ navigation }) => {
                 {/* Contact field (phone / email) */}
                 <View style={[styles.inputWrapper, authInputStyle]}>
                   {loginMethod === 'phone' ? (
-                    <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
-                      <Text style={styles.flagText}>{selectedCountry.flag}</Text>
-                      <Text style={styles.prefixText}>{selectedCountry.dialCode}</Text>
-                      <MaterialIcons name="arrow-drop-down" size={18} color="#FFF" />
-                    </TouchableOpacity>
+                    <>
+                      <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
+                        <Text style={styles.flagText}>{selectedCountry.flag}</Text>
+                        <Text style={styles.prefixText}>{selectedCountry.dialCode}</Text>
+                        <MaterialIcons name="arrow-drop-down" size={18} color="#FFF" />
+                      </TouchableOpacity>
+                      <TextInput
+                        style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
+                        placeholder={selectedCountry.placeholder}
+                        placeholderTextColor="rgba(255,255,255,0.66)"
+                        value={phoneDigits}
+                        onChangeText={handleContactChange}
+                        keyboardType="phone-pad"
+                        maxLength={selectedCountry.phoneLength}
+                        selectionColor="#FFF"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        textContentType="telephoneNumber"
+                        editable={true}
+                      />
+                    </>
                   ) : (
-                    <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
+                    <>
+                      <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
+                        placeholder={t('register.emailPlaceholder')}
+                        placeholderTextColor="rgba(255,255,255,0.66)"
+                        value={contact}
+                        onChangeText={handleContactChange}
+                        keyboardType="email-address"
+                        selectionColor="#FFF"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        spellCheck={false}
+                        autoComplete="off"
+                        textContentType="oneTimeCode"
+                        editable={true}
+                      />
+                    </>
                   )}
-                  <TextInput
-                    style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
-                    placeholder={loginMethod === 'phone' ? selectedCountry.placeholder : t('register.emailPlaceholder')}
-                    placeholderTextColor="rgba(255,255,255,0.66)"
-                    value={loginMethod === 'phone' ? phoneDigits : contact}
-                    onChangeText={handleContactChange}
-                    keyboardType={loginMethod === 'phone' ? 'phone-pad' : 'email-address'}
-                    maxLength={loginMethod === 'phone' ? selectedCountry.phoneLength : undefined}
-                    selectionColor="#FFF"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
                 </View>
 
                 {/* Password field */}

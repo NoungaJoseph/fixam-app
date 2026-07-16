@@ -152,6 +152,7 @@ const AppChrome = () => {
 
         fetchAppData(true);
         fetchConversations();
+        notificationService.clearBadge().catch(console.error);
         
         if (backgroundAtRef.current) {
           const elapsed = Date.now() - backgroundAtRef.current;

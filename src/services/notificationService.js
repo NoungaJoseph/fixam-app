@@ -25,6 +25,7 @@ class NotificationService {
    * Called from both quit-state and background-state tap handlers.
    */
   handleNotificationNavigation(data) {
+    this.clearBadge().catch(console.error);
     const nav = this._navigationRef;
     if (!nav || !nav.isReady || !nav.isReady()) return;
 
@@ -261,12 +262,24 @@ class NotificationService {
   }
 
   /**
-   * Initialize notification services.
-   * Should be called right after successful login or app startup if authenticated.
+   * Clear the app notification badge count.
    */
+  async clearBadge() {
+    try {
+      if (Platform.OS !== 'web') {
+        await Notifications.setBadgeCountAsync(0);
+        console.log('[NotificationService] Badge cleared successfully');
+      }
+    } catch (error) {
+      console.warn('[NotificationService] Failed to clear badge:', error);
+    }
+  }
+
   async initialize() {
     if (this._initialized) return;
     this._initialized = true;
+
+    await this.clearBadge().catch(console.error);
 
     const hasPermission = await this.requestUserPermission();
     if (hasPermission) {

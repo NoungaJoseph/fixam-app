@@ -47,6 +47,7 @@ import InvitationScreen from '../screens/Profile/InvitationScreen';
 import ReviewTaskScreen from '../screens/Tasks/ReviewTaskScreen';
 import ReviewsScreen from '../screens/Profile/ReviewsScreen';
 import PortfolioDetailsScreen from '../screens/Profile/PortfolioDetailsScreen';
+import RequestTestimonyScreen from '../screens/Profile/RequestTestimonyScreen';
 
 import TopUpScreen from '../screens/Wallet/TopUpScreen';
 import TopUpAmountScreen from '../screens/Wallet/TopUpAmountScreen';
@@ -56,6 +57,7 @@ import CoinPaymentFormScreen from '../screens/Wallet/CoinPaymentFormScreen';
 import CoinPaymentSuccessScreen from '../screens/Wallet/CoinPaymentSuccessScreen';
 import CoinPaymentFailedScreen from '../screens/Wallet/CoinPaymentFailedScreen';
 import BookingFormScreen from '../screens/Bookings/BookingFormScreen';
+import TaskDetailsScreen from '../screens/Provider/TaskDetailsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -130,6 +132,7 @@ const HIDE_TAB_ROUTES = [
   'PrivacySecurity',
   'LanguageSelection',
   'Feedback',
+  'RequestTestimony',
   'Verification',
   'HiddenProfile',
   'ChangePassword',
@@ -356,6 +359,7 @@ const TabNavigator = () => {
       <Drawer.Screen name="DataUsage" component={DataUsageScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="LanguageSelection" component={ProfileLanguageScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Feedback" component={FeedbackScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="RequestTestimony" component={RequestTestimonyScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Verification" component={VerificationScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="DocUpload" component={DocUploadScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Selfie" component={SelfieScreen} options={{ drawerItemStyle: { display: 'none' } }} />
@@ -370,6 +374,7 @@ const TabNavigator = () => {
       <Drawer.Screen name="ReviewTask" component={ReviewTaskScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Reviews" component={ReviewsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="PortfolioDetails" component={PortfolioDetailsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="TaskDetails" component={TaskDetailsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
     </Drawer.Navigator>
   );
 };

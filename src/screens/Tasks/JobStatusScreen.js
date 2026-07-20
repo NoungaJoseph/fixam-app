@@ -359,6 +359,12 @@ const JobStatusScreen = ({ route, navigation }) => {
               <Detail icon="alert-circle-outline" label={t('jobs.urgency', 'Urgency')} value={job.urgencyLevel} colors={colors} isDarkMode={isDarkMode} />
             )}
             <Detail icon="text-box-outline" label={t('jobs.description')} value={(isBooking ? job.notes : job.description) || t('jobs.noAdditionalDetails')} colors={colors} isDarkMode={isDarkMode} />
+            {job.importantDetails ? (
+              <Detail icon="alert-decagram-outline" label={t('jobs.importantDetails')} value={job.importantDetails} colors={colors} isDarkMode={isDarkMode} />
+            ) : null}
+            {job.whatNeedsDone ? (
+              <Detail icon="check-circle-outline" label={t('jobs.whatNeedsDone')} value={job.whatNeedsDone} colors={colors} isDarkMode={isDarkMode} />
+            ) : null}
           </View>
 
           {user?.role === 'CLIENT' && isBooking && normalizedStatus === 'COUNTER_PROPOSED' && (
@@ -514,6 +520,22 @@ const JobStatusScreen = ({ route, navigation }) => {
                 }}
               >
                 <Text style={[styles.cancelBtnText, { color: colors.error }]}>{t('jobs.cancelTaskRequest')}</Text>
+              </TouchableOpacity>
+            )}
+
+            {user?.role === 'CLIENT' && normalizedStatus === 'COMPLETED' && !(job.reviews?.some(r => r.reviewerId === job.clientId)) && (
+              <TouchableOpacity
+                style={[styles.mainActionBtn, { backgroundColor: '#F59E0B' }]}
+                onPress={() => {
+                  navigation.navigate('Rating', {
+                    jobId: job.id,
+                    targetUser: assignedProviderUser || job.provider,
+                    mode: 'rate_provider',
+                  });
+                }}
+              >
+                <MaterialCommunityIcons name="star-outline" size={22} color="#FFF" />
+                <Text style={styles.mainActionText}>{t('jobs.leaveReview', 'Leave a Review')}</Text>
               </TouchableOpacity>
             )}
 

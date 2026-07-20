@@ -263,7 +263,7 @@ const ProviderListScreen = ({ route, navigation }) => {
           onPress={() => navigation.navigate('ProviderProfile', { provider: item })}
         >
           <MaterialCommunityIcons name="briefcase-check" size={16} color="#FFF" />
-          <Text style={styles.chatBtnText}>Book Provider</Text>
+          <Text style={styles.chatBtnText}>{t('bookings.bookProvider')}</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -301,7 +301,7 @@ const ProviderListScreen = ({ route, navigation }) => {
             <MaterialCommunityIcons name="magnify" size={22} color={colors.placeholder} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search by name or skill..."
+              placeholder={t('bookings.searchPlaceholder')}
               placeholderTextColor={colors.placeholder}
               value={search}
               onChangeText={setSearch}
@@ -319,12 +319,12 @@ const ProviderListScreen = ({ route, navigation }) => {
           <View style={[styles.filterPanel, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.filterPanelHeader}>
               <View>
-                <Text style={[styles.filterPanelTitle, { color: colors.text }]}>Sort results</Text>
-                <Text style={[styles.filterPanelSub, { color: colors.textSecondary }]}>Choose one filter, then apply it to your current search.</Text>
+                <Text style={[styles.filterPanelTitle, { color: colors.text }]}>{t('bookings.sortResults')}</Text>
+                <Text style={[styles.filterPanelSub, { color: colors.textSecondary }]}>{t('bookings.filterChooseApply')}</Text>
               </View>
               {activeFilter !== 'Rating' && (
                 <TouchableOpacity onPress={resetFilter} style={styles.resetFilterBtn}>
-                  <Text style={styles.resetFilterText}>Reset</Text>
+                  <Text style={styles.resetFilterText}>{t('bookings.reset')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -366,7 +366,7 @@ const ProviderListScreen = ({ route, navigation }) => {
           keyExtractor={item => item.id}
           ListHeaderComponent={(!category || category === 'all') && !search && !verifiedOnly && !favoritesOnly && topProviders.length > 0 ? (
             <View style={styles.topProvidersSection}>
-              <Text style={[styles.topProvidersTitle, { color: colors.text }]}>Providers of the Month 🏆</Text>
+              <Text style={[styles.topProvidersTitle, { color: colors.text }]}>{t('bookings.providersOfMonth')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topProvidersScroll}>
                 {topProviders.map(item => (
                   <TouchableOpacity key={`top-${item.id}`} style={[styles.topCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('ProviderProfile', { provider: item })}>
@@ -387,8 +387,8 @@ const ProviderListScreen = ({ route, navigation }) => {
           ListEmptyComponent={
             <View style={styles.empty}>
               <MaterialCommunityIcons name="account-search-outline" size={80} color={colors.border} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>No professionals found</Text>
-              <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>Try adjusting your search or filters to find what you're looking for.</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('bookings.noProfessionalsFound')}</Text>
+              <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>{t('bookings.emptySearchInstructions')}</Text>
             </View>
           }
         />

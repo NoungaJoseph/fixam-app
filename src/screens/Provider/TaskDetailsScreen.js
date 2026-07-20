@@ -214,8 +214,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
   const handleShare = async () => {
     try {
-      const shareUrl = `https://fixam.app/job/${task.id}`;
-      const message = `${task.title || t('jobs.taskDetails')}\n\n${task.description ? task.description.slice(0, 100) + '...' : ''}\n\n${t('jobs.checkOutThisJob', 'Check out this job on Fixam:')} ${shareUrl}`;
+      const shareUrl = `https://usefixam.com/job/${task.id}`;
+      const message = `${task.title || t('jobs.taskDetails')}\n\n${task.description ? task.description.slice(0, 100) + '...' : ''}\n\n${t('jobs.shareJobMessage', { url: shareUrl })}`;
       
       await Share.share({
         message: message,
@@ -398,12 +398,22 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           )}
 
-          {task.whatNeedsDone ? (
+          {(jobDetails.importantDetails || task.importantDetails) ? (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>{t('jobs.importantDetails')}</Text>
+              <View style={[styles.todoBox, { backgroundColor: colors.card, borderColor: colors.border, flexDirection: 'row', gap: 10, padding: 12, borderRadius: 8, alignItems: 'center' }]}>
+                <MaterialCommunityIcons name="alert-decagram-outline" size={20} color="#0D9488" />
+                <Text style={[styles.todoText, { color: colors.textSecondary, flex: 1, marginLeft: 0 }]}>{jobDetails.importantDetails || task.importantDetails}</Text>
+              </View>
+            </>
+          ) : null}
+
+          {(jobDetails.whatNeedsDone || task.whatNeedsDone) ? (
             <>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.whatNeedsDone')}</Text>
               <View style={[styles.todoBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <MaterialCommunityIcons name="check-circle" size={20} color="#0D9488" />
-                <Text style={[styles.todoText, { color: colors.textSecondary }]}>{task.whatNeedsDone}</Text>
+                <Text style={[styles.todoText, { color: colors.textSecondary }]}>{jobDetails.whatNeedsDone || task.whatNeedsDone}</Text>
               </View>
             </>
           ) : null}

@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -25,6 +25,17 @@ const formatAddressLabel = (address) => {
     .filter(Boolean);
 
   return [...new Set(parts)].join(', ');
+};
+
+const formatTimeForDisplay = (time24) => {
+  if (!time24) return '';
+  const [hStr, mStr] = time24.split(':');
+  const h = parseInt(hStr, 10);
+  const period = h >= 12 ? 'PM' : 'AM';
+  let h12 = h % 12;
+  if (h12 === 0) h12 = 12;
+  const h12Str = String(h12).padStart(2, '0');
+  return `${h12Str}:${mStr} ${period}`;
 };
 
 const BookingFormScreen = ({ route, navigation }) => {
@@ -65,6 +76,42 @@ const BookingFormScreen = ({ route, navigation }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
+
+  const [tempHour, setTempHour] = useState('08');
+  const [tempMinute, setTempMinute] = useState('00');
+  const [tempPeriod, setTempPeriod] = useState('AM');
+
+  useEffect(() => {
+    if (showTimePicker) {
+      if (form.bookingTime) {
+        const [hStr, mStr] = form.bookingTime.split(':');
+        const h = parseInt(hStr, 10);
+        const period = h >= 12 ? 'PM' : 'AM';
+        let h12 = h % 12;
+        if (h12 === 0) h12 = 12;
+        setTempHour(String(h12).padStart(2, '0'));
+        setTempMinute(mStr);
+        setTempPeriod(period);
+      } else {
+        setTempHour('08');
+        setTempMinute('00');
+        setTempPeriod('AM');
+      }
+    }
+  }, [showTimePicker, form.bookingTime]);
+
+  const onCustomTimeConfirm = () => {
+    let hours = parseInt(tempHour, 10);
+    if (tempPeriod === 'PM' && hours < 12) {
+      hours += 12;
+    } else if (tempPeriod === 'AM' && hours === 12) {
+      hours = 0;
+    }
+    const hh = String(hours).padStart(2, '0');
+    const mm = tempMinute;
+    setForm(prev => ({ ...prev, bookingTime: `${hh}:${mm}` }));
+    setShowTimePicker(false);
+  };
 
   const onDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -270,7 +317,7 @@ const BookingFormScreen = ({ route, navigation }) => {
                 onPress={() => setShowTimePicker(true)}
               >
                 <Text style={{ color: form.bookingTime ? colors.text : colors.placeholder, fontSize: 15, fontWeight: '600', flex: 1 }}>
-                  {form.bookingTime || "HH:MM"}
+                  {form.bookingTime ? formatTimeForDisplay(form.bookingTime) : "HH:MM"}
                 </Text>
                 <MaterialCommunityIcons name="clock-outline" size={22} color={colors.accent} />
               </TouchableOpacity>
@@ -327,24 +374,143 @@ const BookingFormScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </ScrollView>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={getSafeDate(form.bookingDate)}
-              mode="date"
-              display="default"
-              minimumDate={new Date()}
-              onChange={onDateChange}
-            />
+          {showDatePicker && Platform.OS === 'ios' ? (
+            <Modal transparent={true} visible={showDatePicker} animationType="fade">
+              <View style={styles.modalOverlay}>
+                <View style={[styles.modalContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={styles.modalHeader}>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>{t('bookings.selectDate', 'Select Date')}</Text>
+                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                      <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={getSafeDate(form.bookingDate)}
+                    mode="date"
+                    display="inline"
+                    minimumDate={new Date()}
+                    textColor={isDarkMode ? '#FFFFFF' : '#000000'}
+                    onChange={(event, date) => {
+                      if (date) {
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        setForm(prev => ({ ...prev, bookingDate: `${year}-${month}-${day}` }));
+                      }
+                    }}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(false)}
+                    style={[styles.modalConfirmBtn, { backgroundColor: colors.accent }]}
+                  >
+                    <Text style={styles.modalConfirmBtnText}>{t('common.done', 'Done')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+          ) : (
+            showDatePicker && (
+              <DateTimePicker
+                value={getSafeDate(form.bookingDate)}
+                mode="date"
+                display="default"
+                minimumDate={new Date()}
+                textColor={isDarkMode ? '#FFFFFF' : '#000000'}
+                onChange={onDateChange}
+              />
+            )
           )}
 
           {showTimePicker && (
-            <DateTimePicker
-              value={new Date()}
-              mode="time"
-              display="default"
-              is24Hour={true}
-              onChange={onTimeChange}
-            />
+            <Modal transparent={true} visible={showTimePicker} animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={[styles.modalContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={styles.modalHeader}>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>{t('bookings.selectTime', 'Select Time')}</Text>
+                    <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                      <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.columnsContainer}>
+                    {/* Hour column */}
+                    <View style={[styles.column, { borderColor: colors.border }]}>
+                      <ScrollView showsVerticalScrollIndicator={false}>
+                        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((hr) => {
+                          const isSel = tempHour === hr;
+                          return (
+                            <TouchableOpacity
+                              key={hr}
+                              onPress={() => setTempHour(hr)}
+                              style={[styles.columnItem, isSel && { backgroundColor: colors.accent + '20' }]}
+                            >
+                              <Text style={[styles.columnItemText, { color: isSel ? colors.accent : colors.text }]}>
+                                {hr}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                         })}
+                      </ScrollView>
+                    </View>
+
+                    {/* Minute column */}
+                    <View style={[styles.column, { borderColor: colors.border }]}>
+                      <ScrollView showsVerticalScrollIndicator={false}>
+                        {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((mn) => {
+                          const isSel = tempMinute === mn;
+                          return (
+                            <TouchableOpacity
+                              key={mn}
+                              onPress={() => setTempMinute(mn)}
+                              style={[styles.columnItem, isSel && { backgroundColor: colors.accent + '20' }]}
+                            >
+                              <Text style={[styles.columnItemText, { color: isSel ? colors.accent : colors.text }]}>
+                                {mn}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+
+                    {/* AM/PM column */}
+                    <View style={[styles.column, { borderColor: colors.border }]}>
+                      <ScrollView showsVerticalScrollIndicator={false}>
+                        {['AM', 'PM'].map((pd) => {
+                          const isSel = tempPeriod === pd;
+                          return (
+                            <TouchableOpacity
+                              key={pd}
+                              onPress={() => setTempPeriod(pd)}
+                              style={[styles.columnItem, isSel && { backgroundColor: colors.accent + '20' }]}
+                            >
+                              <Text style={[styles.columnItemText, { color: isSel ? colors.accent : colors.text }]}>
+                                {pd}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  </View>
+
+                  <View style={styles.modalButtonsRow}>
+                    <TouchableOpacity
+                      onPress={() => setShowTimePicker(false)}
+                      style={[styles.modalCancelBtn, { borderColor: colors.border }]}
+                    >
+                      <Text style={[styles.modalCancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel', 'Cancel')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={onCustomTimeConfirm}
+                      style={[styles.modalConfirmBtn, { backgroundColor: colors.accent }]}
+                    >
+                      <Text style={styles.modalConfirmBtnText}>{t('common.confirm', 'Confirm')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
           )}
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -415,6 +581,79 @@ const styles = StyleSheet.create({
   summaryTitle: { fontSize: 16, fontWeight: '800', marginBottom: 8 },
   summaryText: { fontSize: 14, fontWeight: '500', marginBottom: 4 },
   summaryCost: { fontSize: 14, fontWeight: '800', marginTop: 4 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '95%',
+    maxWidth: 340,
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '850',
+  },
+  columnsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    height: 180,
+    marginBottom: 18,
+    gap: 10,
+  },
+  column: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  columnItem: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  columnItemText: {
+    fontSize: 15,
+    fontWeight: '750',
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalConfirmBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
 });
 
 export default BookingFormScreen;

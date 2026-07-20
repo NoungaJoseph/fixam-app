@@ -499,6 +499,13 @@ export const AppProvider = ({ children }) => {
     await AsyncStorage.setItem(favoriteJobsKey(user?.id), JSON.stringify(nextFavorites));
   };
 
+  const showJob = async (jobId) => {
+    if (!jobId) return;
+    const nextHidden = hiddenJobIds.filter((id) => id !== jobId);
+    setHiddenJobIds(nextHidden);
+    await AsyncStorage.setItem(hiddenJobsKey(user?.id), JSON.stringify(nextHidden));
+  };
+
   const toggleFavoriteJob = async (jobId) => {
     if (!jobId) return;
     const exists = favoriteJobIds.includes(jobId);
@@ -629,6 +636,7 @@ export const AppProvider = ({ children }) => {
       buyCoins,
       deductCoin,
       hideJob,
+      showJob,
       toggleFavoriteJob,
       toggleFavoriteProvider,
       fetchFavoriteProviders,

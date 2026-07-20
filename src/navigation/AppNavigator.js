@@ -20,6 +20,20 @@ const getActiveRouteName = (state) => {
   return route.name;
 };
 
+const linking = {
+  prefixes: ['fixam://', 'https://usefixam.com', 'https://*.usefixam.com'],
+  config: {
+    screens: {
+      MainApp: {
+        screens: {
+          ProviderProfile: 'profile/:uid',
+          TaskDetails: 'job/:taskId',
+        },
+      },
+    },
+  },
+};
+
 const AppNavigator = () => {
   const { user, isLoading, isRestoring } = useAuth();
   const { setCurrentRouteName } = useNavigationStateContext();
@@ -58,6 +72,7 @@ const AppNavigator = () => {
       ref={navigationRef}
       onReady={onNavigationReady}
       onStateChange={(state) => setCurrentRouteName(getActiveRouteName(state))}
+      linking={linking}
     >
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         <RootStack.Screen name="MainApp">

@@ -39,8 +39,21 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
 
   const [paymentId, setPaymentId] = useState('');
   const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0]?.id || 'MTN_MOMO');
+  const cleanPreFilledPhone = (phoneStr) => {
+    if (!phoneStr) return '';
+    let cleaned = phoneStr.replace(/\D/g, '');
+    const dialCodeNoPlus = countryConfig.dialCode.replace('+', '');
+    if (cleaned.startsWith(dialCodeNoPlus)) {
+      cleaned = cleaned.slice(dialCodeNoPlus.length);
+    }
+    if (cleaned.startsWith('0') && cleaned.length > countryConfig.phoneLength) {
+      cleaned = cleaned.slice(1);
+    }
+    return cleaned;
+  };
+
   const [formData, setFormData] = useState({
-    phone: user?.phone || ''
+    phone: cleanPreFilledPhone(user?.phone)
   });
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState('IDLE');
@@ -131,6 +144,12 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
     generatePaymentId();
   }, []);
 
+  useEffect(() => {
+    if (user?.phone && !formData.phone) {
+      setFormData(prev => ({ ...prev, phone: cleanPreFilledPhone(user.phone) }));
+    }
+  }, [user]);
+
   const generatePaymentId = () => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
@@ -176,7 +195,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
           timeoutRef.current = setTimeout(poll, 5000);
         } else {
           navigation.navigate('CoinPaymentFailed', {
-            message: 'Payment timed out. If money was deducted, please contact support.',
+            message: t('payments.paymentTimedOut'),
             package: pkg,
           });
         }
@@ -185,7 +204,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
           timeoutRef.current = setTimeout(poll, 5000);
         } else {
           navigation.navigate('CoinPaymentFailed', {
-            message: 'Payment timed out. If money was deducted, please contact support.',
+            message: t('payments.paymentTimedOut'),
             package: pkg,
           });
         }
@@ -238,27 +257,39 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
       return;
     }
 
+    // Clean phone number for validation
+    let phoneToValidate = formData.phone.replace(/\D/g, '');
+    const dialCodeNoPlus = countryConfig.dialCode.replace('+', '');
+    if (phoneToValidate.startsWith(dialCodeNoPlus)) {
+      phoneToValidate = phoneToValidate.slice(dialCodeNoPlus.length);
+    }
+    if (phoneToValidate.startsWith('0') && phoneToValidate.length > countryConfig.phoneLength) {
+      phoneToValidate = phoneToValidate.slice(1);
+    }
+
     // Validate phone matches selected provider
     if (userCountry === 'Cameroon') {
       const provider = selectedMethod === 'MTN_MOMO' ? 'MTN' : 'ORANGE';
-      const validation = validatePhoneForProvider(formData.phone, provider);
+      const validation = validatePhoneForProvider(phoneToValidate, provider);
       if (!validation.valid) {
         setPhoneError(t(validation.error));
         return;
       }
     } else {
-      if (!countryConfig.regex.test(formData.phone.replace(/\D/g, ''))) {
-        setPhoneError(`Invalid number. Format matches: ${countryConfig.placeholder}`);
+      if (!countryConfig.regex.test(phoneToValidate)) {
+        setPhoneError(t('payments.invalidPhoneNumberFormat', { placeholder: countryConfig.placeholder }));
         return;
       }
     }
     try {
       setLoading(true);
       const amount = getNumericAmount(pkg.amount || pkg.price);
+      // Prepend dynamic dial code without "+" to standardise format sent to API
+      const fullPhone = dialCodeNoPlus + phoneToValidate;
 
       const response = await api.post('/payments/topup', {
         amount,
-        phone: formData.phone,
+        phone: fullPhone,
         coins: totalCoins,
       });
 
@@ -268,7 +299,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
         pollPaymentStatus(response.data.reference);
       } else {
         navigation.replace('CoinPaymentFailed', {
-          message: 'Payment reference was not returned. Please try again.',
+          message: t('payments.paymentReferenceMissing'),
           package: pkg,
         });
       }

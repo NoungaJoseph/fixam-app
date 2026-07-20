@@ -3,11 +3,13 @@ import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, Linking, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
 const LiveTaskMapScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
+  const { t } = useLanguage();
   const task = route.params?.task || {};
   const lat = task.latitude != null ? Number(task.latitude) : null;
   const lng = task.longitude != null ? Number(task.longitude) : null;
@@ -66,11 +68,11 @@ const LiveTaskMapScreen = ({ navigation, route }) => {
           onPress={openInGoogleMaps}
         >
           <MaterialCommunityIcons name="google-maps" size={24} color="#FFF" />
-          <Text style={{ fontSize: 16, fontWeight: '900', color: '#FFF' }}>Track in Google Maps</Text>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#FFF' }}>{t('jobs.trackInGoogleMaps')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={{ width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderRadius: 16, gap: 12, borderWidth: 1, borderColor: colors.border, marginTop: 12 }} onPress={openChat}>
           <MaterialCommunityIcons name="message-text-outline" size={22} color={colors.text} />
-          <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>Messages</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>{t('common.messages')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

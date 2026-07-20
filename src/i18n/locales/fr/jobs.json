@@ -88,7 +88,9 @@
     "discoverOpportunities": "Decouvrez de nouvelles opportunites",
     "searchJobsPlaceholder": "Rechercher par titre, description ou lieu...",
     "favoritesCount": "Favoris ({{count}})",
+    "rejectedCount": "Rejetées ({{count}})",
     "noFavoriteJobs": "Aucune mission favorite pour le moment.",
+    "noRejectedJobs": "Aucune mission rejetée pour le moment.",
     "noJobsFound": "Aucune mission ne correspond a votre recherche.",
     "noJobsFoundShort": "Aucune mission trouvee",
     "jobsAppearAssigned": "Les missions apparaitront ici apres attribution",
@@ -233,6 +235,7 @@
     "noAdditionalDetails": "Aucun detail supplementaire",
     "totalEstimatedBudget": "Budget total estime",
     "trackProviderOnMap": "Suivre le prestataire sur la carte",
+    "trackInGoogleMaps": "Suivre sur Google Maps",
     "viewLocation": "Voir le lieu",
     "completeAndFinalizeBody": "La mission est-elle terminee ? Cela finalisera le paiement.",
     "completeAndRate": "Terminer et noter",
@@ -271,7 +274,9 @@
       "fastResponse": "Réponse rapide",
       "highlyRated": "Très bien notés",
       "availableToday": "Disponibles aujourd'hui"
-    }
+    },
+    "shareJobMessage": "Découvrez ce travail sur Fixam : {{url}}",
+    "checkOutThisJob": "Découvrez ce travail sur Fixam :"
   },
   "providersNeeded": "Nombre de prestataires nécessaires",
   "providersNeededPlaceholder": "ex. 2",

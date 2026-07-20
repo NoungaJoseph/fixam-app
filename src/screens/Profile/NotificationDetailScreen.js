@@ -96,6 +96,7 @@ const NotificationDetailScreen = ({ route, navigation }) => {
       case 'BOOKING_CONFIRMED':
       case 'BOOKING_SENT':
       case 'COUNTER_PROPOSED':
+      case 'REQUEST_REVIEW':
         return {
           label: t('notifications.viewBooking', 'View Booking'),
           onPress: () => {

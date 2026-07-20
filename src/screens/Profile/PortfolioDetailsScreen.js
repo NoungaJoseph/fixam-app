@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Modal
+  Modal,
+  Linking
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -54,10 +55,21 @@ const PortfolioDetailsScreen = ({ route, navigation }) => {
   };
 
   const renderCertificateItem = ({ item }) => {
+    const hasFile = !!item.imageUrl;
+    const isPdf = item.imageUrl?.toLowerCase().endsWith('.pdf');
     return (
-      <View style={[styles.credentialRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.credentialIcon, { backgroundColor: isDarkMode ? '#115E5920' : '#E6FDF3' }]}>
-          <MaterialCommunityIcons name="certificate-outline" size={24} color="#0D9488" />
+      <TouchableOpacity 
+        style={[styles.credentialRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+        disabled={!hasFile}
+        onPress={() => {
+          if (item.imageUrl) {
+            Linking.openURL(item.imageUrl).catch(err => console.log("Failed to open URL:", err));
+          }
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.credentialIcon, { backgroundColor: isDarkMode ? (isPdf ? '#7F1D1D20' : '#115E5920') : (isPdf ? '#FEE2E2' : '#E6FDF3') }]}>
+          <MaterialCommunityIcons name={isPdf ? "file-pdf-box" : "certificate-outline"} size={24} color={isPdf ? "#EF4444" : "#0D9488"} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.credentialTitle, { color: colors.text }]}>{item.title || 'Certificate'}</Text>
@@ -65,7 +77,10 @@ const PortfolioDetailsScreen = ({ route, navigation }) => {
             {[item.issuer, item.year].filter(Boolean).join(' | ') || 'Credential added'}
           </Text>
         </View>
-      </View>
+        {hasFile && (
+          <MaterialCommunityIcons name="open-in-new" size={18} color={colors.textSecondary} style={{ marginLeft: 8 }} />
+        )}
+      </TouchableOpacity>
     );
   };
 

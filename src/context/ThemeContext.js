@@ -1,10 +1,37 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ThemeContext = createContext();
 
+const THEME_STORAGE_KEY = 'appTheme';
+
 export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const toggleTheme = () => setIsDarkMode(v => !v);
+
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        if (saved !== null) {
+          setIsDarkMode(saved === 'dark');
+        }
+      } catch (err) {
+        console.log('Failed to load theme:', err);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  const toggleTheme = async () => {
+    try {
+      const nextMode = !isDarkMode;
+      setIsDarkMode(nextMode);
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, nextMode ? 'dark' : 'light');
+    } catch (err) {
+      console.log('Failed to save theme:', err);
+    }
+  };
+
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
 
   return (

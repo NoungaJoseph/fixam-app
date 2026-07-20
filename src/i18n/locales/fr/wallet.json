@@ -60,7 +60,8 @@
     "coinsAdded": "Crédits ajoutés",
     "goToWallet": "Aller au portefeuille",
     "contactSupport": "Contacter l'assistance",
-    "tryAgain": "Réessayer"
+    "tryAgain": "Réessayer",
+    "invalidPhoneNumberFormat": "Numéro invalide. Format requis : {{placeholder}}"
   },
   "wallet": {
     "topUpCoins": "Recharger les crédits",

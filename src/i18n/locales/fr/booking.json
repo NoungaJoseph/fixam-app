@@ -51,6 +51,18 @@
     "emergencyPricingTitle": "Tarification urgente/d'urgence",
     "emergencyPricingDesc": "Pour les demandes urgentes et d'urgence, vous ne définissez pas de budget. Le prestataire examinera votre demande et proposera son tarif en premier.",
     "emergencyBannerDesc": "Il s'agit d'une urgence de haute priorité. Réponse immédiate requise.",
-    "urgentBannerDesc": "Il s'agit d'une demande urgente de haute priorité."
+    "urgentBannerDesc": "Il s'agit d'une demande urgente de haute priorité.",
+    "activeBooking": "Réservation Active",
+    "duration": "Durée : {{value}}",
+    "type": "Type : {{value}}",
+    "bookProvider": "Réserver le prestataire",
+    "sortResults": "Trier les résultats",
+    "filterChooseApply": "Choisissez un filtre, puis appliquez-le à votre recherche.",
+    "reset": "Réinitialiser",
+    "providersOfMonth": "Prestataires du mois 🏆",
+    "noProfessionalsFound": "Aucun professionnel trouvé",
+    "emptySearchInstructions": "Essayez d'ajuster votre recherche ou vos filtres pour trouver ce que vous cherchez.",
+    "searchPlaceholder": "Rechercher par nom ou compétence...",
+    "messageProvider": "Envoyer un message"
   }
 }

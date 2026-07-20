@@ -60,7 +60,8 @@
     "coinsAdded": "Credits Added",
     "goToWallet": "Go to Wallet",
     "contactSupport": "Contact Support",
-    "tryAgain": "Try Again"
+    "tryAgain": "Try Again",
+    "invalidPhoneNumberFormat": "Invalid number. Format matches: {{placeholder}}"
   },
   "wallet": {
     "topUpCoins": "Top Up Coins",

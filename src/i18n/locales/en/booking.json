@@ -51,6 +51,18 @@
     "emergencyPricingTitle": "Urgent/Emergency Pricing",
     "emergencyPricingDesc": "For urgent and emergency requests, you do not set a budget. The service provider will review your request and quote their price first.",
     "emergencyBannerDesc": "This is a high-priority emergency. Response required immediately.",
-    "urgentBannerDesc": "This is a high-priority urgent request."
+    "urgentBannerDesc": "This is a high-priority urgent request.",
+    "activeBooking": "Active Booking",
+    "duration": "Duration: {{value}}",
+    "type": "Type: {{value}}",
+    "bookProvider": "Book Provider",
+    "sortResults": "Sort results",
+    "filterChooseApply": "Choose one filter, then apply it to your current search.",
+    "reset": "Reset",
+    "providersOfMonth": "Providers of the Month 🏆",
+    "noProfessionalsFound": "No professionals found",
+    "emptySearchInstructions": "Try adjusting your search or filters to find what you're looking for.",
+    "searchPlaceholder": "Search by name or skill...",
+    "messageProvider": "Message provider"
   }
 }

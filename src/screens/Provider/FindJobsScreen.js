@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, StatusBar } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, StatusBar, Modal } from 'react-native';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,30 +10,114 @@ import { translateService } from '../../i18n/translate';
 import { useAuth } from '../../context/AuthContext';
 import { getCurrencyForUser } from '../../constants/countries';
 
+const CATEGORIES = [
+  { id: 'all', label: 'All', icon: 'view-grid' },
+  { id: 'plumbing', label: 'Plumbing', aliases: ['plumbing', 'plomberie'], icon: 'water-pump' },
+  { id: 'electrical', label: 'Electrical', aliases: ['electrical', 'electrician', 'electricite', 'électricite', 'électricitée'], icon: 'lightning-bolt' },
+  { id: 'cleaning', label: 'Cleaning', aliases: ['cleaning', 'house cleaning', 'office cleaning', 'nettoyage', 'menage', 'ménage'], icon: 'broom' },
+  { id: 'delivery', label: 'Delivery Driver', aliases: ['delivery', 'delivery driver', 'livraison', 'coursier'], icon: 'bike' },
+];
+
 const FindJobsScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
-  const { visibleJobs, notificationCount, favoriteJobIds, toggleFavoriteJob, hideJob } = useAppContext();
+  const { jobs, visibleJobs, hiddenJobIds, favoriteJobIds, toggleFavoriteJob, hideJob, showJob } = useAppContext();
   const { t } = useLanguage();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('all'); // 'all' or 'favorites'
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'favorites' or 'rejected'
+  const [activeCategory, setActiveCategory] = useState('all');
 
-  const filteredJobs = (visibleJobs || []).filter(j => {
-    // Filter by tab
-    if (activeTab === 'favorites' && !favoriteJobIds.includes(j.id)) return false;
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterMinBudget, setFilterMinBudget] = useState('');
+  const [filterSortBy, setFilterSortBy] = useState('recent'); // 'recent' or 'budget'
+  const [filterUrgency, setFilterUrgency] = useState('all'); // 'all', 'normal', 'urgent', 'emergency'
 
-    // Search query match
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const match = j.title?.toLowerCase().includes(query) ||
-        j.description?.toLowerCase().includes(query) ||
-        j.location?.toLowerCase().includes(query) ||
-        j.category?.toLowerCase().includes(query);
-      if (!match) return false;
+  const allAvailableJobs = useMemo(() => {
+    return (jobs || []).filter(j => {
+      // Exclude own tasks
+      if (j.clientId === user?.id || j.client?.id === user?.id) return false;
+      // Exclude jobs that have been accepted/assigned already
+      const hasAcceptedAssignment = j.assignments?.some(a => a.status === 'ACCEPTED');
+      if (hasAcceptedAssignment) return false;
+      return true;
+    });
+  }, [jobs, user?.id]);
+
+  const favoritesCount = useMemo(() => {
+    return allAvailableJobs.filter(j => favoriteJobIds.includes(j.id) && !hiddenJobIds.includes(j.id)).length;
+  }, [allAvailableJobs, favoriteJobIds, hiddenJobIds]);
+
+  const rejectedCount = useMemo(() => {
+    return allAvailableJobs.filter(j => hiddenJobIds.includes(j.id)).length;
+  }, [allAvailableJobs, hiddenJobIds]);
+
+  const sourceJobs = useMemo(() => {
+    if (activeTab === 'rejected') {
+      return allAvailableJobs.filter(j => (hiddenJobIds || []).includes(j.id));
+    }
+    // Else, only keep visible ones (not hidden/rejected)
+    return allAvailableJobs.filter(j => !(hiddenJobIds || []).includes(j.id));
+  }, [allAvailableJobs, activeTab, hiddenJobIds]);
+
+  const filteredJobs = useMemo(() => {
+    let list = sourceJobs.filter(j => {
+      // Filter by tab
+      if (activeTab === 'favorites' && !favoriteJobIds.includes(j.id)) return false;
+
+      // Filter by category
+      const category = String(j.category || '');
+      const categoryText = category.toLowerCase();
+      const translatedCategoryText = translateService(category).toLowerCase();
+      const activeCategoryConfig = CATEGORIES.find((cat) => cat.id === activeCategory);
+      const matchCat = activeCategory === 'all'
+        || activeCategoryConfig?.aliases?.some((alias) => categoryText.includes(alias) || translatedCategoryText.includes(alias));
+      
+      if (!matchCat) return false;
+
+      // Filter by location
+      if (filterLocation.trim()) {
+        const locQuery = filterLocation.toLowerCase();
+        if (!j.location?.toLowerCase().includes(locQuery)) return false;
+      }
+
+      // Filter by budget
+      if (filterMinBudget) {
+        const minB = parseInt(filterMinBudget);
+        const jobB = j.budgetMax || j.budget || 0;
+        if (jobB < minB) return false;
+      }
+
+      // Filter by urgency
+      if (filterUrgency !== 'all') {
+        const jobUrgency = String(j.priority || j.urgencyLevel || 'normal').toLowerCase();
+        if (jobUrgency !== filterUrgency) return false;
+      }
+
+      // Search query match
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const match = j.title?.toLowerCase().includes(query) ||
+          j.description?.toLowerCase().includes(query) ||
+          j.location?.toLowerCase().includes(query) ||
+          j.category?.toLowerCase().includes(query) ||
+          translatedCategoryText.includes(query);
+        if (!match) return false;
+      }
+
+      return true;
+    });
+
+    // Sort logic
+    if (filterSortBy === 'budget') {
+      list.sort((a, b) => (b.budgetMax || b.budget || 0) - (a.budgetMin || a.budget || 0));
+    } else {
+      // Default 'recent'
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     }
 
-    return true;
-  });
+    return list;
+  }, [sourceJobs, activeTab, favoriteJobIds, activeCategory, searchQuery, filterLocation, filterMinBudget, filterSortBy, filterUrgency]);
 
   const getTags = (job) => {
     const tags = [];
@@ -90,16 +174,46 @@ const FindJobsScreen = ({ navigation }) => {
 
         </View>
 
-        <View style={[styles.searchBar, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9', borderColor: colors.border }]}>
-          <MaterialCommunityIcons name="magnify" size={22} color={colors.placeholder} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder={t('jobs.searchJobsPlaceholder')}
-            placeholderTextColor={colors.placeholder}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+        <View style={styles.searchRow}>
+          <View style={[styles.searchBar, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9', borderColor: colors.border }]}>
+            <MaterialCommunityIcons name="magnify" size={22} color={colors.placeholder} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder={t('jobs.searchJobsPlaceholder')}
+              placeholderTextColor={colors.placeholder}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          <TouchableOpacity 
+            style={[styles.filterBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <MaterialCommunityIcons name="tune-variant" size={20} color={colors.text} />
+          </TouchableOpacity>
         </View>
+
+        {/* Categories Horizontal scrolling pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScroll}>
+          {CATEGORIES.map(cat => {
+            const active = activeCategory === cat.id;
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                style={[styles.catChip, {
+                  backgroundColor: active ? '#0D9488' : colors.card,
+                  borderColor: active ? '#0D9488' : colors.border,
+                }]}
+                onPress={() => setActiveCategory(cat.id)}
+              >
+                <MaterialCommunityIcons name={cat.icon} size={16} color={active ? '#FFF' : colors.textSecondary} />
+                <Text style={[styles.catText, { color: active ? '#FFF' : colors.text }]}>
+                  {cat.id === 'all' ? t('notifications.all') : translateService(cat.label)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         {/* Tab Switcher */}
         <View style={styles.tabRow}>
@@ -113,7 +227,15 @@ const FindJobsScreen = ({ navigation }) => {
             style={[styles.tabBtn, activeTab === 'favorites' && styles.tabBtnActive]}
             onPress={() => setActiveTab('favorites')}
           >
-            <Text style={[styles.tabText, activeTab === 'favorites' && styles.tabTextActive, { color: activeTab === 'favorites' ? '#0D9488' : colors.textSecondary }]}>{t('jobs.favoritesCount', { count: favorites.length })}</Text>
+            <Text style={[styles.tabText, activeTab === 'favorites' && styles.tabTextActive, { color: activeTab === 'favorites' ? '#0D9488' : colors.textSecondary }]}>{t('jobs.favoritesCount', { count: favoritesCount })}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'rejected' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('rejected')}
+          >
+            <Text style={[styles.tabText, activeTab === 'rejected' && styles.tabTextActive, { color: activeTab === 'rejected' ? '#0D9488' : colors.textSecondary }]}>
+              {t('jobs.rejectedCount', { count: rejectedCount, defaultValue: `Rejected (${rejectedCount})` })}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -125,7 +247,11 @@ const FindJobsScreen = ({ navigation }) => {
           <View style={styles.empty}>
             <MaterialCommunityIcons name="briefcase-search-outline" size={60} color={colors.placeholder} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              {activeTab === 'favorites' ? t('jobs.noFavoriteJobs') : t('jobs.noJobsFound')}
+              {activeTab === 'favorites' 
+                ? t('jobs.noFavoriteJobs') 
+                : activeTab === 'rejected' 
+                  ? t('jobs.noRejectedJobs', 'No rejected jobs') 
+                  : t('jobs.noJobsFound')}
             </Text>
           </View>
         ) : (
@@ -143,8 +269,15 @@ const FindJobsScreen = ({ navigation }) => {
                 <View style={styles.jobTopRow}>
                   <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={2}>{job.title || t('home.taskOpportunity')}</Text>
                   <View style={styles.actionIcons}>
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => hideJob(job.id)}>
-                      <MaterialCommunityIcons name="thumb-down-outline" size={26} color={colors.text} />
+                    <TouchableOpacity 
+                      style={styles.actionBtn} 
+                      onPress={() => activeTab === 'rejected' ? showJob(job.id) : hideJob(job.id)}
+                    >
+                      <MaterialCommunityIcons 
+                        name={activeTab === 'rejected' ? "thumb-down" : "thumb-down-outline"} 
+                        size={26} 
+                        color={activeTab === 'rejected' ? "#0D9488" : colors.text} 
+                      />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionBtn} onPress={() => toggleFavoriteJob(job.id)}>
                       <MaterialCommunityIcons name={isFav ? "heart" : "heart-outline"} size={26} color={isFav ? "#EF4444" : colors.text} />
@@ -173,10 +306,7 @@ const FindJobsScreen = ({ navigation }) => {
                 </View>
 
                 {/* Stats / Time Row */}
-                <View style={styles.statsRow}>
-                  <Text style={[styles.statsText, { color: colors.textSecondary }]}>
-                    {t('home.reviewsSpent', { reviews: job.clientReviewCount ?? 0, spent: job.clientSpendingTier || 'New client' })}
-                  </Text>
+                <View style={[styles.statsRow, { justifyContent: 'flex-end' }]}>
                   {job.createdAt ? (
                     <View style={styles.timeInline}>
                       <MaterialCommunityIcons name="clock-outline" size={13} color={colors.textSecondary} />
@@ -200,6 +330,129 @@ const FindJobsScreen = ({ navigation }) => {
           })
         )}
       </ScrollView>
+
+      {/* Advanced Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            {/* Header */}
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('jobs.filterTitle', 'Filter Tasks')}</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Scrollable filters */}
+            <ScrollView contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
+              
+              {/* Location Input */}
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterLabel, { color: colors.text }]}>{t('jobs.filterLocation', 'Location')}</Text>
+                <TextInput
+                  style={[styles.filterInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}
+                  placeholder={t('jobs.filterLocationPlaceholder', 'Enter city or neighborhood...')}
+                  placeholderTextColor={colors.placeholder}
+                  value={filterLocation}
+                  onChangeText={setFilterLocation}
+                />
+              </View>
+
+              {/* Min Budget Input */}
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterLabel, { color: colors.text }]}>{t('jobs.filterMinBudget', 'Minimum Budget')}</Text>
+                <TextInput
+                  style={[styles.filterInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}
+                  placeholder={t('jobs.filterBudgetPlaceholder', 'e.g. 10000')}
+                  placeholderTextColor={colors.placeholder}
+                  value={filterMinBudget}
+                  onChangeText={setFilterMinBudget}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Urgency Filter */}
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterLabel, { color: colors.text }]}>{t('jobs.filterUrgency', 'Urgency')}</Text>
+                <View style={styles.filterPillsRow}>
+                  {['all', 'normal', 'urgent', 'emergency'].map(level => {
+                    const active = filterUrgency === level;
+                    return (
+                      <TouchableOpacity
+                        key={level}
+                        style={[styles.filterPill, {
+                          borderColor: active ? '#0D9488' : colors.border,
+                          backgroundColor: active ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                        }]}
+                        onPress={() => setFilterUrgency(level)}
+                      >
+                        <Text style={[styles.filterPillText, { color: active ? '#0D9488' : colors.textSecondary }]}>
+                          {t(`jobs.priority_${level}`, level).toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Sort By Filter */}
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterLabel, { color: colors.text }]}>{t('jobs.sortBy', 'Sort By')}</Text>
+                <View style={styles.filterPillsRow}>
+                  {[
+                    { id: 'recent', label: t('jobs.sortRecent', 'Most Recent') },
+                    { id: 'budget', label: t('jobs.sortBudget', 'Highest Budget') }
+                  ].map(sort => {
+                    const active = filterSortBy === sort.id;
+                    return (
+                      <TouchableOpacity
+                        key={sort.id}
+                        style={[styles.filterPill, {
+                          borderColor: active ? '#0D9488' : colors.border,
+                          backgroundColor: active ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                        }]}
+                        onPress={() => setFilterSortBy(sort.id)}
+                      >
+                        <Text style={[styles.filterPillText, { color: active ? '#0D9488' : colors.textSecondary }]}>
+                          {sort.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+            </ScrollView>
+
+            {/* Actions Footer */}
+            <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.clearBtn, { borderColor: colors.border, backgroundColor: 'transparent' }]}
+                onPress={() => {
+                  setFilterLocation('');
+                  setFilterMinBudget('');
+                  setFilterUrgency('all');
+                  setFilterSortBy('recent');
+                }}
+              >
+                <Text style={[styles.clearBtnText, { color: colors.textSecondary }]}>{t('common.reset', 'Reset')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyBtnModal}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Text style={styles.applyBtnTextModal}>{t('common.apply', 'Apply')}</Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -246,7 +499,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 2,
   },
+  searchRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     height: 46,
@@ -258,6 +518,32 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
+  },
+  filterBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  catScroll: {
+    paddingVertical: 10,
+    gap: 8,
+    marginBottom: 8,
+  },
+  catChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 22,
+    borderWidth: 1,
+  },
+  catText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   listContent: {
     paddingBottom: 120, // Space for absolute tab bar
@@ -409,6 +695,96 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   tabTextActive: {
+    fontWeight: '900',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  modalScrollContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 20,
+  },
+  filterSection: {
+    gap: 8,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  filterInput: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    fontSize: 14,
+  },
+  filterPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  clearBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  applyBtnModal: {
+    flex: 2,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#0D9488',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applyBtnTextModal: {
+    color: '#FFF',
+    fontSize: 15,
     fontWeight: '900',
   },
 });

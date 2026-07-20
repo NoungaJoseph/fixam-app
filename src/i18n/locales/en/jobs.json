@@ -88,7 +88,9 @@
     "discoverOpportunities": "Discover new opportunities",
     "searchJobsPlaceholder": "Search by title, description, or location...",
     "favoritesCount": "Favorites ({{count}})",
+    "rejectedCount": "Rejected ({{count}})",
     "noFavoriteJobs": "No favorite jobs yet.",
+    "noRejectedJobs": "No rejected jobs yet.",
     "noJobsFound": "No jobs found matching your search.",
     "noJobsFoundShort": "No jobs found",
     "jobsAppearAssigned": "Jobs will appear here once assigned",
@@ -233,6 +235,7 @@
     "noAdditionalDetails": "No additional details",
     "totalEstimatedBudget": "Total Estimated Budget",
     "trackProviderOnMap": "Track Provider on Map",
+    "trackInGoogleMaps": "Track in Google Maps",
     "viewLocation": "View Location",
     "completeAndFinalizeBody": "Is the task done? This will finalize the payment.",
     "completeAndRate": "Complete & Rate",
@@ -271,7 +274,9 @@
       "fastResponse": "Fast Response",
       "highlyRated": "Highly Rated",
       "availableToday": "Available Today"
-    }
+    },
+    "shareJobMessage": "Check out this job on Fixam: {{url}}",
+    "checkOutThisJob": "Check out this job on Fixam:"
   },
   "providersNeeded": "Number of Providers Needed",
   "providersNeededPlaceholder": "e.g. 2",

@@ -18,6 +18,7 @@ const ICON_CONFIG = {
   VERIFICATION: { icon: 'shield-check', color: '#2563EB', bg: '#EFF6FF' },
   JOB: { icon: 'briefcase', color: '#8B5CF6', bg: '#F5F3FF' },
   JOB_APPLICATION: { icon: 'send', color: '#F59E0B', bg: '#FFFBEB' },
+  REQUEST_REVIEW: { icon: 'star-circle-outline', color: '#F59E0B', bg: '#FFFBEB' },
   DEFAULT: { icon: 'bell-outline', color: '#64748B', bg: '#F1F5F9' },
 };
 

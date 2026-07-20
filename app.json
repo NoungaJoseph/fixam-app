@@ -3,6 +3,7 @@
     "name": "Fixam",
     "slug": "Fixam",
     "version": "1.0.0",
+    "scheme": "fixam",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -15,19 +16,22 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.fixam.app.iosapp",
       "googleServicesFile": "./firebase/GoogleService-Info.plist",
-      "buildNumber": "7",
+      "buildNumber": "9",
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "This app accesses your microphone to allow you to record and send voice messages in chats."
-      }
+      },
+      "associatedDomains": [
+        "applinks:usefixam.com"
+      ]
     },
     "android": {
       "package": "com.fixam.app.android",
       "googleServicesFile": "./firebase/google-services.json",
-      "versionCode": 7,
+      "versionCode": 5,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
@@ -39,6 +43,31 @@
           "data": [
             {
               "scheme": "fixam"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "usefixam.com",
+              "pathPrefix": "/profile"
+            },
+            {
+              "scheme": "https",
+              "host": "usefixam.com",
+              "pathPrefix": "/job"
+            },
+            {
+              "scheme": "https",
+              "host": "usefixam.com",
+              "pathPrefix": "/download"
             }
           ],
           "category": [

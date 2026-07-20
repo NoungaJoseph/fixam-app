@@ -193,32 +193,47 @@ const ProviderHomeScreen = ({ navigation }) => {
     return `${days}d ago`;
   };
 
-  const filteredJobs = visibleJobs.filter(job => {
-    const q = search.toLowerCase();
-    const category = String(job.category || '');
-    const categoryText = category.toLowerCase();
-    const translatedCategoryText = translateService(category).toLowerCase();
-    const matchSearch = !q || job.title?.toLowerCase().includes(q)
-      || categoryText.includes(q)
-      || translatedCategoryText.includes(q)
-      || job.location?.toLowerCase().includes(q);
-    const activeCategoryConfig = CATEGORIES.find((cat) => cat.id === activeCategory);
-    const matchCat = activeCategory === 'all'
-      || activeCategoryConfig?.aliases?.some((alias) => categoryText.includes(alias) || translatedCategoryText.includes(alias));
-    return matchSearch && matchCat;
-  });
+  const providerAvailableJobs = useMemo(() => {
+    return (visibleJobs || []).filter(j => {
+      // Exclude own tasks
+      if (j.clientId === user?.id || j.client?.id === user?.id) return false;
+      // Exclude jobs that have been accepted/assigned already
+      const hasAcceptedAssignment = j.assignments?.some(a => a.status === 'ACCEPTED');
+      if (hasAcceptedAssignment) return false;
+      return true;
+    });
+  }, [visibleJobs, user?.id]);
+
+  const filteredJobs = useMemo(() => {
+    return providerAvailableJobs.filter(job => {
+      const q = search.toLowerCase();
+      const category = String(job.category || '');
+      const categoryText = category.toLowerCase();
+      const translatedCategoryText = translateService(category).toLowerCase();
+      const matchSearch = !q || job.title?.toLowerCase().includes(q)
+        || categoryText.includes(q)
+        || translatedCategoryText.includes(q)
+        || job.location?.toLowerCase().includes(q);
+      const activeCategoryConfig = CATEGORIES.find((cat) => cat.id === activeCategory);
+      const matchCat = activeCategory === 'all'
+        || activeCategoryConfig?.aliases?.some((alias) => categoryText.includes(alias) || translatedCategoryText.includes(alias));
+      return matchSearch && matchCat;
+    });
+  }, [providerAvailableJobs, search, activeCategory]);
 
   // Sort: most recent first, high budget jobs bumped up if posted within 48h
-  const prioritizedJobs = [...filteredJobs].sort((a, b) => {
-    const ageA = now - new Date(a.createdAt || 0).getTime();
-    const ageB = now - new Date(b.createdAt || 0).getTime();
-    const recent48h = 48 * 60 * 60 * 1000;
-    const aIsHighPriority = ageA < recent48h && (a.budget || 0) >= 25000;
-    const bIsHighPriority = ageB < recent48h && (b.budget || 0) >= 25000;
-    if (aIsHighPriority && !bIsHighPriority) return -1;
-    if (!aIsHighPriority && bIsHighPriority) return 1;
-    return ageA - ageB; // most recent first
-  });
+  const prioritizedJobs = useMemo(() => {
+    return [...filteredJobs].sort((a, b) => {
+      const ageA = now - new Date(a.createdAt || 0).getTime();
+      const ageB = now - new Date(b.createdAt || 0).getTime();
+      const recent48h = 48 * 60 * 60 * 1000;
+      const aIsHighPriority = ageA < recent48h && (a.budget || 0) >= 25000;
+      const bIsHighPriority = ageB < recent48h && (b.budget || 0) >= 25000;
+      if (aIsHighPriority && !bIsHighPriority) return -1;
+      if (!aIsHighPriority && bIsHighPriority) return 1;
+      return ageA - ageB; // most recent first
+    });
+  }, [filteredJobs, now]);
 
   const firstName = user?.fullName?.split(' ')[0] || t('common.provider');
   const hour = new Date().getHours();
@@ -307,10 +322,7 @@ const ProviderHomeScreen = ({ navigation }) => {
         </View>
 
         {/* Stats / Time Row */}
-        <View style={styles.statsRow}>
-          <Text style={[styles.statsText, { color: colors.textSecondary }]}>
-            {t('home.reviewsSpent', { reviews: job.clientReviewCount ?? 0, spent: job.clientSpendingTier || 'New client' })}
-          </Text>
+        <View style={[styles.statsRow, { justifyContent: 'flex-end' }]}>
           {job.createdAt ? (
             <View style={styles.timeInline}>
               <MaterialCommunityIcons name="clock-outline" size={13} color={colors.textSecondary} />

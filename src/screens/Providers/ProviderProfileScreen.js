@@ -252,17 +252,18 @@ const ProviderProfileScreen = ({ route, navigation }) => {
     } : null,
   ].filter(Boolean);
 
-  const joinedDate = provider.user?.createdAt
-    ? new Date(provider.user.createdAt).toLocaleDateString(currentLanguage === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' })
-    : t('common.recent');
+  const rawJoined = profileData?.user?.createdAt || provider.user?.createdAt;
+  const joinedDate = rawJoined
+    ? new Date(rawJoined).toLocaleDateString(currentLanguage === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' })
+    : new Date().toLocaleDateString(currentLanguage === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' });
 
   const handleShare = async () => {
     try {
       const uid = providerUserId;
-      const url = uid ? `https://fixam.app/profile/${uid}` : 'https://fixam.app/download';
+      const url = uid ? `https://usefixam.com/profile/${uid}` : 'https://usefixam.com/download';
       await Share.share({
-        title: `${fullName} profile`,
-        message: `Book ${fullName} on Fixam: ${url}`,
+        title: t('profile.shareProfileTitle'),
+        message: t('profile.shareProviderProfileMessage', { name: fullName, url }),
         ...(Platform.OS === 'ios' ? { url } : {}),
       });
     } catch (_) { }
@@ -413,7 +414,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                   </View>
                   <Text style={[styles.statVal, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{ratingVal}</Text>
                 </View>
-                <Text style={[styles.statLabel, { color: isDarkMode ? '#CBD5E1' : '#475569' }]} numberOfLines={1}>Trust Score</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#CBD5E1' : '#475569' }]} numberOfLines={1}>{t('home.trustScore')}</Text>
                 <Text style={[styles.statSubLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>{reviewCountVal} {t('profile.reviews')}</Text>
               </View>
 
@@ -440,7 +441,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                   <Text style={[styles.statVal, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{jobsCompletedCount}</Text>
                 </View>
                 <Text style={[styles.statLabel, { color: isDarkMode ? '#CBD5E1' : '#475569' }]} numberOfLines={1}>{t('home.jobsCompleted')}</Text>
-                <Text style={[styles.statSubLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>{successRate !== null ? `${successRate}% success` : 'No completed jobs yet'}</Text>
+                <Text style={[styles.statSubLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>{successRate !== null ? t('profile.successRateLabel', { rate: successRate }) : t('profile.noCompletedJobs')}</Text>
               </View>
 
               {/* Rank */}
@@ -451,7 +452,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                   </View>
                   <Text style={[styles.statVal, { color: isDarkMode ? '#FFF' : '#0F172A' }]} numberOfLines={1}>{skillRank}</Text>
                 </View>
-                <Text style={[styles.statLabel, { color: isDarkMode ? '#CBD5E1' : '#475569' }]} numberOfLines={1}>Rank</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#CBD5E1' : '#475569' }]} numberOfLines={1}>{t('home.rank')}</Text>
                 <Text style={[styles.statSubLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>{experienceLevel}</Text>
               </View>
             </View>
@@ -481,7 +482,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
             {/* Joined Card */}
             <View style={[styles.joinedCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
               <MaterialCommunityIcons name="calendar-check-outline" size={24} color="#0D9488" />
-              <Text style={styles.joinedTitle}>{t('profile.joined')}</Text>
+              <Text style={styles.joinedTitle}>{t('profile.joinedSinceLabel', 'Joined since')}</Text>
               <Text style={[styles.joinedSub, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{joinedDate}</Text>
             </View>
           </View>
@@ -556,7 +557,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           ) : (
             <View style={[styles.emptyProfileCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
               <MaterialCommunityIcons name="progress-clock" size={24} color="#94A3B8" />
-              <Text style={[styles.emptyProfileText, { color: isDarkMode ? '#CBD5E1' : '#64748B' }]}>This provider is still building verified highlights.</Text>
+              <Text style={[styles.emptyProfileText, { color: isDarkMode ? '#CBD5E1' : '#64748B' }]}>{t('profile.emptyHighlights')}</Text>
             </View>
           )}
         </View>
@@ -604,17 +605,34 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
               )}
             </View>
-            {certificates.slice(0, 2).map((item, index) => (
-              <View key={`${item.title || 'certificate'}-${index}`} style={[styles.credentialRow, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
-                <View style={styles.credentialIcon}>
-                  <MaterialCommunityIcons name="certificate-outline" size={22} color="#0D9488" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.credentialTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{item.title || 'Certificate'}</Text>
-                  <Text style={[styles.credentialMeta, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>{[item.issuer, item.year].filter(Boolean).join(' | ') || 'Credential added'}</Text>
-                </View>
-              </View>
-            ))}
+            {certificates.slice(0, 2).map((item, index) => {
+              const hasFile = !!item.imageUrl;
+              const isPdf = item.imageUrl?.toLowerCase().endsWith('.pdf');
+              return (
+                <TouchableOpacity 
+                  key={`${item.title || 'certificate'}-${index}`} 
+                  style={[styles.credentialRow, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}
+                  disabled={!hasFile}
+                  onPress={() => {
+                    if (item.imageUrl) {
+                      Linking.openURL(item.imageUrl).catch(err => console.log("Failed to open URL:", err));
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.credentialIcon}>
+                    <MaterialCommunityIcons name={isPdf ? "file-pdf-box" : "certificate-outline"} size={22} color={isPdf ? "#EF4444" : "#0D9488"} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.credentialTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{item.title || 'Certificate'}</Text>
+                    <Text style={[styles.credentialMeta, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>{ [item.issuer, item.year].filter(Boolean).join(' | ') || 'Credential added' }</Text>
+                  </View>
+                  {hasFile && (
+                    <MaterialCommunityIcons name="open-in-new" size={18} color={isDarkMode ? '#94A3B8' : '#64748B'} style={{ marginLeft: 8 }} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -777,16 +795,16 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           <View style={styles.sectionContainer}>
             <View style={[styles.activeBookingCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <MaterialCommunityIcons name="calendar-check-outline" size={22} color="#0D9488" style={{ marginRight: 8 }} />
-                <Text style={[styles.activeBookingTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>Active Booking</Text>
+                 <MaterialCommunityIcons name="calendar-check-outline" size={22} color="#0D9488" style={{ marginRight: 8 }} />
+                <Text style={[styles.activeBookingTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('bookings.activeBooking')}</Text>
               </View>
-              <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>Duration: {existingBooking.bookingDuration || 'DAY'}</Text>
-              <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>Type: {existingBooking.urgencyLevel || 'NORMAL'}</Text>
+              <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>{t('bookings.duration', { value: existingBooking.bookingDuration || 'DAY' })}</Text>
+              <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>{t('bookings.type', { value: existingBooking.urgencyLevel || 'NORMAL' })}</Text>
               <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
-                Date: {existingBooking.bookingDate ? new Date(existingBooking.bookingDate).toLocaleDateString() : 'Not set'}
+                {t('bookings.date')}: {existingBooking.bookingDate ? new Date(existingBooking.bookingDate).toLocaleDateString() : t('common.notSet', 'Not set')}
               </Text>
               <Text style={[styles.activeBookingText, { color: isDarkMode ? '#CBD5E1' : '#475569', fontWeight: '700', marginTop: 4 }]}>
-                Status: {existingBooking.status}
+                {t('payments.status')}: {existingBooking.status}
               </Text>
             </View>
           </View>
@@ -799,7 +817,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
               onPress={handleMessageProvider}
             >
               <MaterialCommunityIcons name="message-text-outline" size={22} color="#0D9488" />
-              <Text style={[styles.messageUnlockedText, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>Message provider</Text>
+              <Text style={[styles.messageUnlockedText, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('bookings.messageProvider')}</Text>
             </TouchableOpacity>
           </View>
         )}

@@ -391,10 +391,10 @@ const DashboardScreen = ({ navigation }) => {
             </View>
             <TouchableOpacity onPress={async () => {
               try {
-                const url = `https://fixam.app/profile/${user?.id}`;
+                const url = `https://usefixam.com/profile/${user?.id}`;
                 await Share.share({
-                  title: 'My Fixam profile',
-                  message: `View my Fixam profile: ${url}`,
+                  title: t('profile.shareProfileTitle'),
+                  message: t('profile.shareProfileMessage', { url }),
                   ...(Platform.OS === 'ios' ? { url } : {}),
                 });
               } catch (e) {
@@ -603,8 +603,8 @@ const DashboardScreen = ({ navigation }) => {
             )}
           </Section>
 
-          <Section colors={colors} title={t('profileDetail.testimonials')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('Feedback', { testimonialPreset: true })}>
-            <EmptyProfileBlock icon="comment-quote-outline" title={t('profileDetail.endorsements')} action={t('profileDetail.requestTestimonial')} colors={colors} onActionPress={() => navigation.navigate('Feedback', { testimonialPreset: true })} />
+          <Section colors={colors} title={t('profileDetail.testimonials')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('RequestTestimony')}>
+            <EmptyProfileBlock icon="comment-quote-outline" title={t('profileDetail.endorsements')} action={t('profileDetail.requestTestimonial')} colors={colors} onActionPress={() => navigation.navigate('RequestTestimony')} />
           </Section>
 
           <Section colors={colors} title={t('profileDetail.linkedAccounts')} actionIcon="pencil-outline" onAction={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'links' })}>

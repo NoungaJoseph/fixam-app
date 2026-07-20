@@ -6,38 +6,46 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const CONFIG = {
   project: {
+    titleKey: 'profileDetail.addProject',
     title: 'Add project',
     field: 'portfolio',
+    submitKey: 'profileDetail.saveProject',
     submit: 'Save project',
     fields: [
-      ['title', 'Project title'],
-      ['description', 'Project description'],
-      ['imageUrl', 'Project image URL']
+      ['title', 'profileDetail.projectTitle', 'Project title'],
+      ['description', 'profileDetail.projectDescription', 'Project description'],
+      ['imageUrl', 'profileDetail.projectImageUrl', 'Project image URL']
     ]
   },
   certificate: {
+    titleKey: 'profileDetail.addCertification',
     title: 'Add certificate',
     field: 'certificates',
+    submitKey: 'profileDetail.saveCertificate',
     submit: 'Save certificate',
     fields: [
-      ['title', 'Certificate name'],
-      ['issuer', 'Issuer'],
-      ['year', 'Year'],
-      ['imageUrl', 'Certificate image URL']
+      ['title', 'profileDetail.certificateName', 'Certificate name'],
+      ['issuer', 'profileDetail.issuer', 'Issuer'],
+      ['year', 'profileDetail.year', 'Year'],
+      ['imageUrl', 'profileDetail.certificateFile', 'Certificate File (Image or PDF)']
     ]
   },
   employment: {
+    titleKey: 'profileDetail.addEmployment',
     title: 'Add employment',
     field: 'employmentHistory',
+    submitKey: 'profileDetail.saveEmployment',
     submit: 'Save employment',
     fields: [
-      ['title', 'Role or title'],
-      ['company', 'Company'],
-      ['period', 'Period'],
-      ['description', 'Description']
+      ['title', 'profileDetail.roleOrTitle', 'Role or title'],
+      ['company', 'profileDetail.company', 'Company'],
+      ['period', 'profileDetail.period', 'Period'],
+      ['description', 'profileDetail.roleDescription', 'Description']
     ]
   }
 };
@@ -45,13 +53,82 @@ const CONFIG = {
 const ProviderProfileEditItemScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
   const { user, updateProfile, uploadFile } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const type = route.params?.type || 'project';
   const config = CONFIG[type] || CONFIG.project;
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
   const [uploadingField, setUploadingField] = useState(null);
   const [images, setImages] = useState([]);
+
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [currentlyWorkHere, setCurrentlyWorkHere] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickingField, setPickingField] = useState(null); // 'startDate' or 'endDate'
+
+  const formatMonthYear = (date, lang) => {
+    if (!date) return '';
+    const monthsEN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthsFR = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+    const m = date.getMonth();
+    const y = date.getFullYear();
+    return lang === 'fr' ? `${monthsFR[m]} ${y}` : `${monthsEN[m]} ${y}`;
+  };
+
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(false);
+    if (date) {
+      if (pickingField === 'startDate') {
+        setStartDate(date);
+      } else if (pickingField === 'endDate') {
+        setEndDate(date);
+      }
+    }
+  };
+
+  const handleSelectCertificateFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        const asset = result.assets[0];
+        const uri = asset.uri;
+        setUploadingField('imageUrl');
+        
+        const filename = asset.name || uri.split('/').pop();
+        const mimeType = asset.mimeType || 'application/pdf';
+
+        const formData = new FormData();
+        formData.append('file', {
+          uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+          name: filename,
+          type: mimeType,
+        });
+
+        const res = await uploadFile(formData);
+        if (res?.url) {
+          setImages(prev => {
+            const next = [...prev, res.url];
+            if (!form.imageUrl) {
+              setField('imageUrl', res.url);
+            }
+            return next;
+          });
+        } else {
+          throw new Error('Upload failed');
+        }
+      }
+    } catch (err) {
+      console.log('Certificate file upload error:', err);
+      Alert.alert(t('profileDetail.permissionError', 'Upload Failed'), t('profileDetail.imageUploadFailed', 'Could not upload file. Please try again.'));
+    } finally {
+      setUploadingField(null);
+    }
+  };
 
   const handleSelectMultipleImage = async () => {
     try {
@@ -114,7 +191,7 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
-    const hasContent = Object.values(form).some((value) => String(value || '').trim()) || images.length > 0;
+    const hasContent = Object.values(form).some((value) => String(value || '').trim()) || images.length > 0 || type === 'employment';
     if (!hasContent) {
       Alert.alert('Add details', 'Please add at least one detail before saving.');
       return;
@@ -127,6 +204,13 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
       );
       cleaned.images = images;
       cleaned.imageUrl = images[0] || '';
+
+      if (type === 'employment') {
+        const periodStr = currentlyWorkHere
+          ? `${formatMonthYear(startDate, language)} - ${t('profileDetail.present', 'Present')}`
+          : `${formatMonthYear(startDate, language)} - ${formatMonthYear(endDate, language)}`;
+        cleaned.period = periodStr;
+      }
 
       await updateProfile({ [config.field]: [...existingItems, cleaned] });
       Alert.alert('Saved', `${config.title.replace('Add ', '')} added successfully.`, [
@@ -147,7 +231,7 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
             <MaterialCommunityIcons name="chevron-left" size={30} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{config.title}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t(config.titleKey, config.title)}</Text>
           <View style={styles.headerBtn} />
         </View>
 
@@ -170,30 +254,42 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {config.fields.map(([key, label]) => {
+          {config.fields.map(([key, labelKey, label]) => {
             const isImageField = key === 'imageUrl';
             
             if (isImageField) {
               return (
                 <View key={key} style={styles.field}>
                   <Text style={[styles.label, { color: colors.textSecondary }]}>
-                    {type === 'project' ? t('profileDetail.projectImageUrl', 'Project Photos') : t('profileDetail.certificateImageUrl', 'Certificate Photo')}
+                    {t(labelKey, label)}
                   </Text>
                   
                   <View style={styles.imageSelectorContainer}>
                     {images.length > 0 && (
                       <View style={styles.imagesGrid}>
-                        {images.map((imgUrl, idx) => (
-                          <View key={`${imgUrl}-${idx}`} style={styles.gridImageItem}>
-                            <Image source={{ uri: imgUrl }} style={styles.gridImage} resizeMode="cover" />
-                            <TouchableOpacity 
-                              style={styles.removeImageBadge} 
-                              onPress={() => handleRemoveImage(idx)}
-                            >
-                              <MaterialCommunityIcons name="close-circle" size={22} color="#EF4444" />
-                            </TouchableOpacity>
-                          </View>
-                        ))}
+                        {images.map((imgUrl, idx) => {
+                          const isPdf = imgUrl.toLowerCase().endsWith('.pdf');
+                          return (
+                            <View key={`${imgUrl}-${idx}`} style={styles.gridImageItem}>
+                              {isPdf ? (
+                                <View style={[styles.gridImage, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border }]}>
+                                  <MaterialCommunityIcons name="file-pdf-box" size={44} color="#EF4444" />
+                                  <Text style={{ fontSize: 9, color: colors.textSecondary, fontWeight: '700', marginTop: 4 }} numberOfLines={1}>
+                                    PDF Doc
+                                  </Text>
+                                </View>
+                              ) : (
+                                <Image source={{ uri: imgUrl }} style={styles.gridImage} resizeMode="cover" />
+                              )}
+                              <TouchableOpacity 
+                                style={styles.removeImageBadge} 
+                                onPress={() => handleRemoveImage(idx)}
+                              >
+                                <MaterialCommunityIcons name="close-circle" size={22} color="#EF4444" />
+                              </TouchableOpacity>
+                            </View>
+                          );
+                        })}
                       </View>
                     )}
 
@@ -210,9 +306,9 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
                       images.length < 8 && (
                         <TouchableOpacity 
                           style={[styles.placeholderContainer, { borderColor: colors.border }]}
-                          onPress={handleSelectMultipleImage}
+                          onPress={handleSelectMedia}
                         >
-                          <MaterialCommunityIcons name="camera-plus" size={32} color={colors.textSecondary} />
+                          <MaterialCommunityIcons name={type === 'certificate' ? "file-upload-outline" : "camera-plus"} size={32} color={colors.textSecondary} />
                           <Text style={[styles.placeholderText, { color: colors.textSecondary, marginTop: 8 }]}>
                             {images.length > 0 ? t('profileDetail.addAnotherPhoto', 'Add Another Photo') : t('profileDetail.selectPhoto', 'Select Photo')}
                           </Text>
@@ -224,14 +320,79 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
               );
             }
 
+            if (key === 'period') {
+              return (
+                <View key={key} style={styles.field}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>
+                    {t(labelKey, label)}
+                  </Text>
+                  
+                  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+                    <TouchableOpacity 
+                      style={[styles.datePickerBtn, { flex: 1, borderColor: colors.border, backgroundColor: colors.card }]}
+                      onPress={() => {
+                        setPickingField('startDate');
+                        setShowDatePicker(true);
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <MaterialCommunityIcons name="calendar" size={20} color={colors.textSecondary} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 10, color: colors.textSecondary, textTransform: 'uppercase' }}>
+                            {t('profileDetail.startDate', 'Start Date')}
+                          </Text>
+                          <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>
+                            {formatMonthYear(startDate, language)}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+
+                    {!currentlyWorkHere && (
+                      <TouchableOpacity 
+                        style={[styles.datePickerBtn, { flex: 1, borderColor: colors.border, backgroundColor: colors.card }]}
+                        onPress={() => {
+                          setPickingField('endDate');
+                          setShowDatePicker(true);
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <MaterialCommunityIcons name="calendar" size={20} color={colors.textSecondary} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 10, color: colors.textSecondary, textTransform: 'uppercase' }}>
+                              {t('profileDetail.endDate', 'End Date')}
+                            </Text>
+                            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>
+                              {formatMonthYear(endDate, language)}
+                            </Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <TouchableOpacity 
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, paddingVertical: 6 }}
+                    onPress={() => setCurrentlyWorkHere(prev => !prev)}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialCommunityIcons 
+                      name={currentlyWorkHere ? "checkbox-marked" : "checkbox-blank-outline"} 
+                      size={22} 
+                      color={currentlyWorkHere ? colors.accent : colors.textSecondary} 
+                    />
+                    <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>
+                      {t('profileDetail.currentlyWorkHere', 'I currently work here')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
             return (
               <View key={key} style={styles.field}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>
-                  {key === 'title' ? (type === 'project' ? t('profileDetail.projectTitle', label) : type === 'certificate' ? t('profileDetail.certificateName', label) : label) :
-                   key === 'description' ? t('profileDetail.projectDescription', label) :
-                   key === 'issuer' ? t('profileDetail.issuer', label) :
-                   key === 'year' ? t('profileDetail.year', label) :
-                   label}
+                  {t(labelKey, label)}
                 </Text>
                 <TextInput
                   style={[
@@ -241,13 +402,7 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
                   ]}
                   value={form[key] || ''}
                   onChangeText={(value) => setField(key, value)}
-                  placeholder={
-                    key === 'title' ? (type === 'project' ? t('profileDetail.projectTitle', label) : type === 'certificate' ? t('profileDetail.certificateName', label) : label) :
-                    key === 'description' ? t('profileDetail.projectDescription', label) :
-                    key === 'issuer' ? t('profileDetail.issuer', label) :
-                    key === 'year' ? t('profileDetail.year', label) :
-                    label
-                  }
+                  placeholder={t(labelKey, label)}
                   placeholderTextColor={colors.placeholder}
                   keyboardType={key === 'year' ? 'numeric' : 'default'}
                   multiline={key === 'description'}
@@ -262,11 +417,21 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
             onPress={handleSave}
             disabled={loading}
           >
-            <Text style={[styles.saveText, { color: colors.text }]}>{loading ? 'Saving...' : config.submit}</Text>
+            <Text style={[styles.saveText, { color: colors.text }]}>{loading ? t('profileDetail.saving', 'Saving...') : t(config.submitKey, config.submit)}</Text>
             <MaterialCommunityIcons name="check" size={20} color={colors.text} />
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={pickingField === 'startDate' ? startDate : endDate}
+          mode="date"
+          display="default"
+          textColor={isDarkMode ? '#FFFFFF' : '#000000'}
+          onChange={handleDateChange}
+        />
+      )}
     </View>
   );
 };
@@ -287,6 +452,14 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 },
   input: { minHeight: 52, borderBottomWidth: 1, fontSize: 16, fontWeight: '600', paddingVertical: 8 },
   textArea: { minHeight: 120 },
+  datePickerBtn: {
+    height: 54,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
   saveBtn: { minHeight: 48, paddingVertical: 14, borderRadius: 4, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 8 },
   saveText: { fontSize: 15, fontWeight: '900' },
   imageSelectorContainer: { marginTop: 8 },

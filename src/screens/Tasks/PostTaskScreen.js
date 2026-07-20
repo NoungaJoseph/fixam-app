@@ -1014,13 +1014,13 @@ const PostTaskScreen = ({ route, navigation }) => {
               <TouchableOpacity style={[styles.categorySearchWrap, { flex: 1, backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border, marginBottom: 0 }]} onPress={() => setShowDatePicker(true)}>
                 <MaterialCommunityIcons name="calendar-blank-outline" size={20} color="#64748B" />
                 <Text style={{ flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' }}>
-                  {scheduledDate.toLocaleDateString()}
+                  {`${scheduledDate.getDate().toString().padStart(2, '0')}/${(scheduledDate.getMonth() + 1).toString().padStart(2, '0')}/${scheduledDate.getFullYear()}`}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.categorySearchWrap, { flex: 1, backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border, marginBottom: 0 }]} onPress={() => setShowTimePicker(true)}>
                 <MaterialCommunityIcons name="clock-outline" size={20} color="#64748B" />
                 <Text style={{ flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' }}>
-                  {scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {`${scheduledTime.getHours().toString().padStart(2, '0')}:${scheduledTime.getMinutes().toString().padStart(2, '0')}`}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1221,7 +1221,8 @@ const PostTaskScreen = ({ route, navigation }) => {
         <DateTimePicker
           value={scheduledDate}
           mode="date"
-          display="spinner"
+          display="default"
+          textColor={isDarkMode ? '#FFFFFF' : '#000000'}
           onChange={(event, date) => {
             setShowDatePicker(false);
             if (date) setScheduledDate(date);
@@ -1233,7 +1234,8 @@ const PostTaskScreen = ({ route, navigation }) => {
         <DateTimePicker
           value={scheduledTime}
           mode="time"
-          display="spinner"
+          display="default"
+          textColor={isDarkMode ? '#FFFFFF' : '#000000'}
           onChange={(event, date) => {
             setShowTimePicker(false);
             if (date) setScheduledTime(date);

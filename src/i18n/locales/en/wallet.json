@@ -61,7 +61,11 @@
     "goToWallet": "Go to Wallet",
     "contactSupport": "Contact Support",
     "tryAgain": "Try Again",
-    "invalidPhoneNumberFormat": "Invalid number. Format matches: {{placeholder}}"
+    "invalidPhoneNumberFormat": "Invalid number. Format matches: {{placeholder}}",
+    "insufficientFundsOrDeclined": "Mobile Money payment was declined or has insufficient balance.",
+    "invalidCameroonNumber": "Please enter a valid 9-digit mobile number starting with 6.",
+    "customPhoneHint": "Enter your Mobile Money number or any other number (friend/sponsor) to pay.",
+    "momoApprovalHint": "Please approve the payment prompt on your phone (or dial *126# for MTN MoMo)."
   },
   "wallet": {
     "topUpCoins": "Top Up Coins",

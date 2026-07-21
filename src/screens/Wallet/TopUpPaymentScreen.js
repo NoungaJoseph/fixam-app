@@ -23,8 +23,18 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
     detectedCountry: userCountry
   });
 
+  const cleanPreFilledPhone = (phoneStr) => {
+    if (!phoneStr) return '';
+    let cleaned = phoneStr.replace(/\D/g, '');
+    const dialCodeNoPlus = countryConfig.dialCode.replace('+', '');
+    if (cleaned.startsWith(dialCodeNoPlus)) {
+      cleaned = cleaned.slice(dialCodeNoPlus.length);
+    }
+    return cleaned;
+  };
+
   const [selectedMethod, setSelectedMethod] = useState(methods[0]?.id || 'mtn');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(cleanPreFilledPhone(user?.phone));
   const [loading, setLoading] = useState(false);
 
   const activeMethod = methods.find(m => m.id === selectedMethod) || methods[0];

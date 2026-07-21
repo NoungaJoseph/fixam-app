@@ -61,7 +61,11 @@
     "goToWallet": "Aller au portefeuille",
     "contactSupport": "Contacter l'assistance",
     "tryAgain": "Réessayer",
-    "invalidPhoneNumberFormat": "Numéro invalide. Format requis : {{placeholder}}"
+    "invalidPhoneNumberFormat": "Numéro invalide. Format requis : {{placeholder}}",
+    "insufficientFundsOrDeclined": "Le paiement Mobile Money a été refusé ou le solde est insuffisant.",
+    "invalidCameroonNumber": "Veuillez saisir un numéro Mobile Money valide de 9 chiffres.",
+    "customPhoneHint": "Saisissez votre numéro Mobile Money ou celui d'un proche/parrain pour payer.",
+    "momoApprovalHint": "Veuillez valider la demande sur votre téléphone (ou composez le *126# pour les abonnés MTN)."
   },
   "wallet": {
     "topUpCoins": "Recharger les crédits",

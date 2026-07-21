@@ -21,11 +21,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
   const userCountry = user?.country || detectCountryFromPhone(user?.phone) || 'Cameroon';
   const countryConfig = COUNTRY_DATA[userCountry] || COUNTRY_DATA.Cameroon;
 
-  console.log('[CoinPaymentFormScreen] User profile info:', {
-    phone: user?.phone,
-    countryField: user?.country,
-    detectedCountry: userCountry
-  });
+  console.log('[CoinPaymentFormScreen] Active screen loaded for user:', user?.id);
 
   const PAYMENT_METHODS = countryConfig.paymentMethods
     .filter(m => m.type === 'momo')
@@ -235,19 +231,6 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
   const handleMethodChange = (newMethod) => {
     setSelectedMethod(newMethod);
     setPhoneError(null);
-
-    if (userCountry === 'Cameroon') {
-      const provider = newMethod === 'MTN_MOMO' ? 'MTN' : 'ORANGE';
-      const cleaned = formData.phone.replace(/[\s\-]/g, '').replace(/^\+?237/, '');
-      if (cleaned.length >= 9) {
-        const validation = validatePhoneForProvider(formData.phone, provider);
-        if (!validation.valid) {
-          setFormData({ ...formData, phone: '' });
-          setNetworkDetected(null);
-          setPhoneError(t(validation.error));
-        }
-      }
-    }
   };
 
   const handleSubmitPayment = async () => {
@@ -267,12 +250,13 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
       phoneToValidate = phoneToValidate.slice(1);
     }
 
-    // Validate phone matches selected provider
+    // Validate phone matches selected provider or auto-detect
     if (userCountry === 'Cameroon') {
-      const provider = selectedMethod === 'MTN_MOMO' ? 'MTN' : 'ORANGE';
-      const validation = validatePhoneForProvider(phoneToValidate, provider);
-      if (!validation.valid) {
-        setPhoneError(t(validation.error));
+      const detected = getNetworkFromPhone(phoneToValidate);
+      if (detected && detected !== 'UNKNOWN') {
+        setSelectedMethod(detected === 'MTN' ? 'MTN_MOMO' : 'ORANGE_MONEY');
+      } else if (phoneToValidate.length !== 9 || !phoneToValidate.startsWith('6')) {
+        setPhoneError(t('payments.invalidCameroonNumber'));
         return;
       }
     } else {
@@ -286,6 +270,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
       const amount = getNumericAmount(pkg.amount || pkg.price);
       // Prepend dynamic dial code without "+" to standardise format sent to API
       const fullPhone = dialCodeNoPlus + phoneToValidate;
+      console.log('[CoinPaymentFormScreen] Submitting topup with custom payment phone:', fullPhone);
 
       const response = await api.post('/payments/topup', {
         amount,
@@ -391,6 +376,9 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
                 onChangeText={handlePhoneChange}
                 keyboardType="phone-pad"
               />
+              <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4 }}>
+                {t('payments.customPhoneHint')}
+              </Text>
               {/* Network detection badge */}
               {userCountry === 'Cameroon' && formData.phone.replace(/[\s\-]/g, '').replace(/^\+?237/, '').length >= 3 && networkDetected && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
@@ -459,9 +447,14 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
             {paymentStatus !== 'IDLE' && (
               <View style={[styles.statusBox, { backgroundColor: colors.accentSoft }]}>
                 <ActivityIndicator size="small" color={colors.accent} />
-                <Text style={[styles.statusText, { color: colors.accent }]}>
-                  {paymentStatus === 'PROCESSING' ? t('payments.waiting') : paymentStatus}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.statusText, { color: colors.accent }]}>
+                    {paymentStatus === 'PROCESSING' ? t('payments.waiting') : paymentStatus}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: colors.accent, marginTop: 2 }}>
+                    {t('payments.momoApprovalHint')}
+                  </Text>
+                </View>
               </View>
             )}
           </View>

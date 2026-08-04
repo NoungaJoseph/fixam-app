@@ -268,9 +268,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             </View>
             {budget > 0 ? (
               <View style={styles.priceBlock}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
                   <MaterialCommunityIcons name="wallet-outline" size={22} color="#06B85F" />
-                  <Text style={styles.priceText}>{budgetLabel}</Text>
+                  <Text style={styles.priceText} adjustsFontSizeToFit minimumScaleFactor={0.7} numberOfLines={1}>{budgetLabel}</Text>
                 </View>
                 <Text style={styles.priceBadge}>{budgetMin !== budgetMax ? t('jobs.budgetRange').toUpperCase() : t('jobs.fixedPrice').toUpperCase()}</Text>
               </View>
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
   locationText: { color: '#071936', fontSize: 16, fontWeight: '700', flex: 1 },
   vDivider: { width: 1, height: 22, backgroundColor: '#CBD5E1' },
   distanceText: { color: '#0D9488', fontSize: 14, fontWeight: '900' },
-  priceBlock: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  priceBlock: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
   priceText: { color: '#06B85F', fontSize: 24, fontWeight: '900' },
   priceBadge: { color: '#0D9488', backgroundColor: '#DFFAF5', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, fontSize: 12, fontWeight: '900' },
   addressCard: { minHeight: 80, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },

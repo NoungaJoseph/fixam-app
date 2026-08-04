@@ -5,6 +5,7 @@ import api, { getMediaUrl } from '../services/api';
 import { useAuth } from './AuthContext';
 import { useSocket } from './SocketContext';
 import { POPULAR_SERVICE_CATALOG } from '../data/popularServices';
+import { INITIAL_PROJECTS } from '../data/initialProjects';
 
 const AppContext = createContext();
 const hiddenJobsKey = (userId) => `fixam:hidden-jobs:${userId || 'guest'}`;
@@ -70,6 +71,7 @@ export const AppProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
   const [popularCategories, setPopularCategories] = useState(POPULAR_SERVICE_CATALOG);
+  const [publishedProjects, setPublishedProjects] = useState([]);
   const markingNotificationsRef = React.useRef(new Set());
   const lastFetchRef = React.useRef(null);
   const hasLoadedDataRef = React.useRef(false);
@@ -115,6 +117,7 @@ export const AppProvider = ({ children }) => {
         }
       };
       loadCached().then(() => {
+        setIsInitialLoad(false);
         fetchAppData(true);
         fetchNotifications();
       });
@@ -139,7 +142,7 @@ export const AppProvider = ({ children }) => {
         fetchConversations();
         fetchAppData(false);
       }
-    }, 30 * 1000);
+    }, 60 * 1000);
 
     return () => {
       subscription.remove();
@@ -269,13 +272,13 @@ export const AppProvider = ({ children }) => {
   };
 
   const fetchAppData = async (force = false) => {
-    // Debounce: skip if fetched within the last 5 minutes
+    // Debounce: skip if fetched within the last 1 minute
     const now = Date.now();
-    if (!force && lastFetchRef.current && (now - lastFetchRef.current < 300000)) {
+    if (!force && lastFetchRef.current && (now - lastFetchRef.current < 60000)) {
       return;
     }
 
-    const shouldShowInitialLoader = !hasLoadedDataRef.current;
+    const shouldShowInitialLoader = !hasLoadedDataRef.current && jobs.length === 0 && providers.length === 0;
     if (shouldShowInitialLoader) {
       setIsInitialLoad(true);
       setIsLoading(true);
@@ -297,6 +300,75 @@ export const AppProvider = ({ children }) => {
       if (res.status !== 304 && data) {
         currentProviders = (data.providers || []).map(normalizeProvider);
         setProviders(currentProviders);
+
+        // Sync database portfolio projects into local state
+        const dbProjects = [];
+        currentProviders.forEach(p => {
+          if (p.portfolio && Array.isArray(p.portfolio)) {
+            p.portfolio.forEach(proj => {
+              const hashStr = String(proj.title || '') + String(proj.description || '');
+              let hash = 0;
+              for (let i = 0; i < hashStr.length; i++) {
+                hash = ((hash << 5) - hash) + hashStr.charCodeAt(i);
+                hash |= 0;
+              }
+              const finalId = proj.id || `proj_fallback_${Math.abs(hash)}`;
+
+              dbProjects.push({
+                ...proj,
+                id: finalId,
+                video: proj.video ? getMediaUrl(proj.video) : null,
+                videoUrl: proj.videoUrl ? getMediaUrl(proj.videoUrl) : null,
+                videos: Array.isArray(proj.videos) ? proj.videos.map(getMediaUrl) : [],
+                imageUrl: proj.imageUrl ? getMediaUrl(proj.imageUrl) : null,
+                images: Array.isArray(proj.images) ? proj.images.map(getMediaUrl) : (proj.imageUrl ? [getMediaUrl(proj.imageUrl)] : []),
+                providerId: p.id,
+                provider: {
+                  id: p.id,
+                  rating: p.rating,
+                  reviewCount: p.reviewCount,
+                  user: {
+                    id: p.user?.id,
+                    fullName: p.user?.fullName,
+                    avatar: p.user?.avatar,
+                    country: p.user?.country || 'Cameroon'
+                  }
+                }
+              });
+            });
+          }
+        });
+
+        if (dbProjects.length > 0) {
+          setPublishedProjects(prev => {
+            const merged = [...prev];
+            dbProjects.forEach(dp => {
+              const idx = merged.findIndex(p => 
+                p.id === dp.id || 
+                (p.title === dp.title && p.description === dp.description)
+              );
+              if (idx > -1) {
+                merged[idx] = { ...merged[idx], ...dp };
+              } else {
+                merged.push(dp);
+              }
+            });
+            
+            // Deduplicate by title and description to remove any double-posted projects
+            const unique = [];
+            const seen = new Set();
+            merged.forEach(item => {
+              const key = `${item.title || ''}|${item.description || ''}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(item);
+              }
+            });
+
+            AsyncStorage.setItem('fixam:published_projects', JSON.stringify(unique)).catch(() => {});
+            return unique;
+          });
+        }
         
         const bookingJobs = (data.bookings || []).map((booking) => normalizeJob({
           id: booking.id,
@@ -434,7 +506,19 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.log('Error fetching notifications:', error);
     }
-  }, [user?.id]);
+  }, [user]);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('fixam:published_projects');
+        if (stored) {
+          setPublishedProjects(JSON.parse(stored));
+        }
+      } catch (_) {}
+    };
+    loadProjects();
+  }, []);
 
   const fetchUnreadMessageCount = useCallback(async () => {
     // No-op — unreadCount is derived from conversations (see below).
@@ -591,6 +675,157 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    AsyncStorage.getItem('fixam:published_projects').then((val) => {
+      let localProjects = [];
+      if (val) {
+        try {
+          localProjects = JSON.parse(val) || [];
+        } catch (_) {}
+      }
+      
+      // Filter out mock projects (proj_1 to proj_10) and clean video fields from other custom projects
+      const cleaned = localProjects
+        .filter(p => !/^proj_(?:[1-9]|10)$/.test(p.id))
+        .map(p => {
+          const clean = { ...p };
+          delete clean.video;
+          delete clean.videoUrl;
+          delete clean.videos;
+          return clean;
+        });
+
+      const merged = [...cleaned];
+      INITIAL_PROJECTS.forEach(ip => {
+        const idx = merged.findIndex(p => p.id === ip.id);
+        if (idx > -1) {
+          const isLikedByMe = merged[idx].isLikedByMe;
+          const likesCount = merged[idx].likesCount;
+          merged[idx] = {
+            ...ip,
+            ...(isLikedByMe !== undefined ? { isLikedByMe } : {}),
+            ...(likesCount !== undefined ? { likesCount } : {})
+          };
+        } else {
+          merged.push(ip);
+        }
+      });
+      setPublishedProjects(merged);
+      AsyncStorage.setItem('fixam:published_projects', JSON.stringify(merged)).catch(() => {});
+    });
+  }, []);
+
+  const publishProject = async (projectData) => {
+    let updated;
+    let targetProject;
+    const isEdit = !!projectData.id;
+    const finalProjId = isEdit ? projectData.id : `proj_${Date.now()}`;
+
+    targetProject = {
+      id: finalProjId,
+      createdAt: projectData.createdAt || new Date().toISOString(),
+      likesCount: projectData.likesCount || 0,
+      ...projectData,
+    };
+
+    if (isEdit) {
+      updated = publishedProjects.map(p => p.id === finalProjId ? { ...p, ...targetProject, updatedAt: new Date().toISOString() } : p);
+    } else {
+      updated = [targetProject, ...publishedProjects];
+    }
+
+    // Sync to PostgreSQL database provider profile
+    try {
+      const meRes = await api.get('/users/me');
+      const meUser = meRes.data.data || meRes.data.user;
+      const profile = meUser?.providerProfile || {};
+      const currentPortfolio = Array.isArray(profile.portfolio) ? profile.portfolio : [];
+
+      let dbPortfolio;
+      if (isEdit) {
+        // Update existing entry in-place
+        const existsInDb = currentPortfolio.some(p => p.id === finalProjId);
+        if (existsInDb) {
+          dbPortfolio = currentPortfolio.map(p => p.id === finalProjId ? {
+            id: finalProjId,
+            title: targetProject.title,
+            description: targetProject.description,
+            imageUrl: targetProject.imageUrl,
+            video: targetProject.video || null,
+            videoUrl: targetProject.videoUrl || null,
+            videos: targetProject.videos || []
+          } : p);
+        } else {
+          // Project exists locally but not in DB portfolio (edge case) — update without duplicating
+          const newProj = {
+            id: finalProjId,
+            title: targetProject.title,
+            description: targetProject.description,
+            imageUrl: targetProject.imageUrl,
+            video: targetProject.video || null,
+            videoUrl: targetProject.videoUrl || null,
+            videos: targetProject.videos || []
+          };
+          dbPortfolio = [newProj, ...currentPortfolio];
+        }
+      } else {
+        const newProj = {
+          id: finalProjId,
+          title: targetProject.title,
+          description: targetProject.description,
+          imageUrl: targetProject.imageUrl,
+          video: targetProject.video || null,
+          videoUrl: targetProject.videoUrl || null,
+          videos: targetProject.videos || []
+        };
+        dbPortfolio = [newProj, ...currentPortfolio];
+      }
+
+      await api.put('/users/profile', { portfolio: dbPortfolio });
+    } catch (e) {
+      if (__DEV__) console.log('Error syncing portfolio project to database:', e.message);
+    }
+
+    setPublishedProjects(updated);
+    await AsyncStorage.setItem('fixam:published_projects', JSON.stringify(updated));
+    return targetProject;
+  };
+
+  const toggleLikeProject = async (projectId) => {
+    const updated = publishedProjects.map(p => {
+      if (p.id === projectId) {
+        const isLiked = p.isLikedByMe;
+        return {
+          ...p,
+          isLikedByMe: !isLiked,
+          likesCount: Math.max(0, (p.likesCount || 0) + (isLiked ? -1 : 1))
+        };
+      }
+      return p;
+    });
+    setPublishedProjects(updated);
+    await AsyncStorage.setItem('fixam:published_projects', JSON.stringify(updated));
+  };
+
+  const deleteProject = async (projectId) => {
+    // Remove from local state
+    const updated = publishedProjects.filter(p => p.id !== projectId);
+    setPublishedProjects(updated);
+    await AsyncStorage.setItem('fixam:published_projects', JSON.stringify(updated));
+
+    // Sync removal to backend database
+    try {
+      const meRes = await api.get('/users/me');
+      const meUser = meRes.data.data || meRes.data.user;
+      const profile = meUser?.providerProfile || {};
+      const currentPortfolio = Array.isArray(profile.portfolio) ? profile.portfolio : [];
+      const dbPortfolio = currentPortfolio.filter(p => p.id !== projectId);
+      await api.put('/users/profile', { portfolio: dbPortfolio });
+    } catch (e) {
+      if (__DEV__) console.log('Error deleting portfolio project from database:', e.message);
+    }
+  };
+
   const deductCoin = () => {
     if (walletBalance >= 1) {
       setWalletBalance(prev => prev - 1);
@@ -603,6 +838,10 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{ 
       providers, 
       jobs, 
+      publishedProjects,
+      publishProject,
+      toggleLikeProject,
+      deleteProject,
       visibleJobs,
       favoriteJobs,
       favoriteJobIds,

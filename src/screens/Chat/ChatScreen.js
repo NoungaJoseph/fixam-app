@@ -21,6 +21,38 @@ import AudioPlayer from '../../components/AudioPlayer';
 
 const SUPPORTED_MESSAGE_TYPES = new Set(['TEXT', 'IMAGE', 'FILE', 'AUDIO']);
 
+// ─── External Contact Detection ─────────────────────────────────────────────
+// Matches phone numbers (Cameroon +237 and local formats), WhatsApp/Telegram
+// links, email addresses, and common off-platform phrases.
+const EXTERNAL_CONTACT_PATTERNS = [
+  // Cameroon numbers: +237 followed by 8-9 digits, or local 6/7/9XXXXXXXX
+  /(?:\+237|00237)[\s\-.]?[679]\d{7,8}/,
+  /\b[679]\d{7}\b/,
+  // Generic international numbers (+XX ...)
+  /\+\d{1,3}[\s\-.][\d\s\-.]{7,}/,
+  // WhatsApp / Telegram links
+  /wa\.me\//i,
+  /t\.me\//i,
+  /whatsapp\.com/i,
+  // Email addresses
+  /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/,
+  // Common off-platform phrases (EN + FR)
+  /\b(call me|whatsapp me|text me|dm me|reach me|contact me|here(?:'s| is) my number|mon num[eé]ro|appelle.?moi|écris.?moi sur|rejoins.?moi sur)\b/i,
+];
+
+/**
+ * Returns the first matching excerpt if the message text contains a pattern
+ * that suggests the user is moving the conversation off-platform.
+ * Returns null if no match is found.
+ */
+const detectExternalContact = (text) => {
+  for (const pattern of EXTERNAL_CONTACT_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) return match[0];
+  }
+  return null;
+};
+
 const formatTime = (millis) => {
   if (isNaN(millis) || millis < 0) return '0:00';
   const totalSeconds = Math.floor(millis / 1000);
@@ -412,22 +444,11 @@ const ChatScreen = ({ route, navigation }) => {
     });
   };
 
-  const handleSend = async (content = input, type = 'TEXT') => {
-    const trimmedContent = type === 'TEXT' ? content.trim() : content;
-    if (!trimmedContent) return;
-    if (isSending && type === 'TEXT') return;
-
-    const clientMessageId = `mobile-${user?.id || 'user'}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-    // Always send receiverId to backend to create conversation if needed
-    const messageData = { 
-      conversationId: activeConvIdRef.current || null,
-      receiverId,
-      content: trimmedContent,
-      type,
-      clientMessageId,
-    };
-
+  /**
+   * Performs the actual API send after all checks have passed.
+   * Should not be called directly — use handleSend() which runs safety checks first.
+   */
+  const _dispatchSend = async (trimmedContent, type, clientMessageId, messageData) => {
     try {
       const optimisticMsg = {
         id: clientMessageId,
@@ -442,27 +463,24 @@ const ChatScreen = ({ route, navigation }) => {
       setMessages(prev => [...prev, optimisticMsg]);
       if (type === 'TEXT') setInput('');
       setIsSending(true);
-      
+
       console.log('[ChatScreen] Sending message:', messageData);
       const res = await api.post('/chat/send', messageData, { timeout: 30000 });
       const newMessage = res.data.data;
       console.log('[ChatScreen] Message sent successfully:', newMessage.id, 'ConvId:', newMessage.conversationId);
-      
+
       // Replace optimistic with real message
       const finalMsg = { ...newMessage, clientMessageId, status: 'sent' };
       setMessages(prev => mergeMessage(prev, finalMsg));
-      
-      // UPDATE active conversation ID if this was a new conversation
+
+      // Update active conversation ID if this was a new conversation
       if (!activeConvIdRef.current && newMessage.conversationId) {
         console.log('[ChatScreen] Setting conversation ID after send:', newMessage.conversationId);
         setActiveConvId(newMessage.conversationId);
         activeConvIdRef.current = newMessage.conversationId;
-        // Join the conversation room now that we have the ID
         emit('join:conversation', newMessage.conversationId);
-      } else if (activeConvIdRef.current) {
-        console.log('[ChatScreen] Already in conversation:', activeConvIdRef.current);
       }
-      
+
       emit('typing', { conversationId: activeConvIdRef.current || newMessage.conversationId, isTyping: false });
     } catch (error) {
       console.log('Detailed Send error:', {
@@ -481,6 +499,85 @@ const ChatScreen = ({ route, navigation }) => {
     } finally {
       setIsSending(false);
     }
+  };
+
+  /**
+   * Main send handler.
+   * For TEXT messages, checks for external contact patterns before sending.
+   * If a match is found, shows a non-blocking Alert asking the user to confirm.
+   * The warning event is logged to the backend regardless of what the user chooses.
+   */
+  const handleSend = async (content = input, type = 'TEXT') => {
+    const trimmedContent = type === 'TEXT' ? content.trim() : content;
+    if (!trimmedContent) return;
+    if (isSending && type === 'TEXT') return;
+
+    const clientMessageId = `mobile-${user?.id || 'user'}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const messageData = {
+      conversationId: activeConvIdRef.current || null,
+      receiverId,
+      content: trimmedContent,
+      type,
+      clientMessageId,
+    };
+
+    // ── External contact detection (TEXT messages only) ───────────────────────
+    if (type === 'TEXT') {
+      const detectedPattern = detectExternalContact(trimmedContent);
+      if (detectedPattern) {
+        // Log the warning event to backend (fire-and-forget — does not block send)
+        const convId = activeConvIdRef.current;
+        if (convId) {
+          api.post(`/chat/${convId}/log-contact-warning`, {
+            detectedPattern,
+            sentAnyway: false, // will update after user chooses
+            platform: 'mobile',
+          }).catch(() => {}); // non-fatal
+        }
+
+        // Show non-blocking confirmation dialog
+        Alert.alert(
+          t('messages.externalContactTitle'),
+          t('messages.externalContactBody'),
+          [
+            {
+              text: t('messages.cancel'),
+              style: 'cancel',
+              onPress: () => {
+                // User cancelled — log as not sent
+                if (convId) {
+                  api.post(`/chat/${convId}/log-contact-warning`, {
+                    detectedPattern,
+                    sentAnyway: false,
+                    platform: 'mobile',
+                  }).catch(() => {});
+                }
+              },
+            },
+            {
+              text: t('messages.sendAnyway'),
+              style: 'destructive',
+              onPress: () => {
+                // User chose to send anyway — log as sent and dispatch
+                if (convId) {
+                  api.post(`/chat/${convId}/log-contact-warning`, {
+                    detectedPattern,
+                    sentAnyway: true,
+                    platform: 'mobile',
+                  }).catch(() => {});
+                }
+                _dispatchSend(trimmedContent, type, clientMessageId, messageData);
+              },
+            },
+          ],
+          { cancelable: true }
+        );
+        return; // wait for user's choice
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    await _dispatchSend(trimmedContent, type, clientMessageId, messageData);
   };
 
   const startRecording = async () => {
@@ -749,7 +846,8 @@ const ChatScreen = ({ route, navigation }) => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-      
+
+      {/* ── Chat header ─────────────────────────────────────────────────────── */}
       <View style={[styles.header, { backgroundColor: isDarkMode ? 'transparent' : '#FFF', borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}><MaterialCommunityIcons name="chevron-left" size={28} color={colors.primary} /></TouchableOpacity>
         <UserAvatar uri={avatarUri} name={userName} size={40} radius={12} style={styles.headerAvatar} />
@@ -770,6 +868,16 @@ const ChatScreen = ({ route, navigation }) => {
             </Text>
           </TouchableOpacity>
         )}
+      </View>
+
+      {/* ── Feature 1: Chat Disclosure Notice ───────────────────────────────
+           A persistent, non-dismissable info strip shown every time a chat
+           is opened. Both client and provider see it. ──────────────────── */}
+      <View style={styles.disclosureBanner}>
+        <MaterialCommunityIcons name="shield-check-outline" size={13} color="#6B7280" style={{ marginRight: 5 }} />
+        <Text style={styles.disclosureText} numberOfLines={2}>
+          {t('messages.disclosureNotice')}
+        </Text>
       </View>
 
       <KeyboardAvoidingView
@@ -878,6 +986,22 @@ const styles = StyleSheet.create({
   headerAvatar: { width: 40, height: 40, borderRadius: 12, marginHorizontal: 12 },
   headerName: { fontSize: 16, fontWeight: '700' },
   headerStatus: { fontSize: 12, color: '#10B981', fontWeight: '600' },
+  // ── Disclosure banner (Feature 1) ────────────────────────────────────────
+  disclosureBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: '#F3F4F6', // neutral light grey — visible but unobtrusive
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  disclosureText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#6B7280',
+    lineHeight: 15,
+  },
   trackCompact: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 6, borderWidth: 1, borderRadius: 4, marginLeft: 6, maxWidth: 76 },
   trackCompactCaption: { fontSize: 10, fontWeight: '800', marginTop: 2, textAlign: 'center' },
   bookCompact: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 8, paddingHorizontal: 10, height: 36, marginLeft: 6 },

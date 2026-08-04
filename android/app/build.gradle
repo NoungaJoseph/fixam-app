@@ -94,7 +94,6 @@ if (sentryGradleFile.exists()) {
     apply from: "../../node_modules/@sentry/react-native/sentry.gradle"
 }
 
-
 android {
     ndkVersion rootProject.ext.ndkVersion
 
@@ -106,7 +105,7 @@ android {
         applicationId 'com.fixam.app.android'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode 6
         versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""

@@ -107,7 +107,7 @@ const SupportChatButton = () => {
     'ChangePassword',
   ]);
 
-  if (!user || hiddenRoutes.has(currentRouteName)) return null;
+  if (!user || currentRouteName !== 'HomeMain') return null;
 
   return (
     <>

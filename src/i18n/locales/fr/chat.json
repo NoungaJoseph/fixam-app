@@ -42,7 +42,12 @@
     "mustBookProvider": "Vous devez réserver ce prestataire pour lui envoyer un message.",
     "bookToMessage": "Réserver pour écrire",
     "bookingRequiredTitle": "Réservation requise",
-    "bookingRequiredBody": "Vous devez envoyer une demande de réservation à ce prestataire avant de pouvoir commencer à discuter."
+    "bookingRequiredBody": "Vous devez envoyer une demande de réservation à ce prestataire avant de pouvoir commencer à discuter.",
+    "disclosureNotice": "Les messages de cette conversation peuvent être examinés par le support Fixam en cas de litige.",
+    "externalContactTitle": "Protégez votre conversation",
+    "externalContactBody": "Déplacer cette conversation hors de Fixam nous empêche de résoudre tout litige si quelque chose ne va pas. Envoyer quand même ?",
+    "sendAnyway": "Envoyer quand même",
+    "cancel": "Annuler"
   },
   "support": {
     "title": "Assistance Fixam",

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, StatusBar, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, StatusBar, ScrollView, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -9,6 +9,7 @@ import { translateService } from '../../i18n/translate';
 import api, { getMediaUrl } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import UserAvatar from '../../components/UserAvatar';
+import { getCurrencyForUser } from '../../constants/countries';
 
 const REMOTE_KEYWORDS = [
   'web', 'design', 'software', 'development', 'programming', 'developer',
@@ -214,60 +215,87 @@ const ProviderListScreen = ({ route, navigation }) => {
   }), [providers, search, category, verifiedOnly, favoritesOnly, favoriteProviderIds, activeFilter]);
 
   const renderProvider = ({ item }) => {
-    const avatarUri = getMediaUrl(item.image || item.avatar || item.user?.avatar);
+    const rawImage = item.portfolio?.[0]?.imageUrl 
+      || item.portfolio?.[0]?.url 
+      || item.portfolio?.[0]?.image 
+      || item.image 
+      || item.avatar 
+      || item.user?.avatar 
+      || item.user?.image;
+    const bannerUri = getMediaUrl(rawImage);
     const isFavorite = favoriteProviderIds?.includes(item.id);
+    const isVerified = item.verification === 'VERIFIED' || (item.boostExpiresAt && new Date(item.boostExpiresAt) > new Date());
+    const ratingVal = Number(item.rating || 0).toFixed(1);
+    const reviewCountVal = item.reviewCount || (item.reviews?.length) || 0;
+
+    const titleText = item.portfolio?.[0]?.title || item.bio || (item.skills && item.skills.length > 0 ? translateService(item.skills[0]) : item.user?.fullName);
+    const currencyStr = getCurrencyForUser(item.user?.country || user?.country || 'Cameroon');
+    const priceText = item.rate ? `${item.rate.toLocaleString()} ${currencyStr}` : t('profile.contactForPrice', 'Contact for price');
 
     return (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={() => navigation.navigate('ProviderProfile', { provider: item })}
-      activeOpacity={0.85}
-    >
-      <View style={styles.cardTop}>
-        <UserAvatar
-          uri={avatarUri}
-          name={item.user?.fullName || 'User'}
-          size={60}
-          radius={0}
-          style={[styles.avatar, { backgroundColor: isDarkMode ? '#1e293b' : '#f3f4f6' }]}
-        />
-        <View style={styles.cardInfo}>
-          <Text style={[styles.provName, { color: colors.text }]}>{item.user?.fullName || 'No Name'}</Text>
-          <Text style={[styles.provSkill, { color: colors.accent }]}>
-            {item.skills && item.skills.length > 0 ? translateService(item.skills[0]) : t('common.professional', 'Professional')}
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+        onPress={() => navigation.navigate('ProviderProfile', { provider: item })}
+        activeOpacity={0.88}
+      >
+        {/* Left Thumbnail Banner Image Column */}
+        <View style={styles.cardImageContainer}>
+          {bannerUri ? (
+            <Image source={{ uri: bannerUri }} style={styles.cardImage} resizeMode="cover" />
+          ) : (
+            <UserAvatar
+              uri={getMediaUrl(item.user?.avatar || item.avatar || item.image)}
+              name={item.user?.fullName || 'User'}
+              size={110}
+              radius={0}
+              style={styles.cardImage}
+            />
+          )}
+
+          {isVerified && (
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>{t('common.pro', 'Pro')}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Right Info Column */}
+        <View style={styles.cardContent}>
+          {/* Top Row: Rating & Heart */}
+          <View style={styles.cardHeaderRow}>
+            <View style={styles.cardRatingGroup}>
+              <MaterialCommunityIcons name="star" size={15} color="#F59E0B" />
+              <Text style={[styles.cardRatingVal, { color: colors.text }]}>{ratingVal}</Text>
+              <Text style={[styles.cardReviewCount, { color: colors.textSecondary }]}>({reviewCountVal})</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.cardFavoriteBtn}
+              onPress={() => toggleFavoriteProvider?.(item.id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MaterialCommunityIcons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={20}
+                color={isFavorite ? '#EF4444' : (isDarkMode ? '#94A3B8' : '#CBD5E1')}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Title / Description Excerpt */}
+          <Text style={[styles.cardTitleText, { color: colors.text }]} numberOfLines={2}>
+            {titleText}
           </Text>
-          <View style={styles.locationRow}>
-            <MaterialCommunityIcons name="map-marker-outline" size={13} color={colors.textSecondary} />
-            <Text style={[styles.locationText, { color: colors.textSecondary }]}>
-              {item.serviceArea || 'Nearby'}
+
+          {/* Bottom Row: Price */}
+          <View style={styles.cardPriceRow}>
+            <Text style={[styles.cardPriceFrom, { color: colors.textSecondary }]}>
+              {t('common.from', 'From')}{' '}
+              <Text style={[styles.cardPriceValue, { color: colors.text }]}>{priceText}</Text>
             </Text>
           </View>
         </View>
-        <View style={styles.cardMeta}>
-          <TouchableOpacity
-            style={[styles.favoriteBtn, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC' }]}
-            onPress={() => toggleFavoriteProvider?.(item.id)}
-          >
-            <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color={isFavorite ? '#EF4444' : colors.textSecondary} />
-          </TouchableOpacity>
-          <View style={[styles.ratingBadge, { backgroundColor: isDarkMode ? 'rgba(251,191,36,0.1)' : '#FEF3C7' }]}>
-            <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
-            <Text style={[styles.ratingText, { color: '#B45309' }]}>{item.rating || '0.0'}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={[styles.chatBtn, { backgroundColor: colors.accent }]}
-          onPress={() => navigation.navigate('ProviderProfile', { provider: item })}
-        >
-          <MaterialCommunityIcons name="briefcase-check" size={16} color="#FFF" />
-          <Text style={styles.chatBtnText}>{t('bookings.bookProvider')}</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -434,24 +462,96 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   applyFilterText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
-  list: { paddingHorizontal: 20, paddingBottom: 40 },
+  list: { paddingHorizontal: 16, paddingBottom: 40 },
   card: {
-    borderRadius: 0, padding: 16, marginBottom: 12,
+    flexDirection: 'row',
+    height: 108,
+    borderRadius: 12,
+    marginBottom: 10,
     borderWidth: 1,
-    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 8, elevation: 1,
+    overflow: 'hidden',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+    alignItems: 'center',
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  cardMeta: { alignItems: 'flex-end', gap: 8 },
-  favoriteBtn: { width: 36, height: 36, borderRadius: 0, alignItems: 'center', justifyContent: 'center' },
-  avatar: { width: 60, height: 60, borderRadius: 0 },
-  cardInfo: { flex: 1, marginLeft: 15 },
-  provName: { fontSize: 17, fontWeight: '800' },
-  provSkill: { fontSize: 13, fontWeight: '700', marginVertical: 3 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  locationText: { fontSize: 12, fontWeight: '600' },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 0 },
-  ratingText: { fontSize: 13, fontWeight: '800' },
-  cardActions: { flexDirection: 'row', gap: 10 },
+  cardImageContainer: {
+    width: 110,
+    height: 108,
+    position: 'relative',
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cardImageFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: '#F97316',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  proBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  cardContent: {
+    flex: 1,
+    height: 108,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  cardRatingGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  cardRatingVal: {
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  cardReviewCount: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  cardFavoriteBtn: {
+    padding: 2,
+  },
+  cardTitleText: {
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+    marginVertical: 2,
+  },
+  cardPriceRow: {
+    alignSelf: 'flex-end',
+    marginTop: 2,
+  },
+  cardPriceFrom: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  cardPriceValue: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
   chatBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, borderRadius: 0, paddingVertical: 12,
@@ -460,11 +560,6 @@ const styles = StyleSheet.create({
   callBtn: {
     width: 48, height: 48, borderRadius: 0, justifyContent: 'center', alignItems: 'center', borderWidth: 1
   },
-  empty: { paddingTop: 80, alignItems: 'center', paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 18, fontWeight: '800', marginTop: 20 },
-  emptyDesc: { fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20 },
-  topProvidersSection: { marginBottom: 20 },
-  topProvidersTitle: { fontSize: 16, fontWeight: '800', marginLeft: 20, marginBottom: 12 },
   topProvidersScroll: { paddingHorizontal: 20, gap: 12 },
   topCard: { width: 110, padding: 12, borderRadius: 0, borderWidth: 1, alignItems: 'center' },
   topAvatar: { marginBottom: 8 },

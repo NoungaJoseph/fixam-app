@@ -31,6 +31,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const providerUserId = provider?.user?.id || provider?.userId;
   const insets = useSafeAreaInsets();
   const [pastHeader, setPastHeader] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState('overview');
   const { myReviews } = useAppContext();
   const [reviews, setReviews] = React.useState([]);
   const [hasBooking, setHasBooking] = React.useState(false);
@@ -150,12 +151,18 @@ const ProviderProfileScreen = ({ route, navigation }) => {
 
     if (user?.id === userId && myReviews?.length > 0) {
       setReviews(myReviews);
+      return;
     }
 
+    const fallbackReviews = profileData?.reviews || provider?.reviews || [];
+
     api.get(`/reviews/users/${userId}`)
-      .then((res) => setReviews(res.data.data || []))
-      .catch(() => setReviews([]));
-  }, [provider?.user?.id, user?.id, myReviews]);
+      .then((res) => {
+        const data = res.data.data || [];
+        setReviews(data.length > 0 ? data : fallbackReviews);
+      })
+      .catch(() => setReviews(fallbackReviews));
+  }, [provider?.user?.id, user?.id, myReviews, profileData?.reviews, provider?.reviews]);
 
   React.useEffect(() => {
     const checkBookingStatus = async () => {
@@ -473,6 +480,27 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* Tab Bar */}
+        <View style={[styles.tabBarContainer, { borderBottomColor: isDarkMode ? '#1F2937' : '#E2E8F0' }]}>
+          {[
+            { key: 'overview', label: t('profile.overview', 'Overview') },
+            { key: 'reviews', label: t('profile.reviews', 'Reviews') },
+            { key: 'projects', label: t('profileDetail.portfolio', 'Projects') },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text style={[styles.tabText, { color: activeTab === tab.key ? '#0D9488' : (isDarkMode ? '#94A3B8' : '#64748B') }]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {activeTab === 'overview' && (
+          <>
         {/* About Me Section */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('profile.aboutMe')}</Text>
@@ -562,38 +590,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           )}
         </View>
 
-        {portfolio.length > 0 && (
-          <View style={styles.sectionContainer}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A', marginBottom: 0 }]}>{t('profileDetail.portfolio', 'Projects')}</Text>
-              {portfolio.length > 3 && (
-                <TouchableOpacity onPress={() => navigation.navigate('PortfolioDetails', { title: t('profileDetail.portfolio', 'Projects'), items: portfolio, type: 'projects' })}>
-                  <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.projectScroll}>
-              {portfolio.slice(0, 3).map((item, index) => (
-                <TouchableOpacity 
-                  key={`${item.title || 'project'}-${index}`} 
-                  style={[styles.projectCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}
-                  onPress={() => handleOpenProjectDetail(item)}
-                  activeOpacity={0.75}
-                >
-                  {item.imageUrl ? (
-                    <Image source={{ uri: item.imageUrl }} style={styles.projectImage} />
-                  ) : (
-                    <View style={[styles.projectImage, styles.projectImageFallback]}>
-                      <MaterialCommunityIcons name="image-outline" size={28} color="#94A3B8" />
-                    </View>
-                  )}
-                  <Text style={[styles.projectTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]} numberOfLines={1}>{item.title || 'Project'}</Text>
-                  {item.description ? <Text style={[styles.projectDesc, { color: isDarkMode ? '#CBD5E1' : '#64748B' }]} numberOfLines={3}>{item.description}</Text> : null}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
+
 
         {certificates.length > 0 && (
           <View style={styles.sectionContainer}>
@@ -701,11 +698,15 @@ const ProviderProfileScreen = ({ route, navigation }) => {
             })}
           </View>
         )}
+          </>
+        )}
 
+        {activeTab === 'reviews' && (
+          <>
         {/* Dynamic Reviews Section */}
         <View style={styles.sectionContainer}>
           <View style={styles.reviewsHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('profile.recentReviews')}</Text>
+            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('profile.reviews')}</Text>
             {reviews.length > 0 && (
               <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: providerUserId, role: 'PROVIDER' })}>
                 <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
@@ -722,7 +723,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
             </View>
           ) : (
             <>
-              {reviews.slice(0, 2).map((review, i) => {
+              {reviews.map((review, i) => {
                 const reviewerName = review.reviewer?.fullName || review.job?.client?.fullName || t('profile.verifiedClient');
                 const reviewerAvatarUri = getMediaUrl(review.reviewer?.avatar || review.job?.client?.avatar);
                 const reviewDateText = review.createdAt
@@ -767,29 +768,44 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                 );
               })}
 
-              {reviews.length > 1 && (
-                <View style={styles.dotsContainer}>
-                  {reviews.slice(0, 2).map((_, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.dot,
-                        idx === 0 ? styles.dotActive : null,
-                        { backgroundColor: idx === 0 ? '#0D9488' : (isDarkMode ? '#475569' : '#CBD5E1') }
-                      ]}
-                    />
-                  ))}
-                </View>
-              )}
 
-              <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: providerUserId, role: 'PROVIDER' })}>
-                <Text style={[styles.moreText, { color: colors.accent, textAlign: 'center', marginTop: 8 }]}>
-                  {t('profile.readMore')}
-                </Text>
-              </TouchableOpacity>
             </>
           )}
         </View>
+          </>
+        )}
+
+        {activeTab === 'projects' && (
+          <View style={styles.sectionContainer}>
+            {portfolio.length > 0 ? (
+              portfolio.map((item, index) => (
+                <TouchableOpacity 
+                  key={`${item.title || 'project'}-${index}`} 
+                  style={[styles.projectCardFull, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}
+                  onPress={() => handleOpenProjectDetail(item)}
+                  activeOpacity={0.75}
+                >
+                  {item.imageUrl ? (
+                    <Image source={{ uri: item.imageUrl }} style={styles.projectImageFull} />
+                  ) : (
+                    <View style={[styles.projectImageFull, styles.projectImageFallback]}>
+                      <MaterialCommunityIcons name="image-outline" size={36} color="#94A3B8" />
+                    </View>
+                  )}
+                  <View style={{ padding: 14 }}>
+                    <Text style={[styles.projectTitle, { color: isDarkMode ? '#FFF' : '#0F172A', paddingHorizontal: 0, paddingTop: 0 }]} numberOfLines={2}>{item.title || 'Project'}</Text>
+                    {item.description ? <Text style={[styles.projectDesc, { color: isDarkMode ? '#CBD5E1' : '#64748B', paddingHorizontal: 0, paddingTop: 6, paddingBottom: 0 }]} numberOfLines={4}>{item.description}</Text> : null}
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={[styles.emptyProfileCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9', paddingVertical: 32 }]}>
+                <MaterialCommunityIcons name="folder-outline" size={32} color="#94A3B8" style={{ marginBottom: 8 }} />
+                <Text style={[styles.emptyProfileText, { color: isDarkMode ? '#CBD5E1' : '#64748B' }]}>{t('profile.noProjects', 'No project added yet')}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {existingBooking && (
           <View style={styles.sectionContainer}>
@@ -1633,6 +1649,38 @@ const extraStyles = StyleSheet.create({
   modalDescription: { fontSize: 15, lineHeight: 22, fontWeight: '500' },
 });
 
-Object.assign(styles, extraStyles);
+Object.assign(styles, extraStyles, {
+  tabBarContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    marginHorizontal: 20,
+    marginBottom: 24,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  tabItemActive: {
+    borderBottomColor: '#0D9488',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  projectCardFull: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 14,
+  },
+  projectImageFull: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#E2E8F0',
+  },
+});
 
 export default ProviderProfileScreen;

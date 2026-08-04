@@ -48,6 +48,9 @@ import ReviewTaskScreen from '../screens/Tasks/ReviewTaskScreen';
 import ReviewsScreen from '../screens/Profile/ReviewsScreen';
 import PortfolioDetailsScreen from '../screens/Profile/PortfolioDetailsScreen';
 import RequestTestimonyScreen from '../screens/Profile/RequestTestimonyScreen';
+import ProjectDetailScreen from '../screens/Providers/ProjectDetailScreen';
+import ProjectListScreen from '../screens/Providers/ProjectListScreen';
+import ProjectProposalScreen from '../screens/Bookings/ProjectProposalScreen';
 
 import TopUpScreen from '../screens/Wallet/TopUpScreen';
 import TopUpAmountScreen from '../screens/Wallet/TopUpAmountScreen';
@@ -342,6 +345,7 @@ const TabNavigator = () => {
       />
 
       {/* Hidden Global Detail Screens */}
+      <Drawer.Screen name="ProjectList" component={ProjectListScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderList" component={ProviderListScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfile" component={ProviderProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="FavoriteProviders" component={FavoriteProvidersScreen} options={{ drawerItemStyle: { display: 'none' } }} />
@@ -374,6 +378,8 @@ const TabNavigator = () => {
       <Drawer.Screen name="ReviewTask" component={ReviewTaskScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Reviews" component={ReviewsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="PortfolioDetails" component={PortfolioDetailsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ProjectDetail" component={ProjectDetailScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ProjectProposal" component={ProjectProposalScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="TaskDetails" component={TaskDetailsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
     </Drawer.Navigator>
   );

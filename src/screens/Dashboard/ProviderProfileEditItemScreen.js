@@ -175,6 +175,14 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
     }
   };
 
+  const handleSelectMedia = () => {
+    if (type === 'certificate') {
+      handleSelectCertificateFile();
+    } else {
+      handleSelectMultipleImage();
+    }
+  };
+
   const handleRemoveImage = (indexToRemove) => {
     setImages(prev => {
       const next = prev.filter((_, idx) => idx !== indexToRemove);

@@ -42,7 +42,12 @@
     "mustBookProvider": "You must book this provider to message them.",
     "bookToMessage": "Book to Message",
     "bookingRequiredTitle": "Booking Required",
-    "bookingRequiredBody": "You must send a booking request to this provider before you can start messaging them."
+    "bookingRequiredBody": "You must send a booking request to this provider before you can start messaging them.",
+    "disclosureNotice": "Messages in this chat may be reviewed by Fixam support in case of a dispute.",
+    "externalContactTitle": "Keep your conversation safe",
+    "externalContactBody": "Moving this conversation outside Fixam means we can't help resolve disputes if something goes wrong. Send anyway?",
+    "sendAnyway": "Send Anyway",
+    "cancel": "Cancel"
   },
   "support": {
     "title": "Fixam Support",

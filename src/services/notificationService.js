@@ -156,7 +156,7 @@ class NotificationService {
       await api.put('/users/fcm-token', { fcmToken });
       console.log('[FCM] Token synced to backend successfully');
     } catch (error) {
-      console.error('[FCM] Failed to sync token to backend:', error?.response?.data || error.message);
+      console.log('[FCM] Token sync deferred (offline/network):', error?.response?.data || error.message);
     }
   }
 

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import api, { getMediaUrl, setAuthToken } from '../services/api';
+import api, { getMediaUrl, setAuthToken, registerUnauthorizedListener } from '../services/api';
 import { requestStartupPermissions } from '../services/permissions';
 
 const AuthContext = createContext();
@@ -101,7 +101,13 @@ export const AuthProvider = ({ children }) => {
                 const freshUser = normalizeUser(res.data.data || res.data.user);
                 if (freshUser) setUser(freshUser);
               })
-              .catch(() => {});
+              .catch((err) => {
+                const status = err.response?.status;
+                if (status === 401 || status === 404) {
+                  if (__DEV__) console.log('User no longer exists or unauthorized on restore, logging out...');
+                  logout();
+                }
+              });
           }
         }
       } catch (error) {
@@ -112,6 +118,14 @@ export const AuthProvider = ({ children }) => {
     };
 
     restoreToken();
+  }, []);
+
+  // Listen for global 401 unauthorized errors to trigger immediate logout
+  useEffect(() => {
+    registerUnauthorizedListener(() => {
+      if (__DEV__) console.log('Global 401 unauthorized detected, executing logout...');
+      logout();
+    });
   }, []);
 
   // Persist token to AsyncStorage when it changes

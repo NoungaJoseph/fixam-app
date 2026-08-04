@@ -90,7 +90,7 @@ export const CustomDrawerContent = (props) => {
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const avatarUri = getMediaUrl(user?.avatar);
-  const isProvider = user?.role?.toUpperCase() === 'PROVIDER' && user?.providerProfile?.profileMode !== 'PERSONAL';
+  const isProvider = user?.role?.toUpperCase() === 'PROVIDER' || user?.providerProfile?.profileMode === 'PROVIDER' || props.state?.routeNames?.includes('PostProject');
 
   const handleLogout = () => {
     if (logout) logout();
@@ -100,6 +100,9 @@ export const CustomDrawerContent = (props) => {
   const activeRouteName = props.state?.routeNames[props.state?.index] || 'MainTabs';
   const menuItems = [
     { route: 'MainTabs', label: t('drawer.home'), icon: 'home-outline', color: '#0D9488' },
+    ...(isProvider ? [
+      { route: 'PostProject', label: t('drawer.postProject', 'Post Project'), icon: 'folder-plus-outline', color: '#0D9488' },
+    ] : []),
     { route: 'Wallet', label: isProvider ? t('drawer.coinBalance') : t('drawer.myWallet'), icon: isProvider ? 'database-outline' : 'wallet-outline', color: '#0D9488' },
     { route: 'Invitation', label: t('drawer.inviteFriends'), icon: 'gift-outline', color: '#6366F1' },
     ...(isProvider ? [

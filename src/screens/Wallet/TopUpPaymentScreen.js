@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Image, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Image, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
@@ -36,6 +36,15 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
   const [selectedMethod, setSelectedMethod] = useState(methods[0]?.id || 'mtn');
   const [phone, setPhone] = useState(cleanPreFilledPhone(user?.phone));
   const [loading, setLoading] = useState(false);
+  const pollingIntervalRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   const activeMethod = methods.find(m => m.id === selectedMethod) || methods[0];
 
@@ -73,7 +82,10 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
       return;
     }
     
-    // Simulate payment flow
+    const cleanPhone = phone.replace(/\D/g, '');
+    const fullNumber = `${countryConfig.dialCode}${cleanPhone}`;
+
+    // Confirm payment flow
     Alert.alert(
       'Confirm Payment',
       `You are about to pay ${pkg?.price} ${countryConfig.currency} for ${pkg?.coins} coins via ${activeMethod?.name}.`,
@@ -84,17 +96,73 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
           onPress: async () => {
             setLoading(true);
             try {
-              const res = await api.post('/wallet/topup', {
-                coins: pkg?.coins || 0,
-                reference: `FIX-${Date.now()}`,
-                paymentMethod: activeMethod?.methodKey,
-                phone,
-              });
-              navigation.navigate('TopUpSuccess', { package: pkg, transaction: res.data.data });
+              if (activeMethod?.type === 'momo') {
+                const cleanPrice = String(pkg?.price || '').replace(/[^\d]/g, '');
+                const amountVal = cleanPrice ? parseInt(cleanPrice, 10) : countryConfig.coinPrices[pkg?.id] || 5000;
+
+                const initiateRes = await api.post('/wallet/mobile-money/initiate', {
+                  coins: pkg?.coins || 0,
+                  price: pkg?.price,
+                  amount: amountVal,
+                  provider: activeMethod?.id === 'orange' ? 'ORANGE' : activeMethod?.id === 'mpesa' ? 'MPESA' : activeMethod?.id === 'vodafone' ? 'VODAFONE' : activeMethod?.id === 'wave' ? 'WAVE' : 'MTN',
+                  phone: fullNumber,
+                  fullName: user?.fullName || 'User',
+                  email: user?.email || 'user@fixam.com'
+                });
+
+                if (initiateRes.data?.success && initiateRes.data?.data?.id) {
+                  const paymentId = initiateRes.data.data.id;
+                  
+                  // Start polling status
+                  pollingIntervalRef.current = setInterval(async () => {
+                    try {
+                      const statusRes = await api.get(`/wallet/mobile-money/${paymentId}/status`);
+                      if (statusRes.data?.status === 'SUCCESS') {
+                        clearInterval(pollingIntervalRef.current);
+                        setLoading(false);
+                        navigation.navigate('TopUpSuccess', { package: pkg, transaction: statusRes.data.data?.transaction });
+                      } else if (statusRes.data?.status === 'FAILED') {
+                        clearInterval(pollingIntervalRef.current);
+                        setLoading(false);
+                        Alert.alert('Payment Failed', statusRes.data.data?.failureReason || 'Mobile money collection was rejected or timed out.');
+                      }
+                    } catch (err) {
+                      console.log('Mobile app polling check error:', err.message);
+                    }
+                  }, 3000);
+                  
+                  Alert.alert(
+                    'Verification Sent',
+                    'A prompt has been sent to your mobile phone. Please input your MoMo/Orange PIN to complete the payment. We will auto-detect approval.',
+                    [{ text: 'OK' }]
+                  );
+                } else {
+                  throw new Error('Payment initiation did not return ID');
+                }
+              } else {
+                const res = await api.post('/wallet/topup', {
+                  coins: pkg?.coins || 0,
+                  reference: `FIX-${Date.now()}`,
+                  paymentMethod: activeMethod?.methodKey,
+                  phone: fullNumber,
+                });
+                setLoading(false);
+                navigation.navigate('TopUpSuccess', { package: pkg, transaction: res.data.data });
+              }
             } catch (error) {
-              Alert.alert('Request failed', error.response?.data?.message || 'Could not submit payment request.');
-            } finally {
               setLoading(false);
+              // Fallback to topup manual request if initiate fails
+              try {
+                const fallbackRes = await api.post('/wallet/topup', {
+                  coins: pkg?.coins || 0,
+                  reference: `FIX-${Date.now()}`,
+                  paymentMethod: activeMethod?.methodKey,
+                  phone: fullNumber,
+                });
+                navigation.navigate('TopUpSuccess', { package: pkg, transaction: fallbackRes.data?.data });
+              } catch (fallbackError) {
+                Alert.alert('Request failed', error.response?.data?.message || 'Could not submit payment request.');
+              }
             }
           } 
         }

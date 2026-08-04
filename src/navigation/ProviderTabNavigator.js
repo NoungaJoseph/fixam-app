@@ -47,6 +47,10 @@ import InvitationScreen from '../screens/Profile/InvitationScreen';
 import ReviewsScreen from '../screens/Profile/ReviewsScreen';
 import PortfolioDetailsScreen from '../screens/Profile/PortfolioDetailsScreen';
 import RequestTestimonyScreen from '../screens/Profile/RequestTestimonyScreen';
+import ProjectDetailScreen from '../screens/Providers/ProjectDetailScreen';
+import ProjectListScreen from '../screens/Providers/ProjectListScreen';
+import PostProjectScreen from '../screens/Dashboard/PostProjectScreen';
+import ProjectProposalScreen from '../screens/Bookings/ProjectProposalScreen';
 
 import TopUpScreen from '../screens/Wallet/TopUpScreen';
 import TopUpAmountScreen from '../screens/Wallet/TopUpAmountScreen';
@@ -336,7 +340,19 @@ const ProviderTabNavigator = () => {
       <Drawer.Screen name="ReviewTask" component={ReviewTaskScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Reviews" component={ReviewsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="PortfolioDetails" component={PortfolioDetailsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ProjectDetail" component={ProjectDetailScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ProjectList" component={ProjectListScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ProjectProposal" component={ProjectProposalScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfile" component={ProviderProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+
+      <Drawer.Screen
+        name="PostProject"
+        component={PostProjectScreen}
+        options={{
+          drawerLabel: t('drawer.postProject', 'Post Project'),
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="folder-plus-outline" size={24} color={color} />,
+        }}
+      />
 
       <Drawer.Screen
         name="Wallet"

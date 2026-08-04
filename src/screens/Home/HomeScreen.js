@@ -16,7 +16,8 @@ import { translateService } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
 import WelcomeModal from '../../components/Common/WelcomeModal';
 import ProviderTour from '../../components/Common/ProviderTour';
-import api from '../../services/api';
+import api, { getMediaUrl } from '../../services/api';
+import { getCurrencyForUser } from '../../constants/countries';
 import { POPULAR_SERVICE_CATALOG, POPULAR_SERVICE_IMAGES } from '../../data/popularServices';
 import NewsTicker from '../../components/NewsTicker';
 
@@ -58,7 +59,7 @@ const LEARN_CARDS = [
 ];
 
 const HomeScreen = ({ navigation }) => {
-  const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad, hasLoadedData, popularCategories } = useAppContext();
+  const { providers, walletBalance, walletDetails, transactions, unreadCount, jobs, fetchAppData, notificationCount, favoriteProviderIds, isInitialLoad, hasLoadedData, popularCategories, publishedProjects, toggleLikeProject } = useAppContext();
   const { user, isNewUser, clearNewUser } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
@@ -211,16 +212,44 @@ const HomeScreen = ({ navigation }) => {
   }, [user?.location]);
 
   const recommendedProviders = useMemo(() => {
-    return (providers || [])
-      .filter(p => {
-        const area = (p.serviceArea || '').toLowerCase();
-        if (clientCity === 'yaounde') {
-          return area.includes('yaounde') || area.includes('yaoundé');
-        }
-        return area.includes(clientCity);
-      })
-      .slice(0, 5);
+    const list = Array.isArray(providers) ? providers : [];
+    if (list.length === 0) return [];
+
+    // 1. Filter by client city match
+    const cityMatches = list.filter(p => {
+      const area = (p.serviceArea || p.city || p.location || '').toLowerCase();
+      if (!area) return true; // Include if service area not strictly limited
+      if (clientCity === 'yaounde') {
+        return area.includes('yaounde') || area.includes('yaoundé');
+      }
+      return area.includes(clientCity);
+    });
+
+    // 2. Return city matches if available
+    if (cityMatches.length > 0) {
+      return cityMatches.slice(0, 6);
+    }
+
+    // 3. Fallback: return top providers so section is never empty
+    return list.slice(0, 6);
   }, [providers, clientCity]);
+
+  const projectShowcaseList = useMemo(() => {
+    const list = Array.isArray(publishedProjects) ? publishedProjects : [];
+    const currentId = String(user?.id || user?._id || user?.userId || '');
+    const currentProfId = String(user?.providerProfile?.id || user?.provider?.id || '');
+
+    return list.filter(item => {
+      const itemProvUserId = String(item.providerId || item.provider?.user?.id || item.provider?.id || '');
+      const itemProfId = String(item.provider?.id || '');
+
+      const isMine = Boolean(
+        (currentId && itemProvUserId === currentId) ||
+        (currentProfId && itemProfId === currentProfId)
+      );
+      return !isMine;
+    });
+  }, [publishedProjects, user]);
 
   if (isInitialLoad) {
     return (
@@ -316,9 +345,9 @@ const HomeScreen = ({ navigation }) => {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
-            {popularServices.map(service => (
+            {popularServices.map((service, index) => (
               <TouchableOpacity
-                key={service.name}
+                key={`${service.name}_${index}`}
                 style={[styles.popularCard, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}
                 onPress={() => navigation.navigate('ProviderList', { category: service.name })}
                 activeOpacity={0.84}
@@ -446,9 +475,9 @@ const HomeScreen = ({ navigation }) => {
           scrollEventThrottle={16}
           contentContainerStyle={styles.learnScroll}
         >
-          {localizedLearnCards.map((card) => (
+          {localizedLearnCards.map((card, index) => (
             <LinearGradient
-              key={card.id}
+              key={`${card.id}_${index}`}
               colors={card.colors}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={styles.learnCard}
@@ -523,6 +552,85 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
+        {/* ═══ PROJECTS SHOWCASE SECTION (Matching Screenshots 2 & 3) ═══ */}
+        {projectShowcaseList.length > 0 && (
+          <View style={{ marginBottom: 24 }}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profileDetail.portfolio', 'Projects')}</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('ProjectList')}>
+                <Text style={styles.viewAll}>{t('common.seeAll', 'See All')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
+              {projectShowcaseList.map((item, index) => {
+                const prov = item.provider || {};
+                const avatarUri = getMediaUrl(prov.user?.avatar);
+                const isFavorite = favoriteProviderIds?.includes(prov.id);
+                const currencyStr = getCurrencyForUser(prov.user?.country || user?.country || 'Cameroon');
+                const priceFormatted = `${item.price ? `${currencyStr} ${item.price.toLocaleString()}` : t('profile.contactForPrice')}`;
+                const ratingVal = Number(prov.rating || 4.8).toFixed(1);
+                const reviewCountVal = prov.reviewCount || 12;
+
+                return (
+                  <TouchableOpacity
+                    key={`${item.id || 'proj'}_${index}`}
+                    style={[
+                      styles.projectCardHorizontal,
+                      { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: isDarkMode ? '#1F2937' : '#E2E8F0' }
+                    ]}
+                    onPress={() => navigation.navigate('ProjectDetail', { project: item, provider: prov })}
+                    activeOpacity={0.88}
+                  >
+                    {/* Top Image Banner */}
+                    <View style={styles.projectCardImageWrap}>
+                      <Image source={{ uri: item.imageUrl }} style={styles.projectCardImage} resizeMode="cover" />
+                      <TouchableOpacity
+                        style={styles.projectLikeFloatingBtn}
+                        onPress={() => toggleLikeProject?.(item.id)}
+                      >
+                        <MaterialCommunityIcons
+                          name={item.isLikedByMe ? 'heart' : 'heart-outline'}
+                          size={18}
+                          color={item.isLikedByMe ? '#EF4444' : '#FFFFFF'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={{ padding: 12 }}>
+                      {/* Project Title */}
+                      <Text style={[styles.projectCardTitleText, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+
+                      {/* Project Description Excerpt */}
+                      {item.description ? (
+                        <Text style={[styles.projectCardDescText, { color: isDarkMode ? '#CBD5E1' : '#64748B' }]} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      ) : null}
+
+                      {/* Bottom Row: Rating & Price */}
+                      <View style={styles.projectCardFooterRow}>
+                        <View style={styles.projectRatingGroup}>
+                          <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
+                          <Text style={[styles.projectRatingVal, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>{ratingVal}</Text>
+                          <Text style={[styles.projectReviewCount, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>({reviewCountVal})</Text>
+                        </View>
+
+                        <Text style={[styles.projectPriceFromText, { color: isDarkMode ? '#CBD5E1' : '#64748B' }]}>
+                          {t('common.from', 'From')}{' '}
+                          <Text style={[styles.projectPriceValueText, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>{priceFormatted}</Text>
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
         {/* ═══ 7. RECOMMENDED PROFESSIONALS ═══ */}
         {recommendedProviders.length > 0 && (
           <>
@@ -533,9 +641,9 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.proScroll}>
-              {recommendedProviders.map(p => (
+              {recommendedProviders.map((p, index) => (
                 <TouchableOpacity
-                  key={p.id}
+                  key={`${p.id || 'prov'}_${index}`}
                   style={[styles.proCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
                   onPress={() => navigation.navigate('ProviderProfile', { provider: p })}
                   activeOpacity={0.8}
@@ -979,6 +1087,101 @@ const styles = StyleSheet.create({
   promoBtn: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   promoBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
   promoFlyerImage: { width: 100, height: 100, resizeMode: 'contain' },
+
+  // PROJECTS SHOWCASE CARD STYLES (Matching Screenshots 2 & 3)
+  projectCardHorizontal: {
+    width: 240,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  projectCardImageWrap: {
+    width: '100%',
+    height: 135,
+    position: 'relative',
+  },
+  projectLikeFloatingBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  projectCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  projectProviderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  projectProvName: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  projectLevelBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  projectLevelBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  projectCardTitleText: {
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  projectCardDescText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
+    marginBottom: 10,
+  },
+  projectCardFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 8,
+  },
+  projectRatingGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  projectRatingVal: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  projectReviewCount: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  projectPriceFromText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  projectPriceValueText: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
 });
 
 export default HomeScreen;

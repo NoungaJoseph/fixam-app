@@ -42,6 +42,14 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
+      <intent-filter android:autoVerify="true" data-generated="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <data android:scheme="https" android:host="usefixam.com" android:pathPrefix="/profile"/>
+        <data android:scheme="https" android:host="usefixam.com" android:pathPrefix="/job"/>
+        <data android:scheme="https" android:host="usefixam.com" android:pathPrefix="/download"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
     </activity>
   </application>
 </manifest>

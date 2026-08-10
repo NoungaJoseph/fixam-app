@@ -167,11 +167,15 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           { text: t('common.close') }
         ]);
       } else {
-        const res = await api.post(`/jobs/${task.id}/apply`, { boostCoins: Number(boostCoins) || 0 });
+        const boostVal = Number(boostCoins) || 0;
+        const res = await api.post(`/jobs/${task.id}/apply`, { boostCoins: boostVal });
         setApplied(true);
         await markJobApplied?.(task.id);
         setApplicationCount(res.data.applicationCount || applicationCount + 1);
-        Alert.alert(t('jobs.proposalSent'), t('jobs.proposalSentBody'), [
+
+        const alertTitle = boostVal > 0 ? t('jobs.boostedProposalSent') : t('jobs.proposalSent');
+        const alertBody = boostVal > 0 ? t('jobs.boostedProposalSentBody', { coins: boostVal }) : t('jobs.proposalSentBody');
+        Alert.alert(alertTitle, alertBody, [
           { text: t('common.close') }
         ]);
       }

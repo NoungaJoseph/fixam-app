@@ -771,6 +771,11 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.profileHeader}>
           <View style={[styles.avatarWrap, { backgroundColor: colors.card }]}>
             <UserAvatar uri={user?.avatar} name={user?.fullName} size={94} />
+            {loading && (
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 47, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#FFF" />
+              </View>
+            )}
             <TouchableOpacity
               style={[styles.editAvatarBtn, { backgroundColor: colors.accent }]}
               onPress={handleImagePick}

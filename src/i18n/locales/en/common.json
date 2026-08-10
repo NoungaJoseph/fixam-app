@@ -581,7 +581,11 @@
     "markCompleted": "Mark Completed",
     "applicationSent": "Application Sent",
     "offer": "Offer",
-    "yourOffer": "Your Offer"
+    "yourOffer": "Your Offer",
+    "proposalSent": "Proposal Sent! 🚀",
+    "proposalSentBody": "Your proposal has been submitted. Base task coins are deducted only if you are selected.",
+    "boostedProposalSent": "Proposal Boosted & Sent! 🚀",
+    "boostedProposalSentBody": "Your {{coins}} boost coins have been deducted to rank your proposal at the top! If you are not selected by the client, your boost coins will be fully refunded to your wallet."
   },
   "forgotPassword": {
     "title": "Forgot Password?",

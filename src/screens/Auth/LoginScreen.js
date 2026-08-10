@@ -108,7 +108,15 @@ const LoginScreen = ({ navigation }) => {
         loginDirect(res.data.user, res.data.token);
       }
     } catch (error) {
-      const msg = error.response?.data?.message || t('login.invalidCredentials');
+      const rawMsg = (error.response?.data?.message || '').toLowerCase();
+      let msg = t('login.invalidCredentials');
+      if (rawMsg.includes('invalid credentials') || rawMsg.includes('user not found')) {
+        msg = t('login.invalidCredentials');
+      } else if (rawMsg.includes('blocked') || rawMsg.includes('suspended')) {
+        msg = t('auth.accountBlocked', 'This account has been suspended. Please contact support.');
+      } else if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      }
       Alert.alert(t('login.failed'), msg);
     } finally {
       setLoading(false);

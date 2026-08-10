@@ -53,11 +53,29 @@ api.interceptors.response.use(response => {
 export const SOCKET_URL = API_ORIGIN;
 
 export const getMediaUrl = (value) => {
-  if (!value || typeof value !== 'string') return null;
-  if (value.startsWith('file:') || value.startsWith('content:') || value.startsWith('data:') || /^(https?:)?\/\//i.test(value)) {
-    return value;
+  if (!value) return null;
+  if (typeof value === 'object' && value?.uri) value = value.uri;
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  // Handles relative paths
+  if (trimmed.startsWith('/') || trimmed.startsWith('uploads/')) {
+    return `${API_ORIGIN}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
   }
-  return `${API_ORIGIN}${value.startsWith('/') ? '' : '/'}${value}`;
+
+  // Handle standard http/https/data URLs
+  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('data:')) {
+    if (trimmed.startsWith('//')) return `https:${trimmed}`;
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('file:') || trimmed.startsWith('content:')) {
+    return trimmed;
+  }
+
+  return `${API_ORIGIN}/${trimmed}`;
 };
 
 export const setAuthToken = (token) => {

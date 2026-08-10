@@ -49,8 +49,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [showAllSkills, setShowAllSkills] = React.useState(false);
 
   const handleOpenProjectDetail = (project) => {
-    setSelectedProject(project);
-    setProjectModalVisible(true);
+    navigation.navigate('ProjectDetail', { project, provider: profileData || provider });
   };
 
   const fetchLatestProfile = async () => {

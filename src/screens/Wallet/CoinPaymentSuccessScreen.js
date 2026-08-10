@@ -11,9 +11,10 @@ const CoinPaymentSuccessScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { coins, package: pkg } = route.params || {};
+  const { coins, package: pkg, isPending } = route.params || {};
   const isProvider = user?.role?.toUpperCase() === 'PROVIDER';
   const coinCount = coins || pkg?.coins || 0;
+  const isFr = t('lang') === 'fr';
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -51,29 +52,41 @@ const CoinPaymentSuccessScreen = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
-          {/* Animated checkmark */}
+          {/* Animated icon */}
           <Animated.View
             style={[
               styles.iconCircle,
-              { backgroundColor: '#22C55E', transform: [{ scale: scaleAnim }] }
+              { backgroundColor: isPending ? '#0D9488' : '#22C55E', transform: [{ scale: scaleAnim }] }
             ]}
           >
-            <MaterialCommunityIcons name="check-bold" size={60} color="#FFF" />
+            <MaterialCommunityIcons name={isPending ? 'email-send' : 'check-bold'} size={60} color="#FFF" />
           </Animated.View>
 
           <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', width: '100%' }}>
-            <Text style={[styles.title, { color: colors.text }]}>{t('payments.success')}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {isPending
+                ? (isFr ? 'Demande Reçue !' : 'Request Received!')
+                : t('payments.success')
+              }
+            </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              {t('wallet.coinCount', { count: coinCount })}
+              {isPending
+                ? (isFr
+                    ? `Votre demande d'achat de ${coinCount} pièces a été transmise à l'équipe Fixam. Un administrateur vous contactera via les Messages avec les instructions de paiement.`
+                    : `Your request to buy ${coinCount} coins has been sent to the Fixam team. An admin will contact you via Messages with payment instructions.`)
+                : t('wallet.coinCount', { count: coinCount })
+              }
             </Text>
 
             {/* Status Card */}
             <View style={[styles.statusCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.statusRow}>
                 <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>{t('payments.status')}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: '#DCFCE7' }]}>
-                  <MaterialCommunityIcons name="check-circle" size={14} color="#16A34A" />
-                  <Text style={[styles.statusText, { color: '#16A34A' }]}>{t('payments.completed')}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: isPending ? '#FEF3C7' : '#DCFCE7' }]}>
+                  <MaterialCommunityIcons name={isPending ? 'clock-outline' : 'check-circle'} size={14} color={isPending ? '#D97706' : '#16A34A'} />
+                  <Text style={[styles.statusText, { color: isPending ? '#D97706' : '#16A34A' }]}>
+                    {isPending ? (isFr ? 'En attente' : 'Pending') : t('payments.completed')}
+                  </Text>
                 </View>
               </View>
 

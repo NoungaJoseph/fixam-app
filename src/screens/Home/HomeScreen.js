@@ -584,7 +584,7 @@ const HomeScreen = ({ navigation }) => {
                   >
                     {/* Top Image Banner */}
                     <View style={styles.projectCardImageWrap}>
-                      <Image source={{ uri: item.imageUrl }} style={styles.projectCardImage} resizeMode="cover" />
+                      <Image source={{ uri: getMediaUrl(item.imageUrl || (Array.isArray(item.images) ? item.images[0] : null)) }} style={styles.projectCardImage} resizeMode="cover" />
                       <TouchableOpacity
                         style={styles.projectLikeFloatingBtn}
                         onPress={() => toggleLikeProject?.(item.id)}

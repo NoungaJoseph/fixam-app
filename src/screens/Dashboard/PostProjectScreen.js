@@ -25,7 +25,7 @@ import { useAuth } from '../../context/AuthContext';
 import TealSafeAreaView from '../../components/Common/TealSafeAreaView';
 import UserAvatar from '../../components/UserAvatar';
 import { getCurrencyForUser } from '../../constants/countries';
-import { getMediaUrl } from '../../services/api';
+import api, { getMediaUrl } from '../../services/api';
 
 const PostProjectScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
@@ -57,8 +57,17 @@ const PostProjectScreen = ({ navigation, route }) => {
       setTitle(editProject.title || '');
       setCategory(editProject.category || 'Web Development');
       setDescription(editProject.description || '');
-      if (Array.isArray(editProject.images)) setImageUris(editProject.images);
-      if (editProject.video) setVideoUris(Array.isArray(editProject.video) ? editProject.video : [editProject.video]);
+      if (Array.isArray(editProject.images) && editProject.images.length > 0) {
+        setImageUris(editProject.images);
+      } else if (editProject.imageUrl) {
+        setImageUris([editProject.imageUrl]);
+      }
+      if (Array.isArray(editProject.videos) && editProject.videos.length > 0) {
+        setVideoUris(editProject.videos);
+      } else if (editProject.video || editProject.videoUrl) {
+        const existingVideo = editProject.video || editProject.videoUrl;
+        setVideoUris(Array.isArray(existingVideo) ? existingVideo : [existingVideo]);
+      }
       if (editProject.packages) setTierData(editProject.packages);
     }
   }, [editProject]);
@@ -177,13 +186,17 @@ const PostProjectScreen = ({ navigation, route }) => {
         type: mimeType,
       });
 
-      const res = await api.post('/upload', formData, {
+      const res = await api.post('/upload/portfolio', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      return res.data?.url || res.data?.data?.url || uri;
+      const serverUrl = res.data?.url || res.data?.data?.url;
+      if (!serverUrl) {
+        throw new Error('Server did not return a valid media URL.');
+      }
+      return serverUrl;
     } catch (err) {
-      console.log('Media upload error:', err?.response?.data || err.message);
-      return uri; // Fallback to original URI if network upload fails
+      console.log('[Media Upload Error]:', err?.response?.data || err.message);
+      throw new Error(`Failed to upload ${type}: ${err?.response?.data?.message || err.message}`);
     }
   };
 

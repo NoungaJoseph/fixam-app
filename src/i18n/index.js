@@ -13,6 +13,7 @@ import enProfile from './locales/en/profile.json';
 import enBooking from './locales/en/booking.json';
 import enNotifications from './locales/en/notifications.json';
 import enLegal from './locales/en/legal.json';
+import enProject from './locales/en/project.json';
 
 import frCommon from './locales/fr/common.json';
 import frAuth from './locales/fr/auth.json';
@@ -25,6 +26,7 @@ import frProfile from './locales/fr/profile.json';
 import frBooking from './locales/fr/booking.json';
 import frNotifications from './locales/fr/notifications.json';
 import frLegal from './locales/fr/legal.json';
+import frProject from './locales/fr/project.json';
 
 export const SUPPORTED_LANGUAGES = ['en', 'fr'];
 export const I18N_STORAGE_KEY = 'appLanguage';
@@ -42,6 +44,7 @@ export const namespaces = [
   'booking',
   'notifications',
   'legal',
+  'project',
 ];
 
 const resources = {
@@ -58,6 +61,7 @@ const resources = {
     booking: normalizeNamespaceResource(enBooking, 'booking', ['bookings']),
     notifications: normalizeNamespaceResource(enNotifications, 'notifications'),
     legal: normalizeNamespaceResource(enLegal, 'legal'),
+    project: normalizeNamespaceResource(enProject, 'project'),
   },
   fr: {
     common: normalizeNamespaceResource(frCommon, 'common'),
@@ -72,6 +76,7 @@ const resources = {
     booking: normalizeNamespaceResource(frBooking, 'booking', ['bookings']),
     notifications: normalizeNamespaceResource(frNotifications, 'notifications'),
     legal: normalizeNamespaceResource(frLegal, 'legal'),
+    project: normalizeNamespaceResource(frProject, 'project'),
   },
 };
 

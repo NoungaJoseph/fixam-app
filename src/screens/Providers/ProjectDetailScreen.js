@@ -75,37 +75,97 @@ const ProjectDetailScreen = ({ route, navigation }) => {
   const fullScreenScrollRef = useRef(null);
 
   // Media list for carousel (Multiple Videos + Images)
-  const images = (Array.isArray(project.images) && project.images.length > 0)
-    ? project.images
-    : (project.imageUrl ? [project.imageUrl] : []);
+  const images = (() => {
+    let imgs = [];
+    if (Array.isArray(project.images) && project.images.length > 0) {
+      imgs = project.images;
+    } else if (project.imageUrl) {
+      imgs = [project.imageUrl];
+    } else if (project.image) {
+      imgs = [project.image];
+    } else if (project.url) {
+      imgs = [project.url];
+    }
+    return imgs.map(getMediaUrl).filter(Boolean);
+  })();
 
-  const videoList = Array.isArray(project.videos) && project.videos.length > 0
-    ? project.videos
-    : (project.video ? [project.video] : []);
+  const videoList = (() => {
+    let vids = [];
+    if (Array.isArray(project.videos) && project.videos.length > 0) {
+      vids = project.videos;
+    } else if (project.video) {
+      vids = Array.isArray(project.video) ? project.video : [project.video];
+    } else if (project.videoUrl) {
+      vids = [project.videoUrl];
+    }
+    return vids.map(getMediaUrl).filter(Boolean);
+  })();
 
   const mediaList = [
-    ...videoList.map(v => ({ type: 'video', uri: v })),
-    ...images.map(img => ({ type: 'image', uri: img }))
+    ...images.map(img => ({ type: 'image', uri: img })),
+    ...videoList.map(v => ({ type: 'video', uri: v }))
   ];
 
   if (mediaList.length === 0) {
-    mediaList.push({ type: 'image', uri: provider?.user?.avatar || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' });
+    const avatarUri = getMediaUrl(provider?.user?.avatar || provider?.avatar) || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+    mediaList.push({ type: 'image', uri: avatarUri });
   }
 
   const isFavorite = favoriteProviderIds?.includes(provider?.id);
   const currencyStr = getCurrencyForUser(provider.user?.country || user?.country || 'Cameroon');
   const baseRate = Number(project.price || provider.rate || 40);
 
-  // Resolve Real Pricing Tiers from project.packages
+  // Resolve Real Pricing Tiers from project.packages or project.tiers
   const resolveTiers = () => {
-    if (project.packages) {
+    // 1. Check if project.tiers array exists
+    let tiersArr = project.tiers;
+    if (typeof tiersArr === 'string') {
+      try { tiersArr = JSON.parse(tiersArr); } catch (_) {}
+    }
+    if (Array.isArray(tiersArr) && tiersArr.length > 0) {
+      return tiersArr.map((pkg, idx) => ({
+        id: pkg.id || `tier_${idx}`,
+        name: (pkg.name || `TIER ${idx + 1}`).toUpperCase(),
+        label: pkg.label || pkg.summary || '',
+        price: Number(pkg.price || 0),
+        deliveryDays: Number(pkg.deliveryDays || 1),
+        revisions: Number(pkg.revisions || 0),
+        expressDeliveryEnabled: pkg.expressDeliveryEnabled !== undefined ? Boolean(pkg.expressDeliveryEnabled) : true,
+        expressDeliveryDays: pkg.expressDeliveryDays ? Number(pkg.expressDeliveryDays) : 4,
+        expressDeliveryPrice: pkg.expressDeliveryPrice ? Number(pkg.expressDeliveryPrice) : Math.round(Number(pkg.price || 0) * 0.3),
+        features: Array.isArray(pkg.features) ? pkg.features.filter(f => f && typeof f === 'string' && f.trim()) : []
+      }));
+    }
+
+    // 2. Check project.packages object or array
+    let packagesObj = project.packages;
+    if (typeof packagesObj === 'string') {
+      try { packagesObj = JSON.parse(packagesObj); } catch (_) {}
+    }
+
+    if (Array.isArray(packagesObj) && packagesObj.length > 0) {
+      return packagesObj.map((pkg, idx) => ({
+        id: pkg.id || `tier_${idx}`,
+        name: (pkg.name || `TIER ${idx + 1}`).toUpperCase(),
+        label: pkg.label || pkg.summary || '',
+        price: Number(pkg.price || 0),
+        deliveryDays: Number(pkg.deliveryDays || 1),
+        revisions: Number(pkg.revisions || 0),
+        expressDeliveryEnabled: pkg.expressDeliveryEnabled !== undefined ? Boolean(pkg.expressDeliveryEnabled) : true,
+        expressDeliveryDays: pkg.expressDeliveryDays ? Number(pkg.expressDeliveryDays) : 4,
+        expressDeliveryPrice: pkg.expressDeliveryPrice ? Number(pkg.expressDeliveryPrice) : Math.round(Number(pkg.price || 0) * 0.3),
+        features: Array.isArray(pkg.features) ? pkg.features.filter(f => f && typeof f === 'string' && f.trim()) : []
+      }));
+    }
+
+    if (packagesObj && typeof packagesObj === 'object') {
       const parsed = [];
-      ['basic', 'standard', 'premium'].forEach((key) => {
-        const pkg = project.packages[key];
+      Object.keys(packagesObj).forEach((key) => {
+        const pkg = packagesObj[key];
         if (pkg && (pkg.enabled || pkg.price)) {
           parsed.push({
             id: key,
-            name: key.toUpperCase(),
+            name: (pkg.name || key).toUpperCase(),
             label: pkg.summary || pkg.label || '',
             price: Number(pkg.price || 0),
             deliveryDays: Number(pkg.deliveryDays || 1),
@@ -113,14 +173,13 @@ const ProjectDetailScreen = ({ route, navigation }) => {
             expressDeliveryEnabled: pkg.expressDeliveryEnabled !== undefined ? Boolean(pkg.expressDeliveryEnabled) : true,
             expressDeliveryDays: pkg.expressDeliveryDays ? Number(pkg.expressDeliveryDays) : 4,
             expressDeliveryPrice: pkg.expressDeliveryPrice ? Number(pkg.expressDeliveryPrice) : Math.round(Number(pkg.price || 0) * 0.3),
-            features: Array.isArray(pkg.features) && pkg.features.length > 0
-              ? pkg.features.filter(f => f && f.trim())
-              : []
+            features: Array.isArray(pkg.features) ? pkg.features.filter(f => f && typeof f === 'string' && f.trim()) : []
           });
         }
       });
       if (parsed.length > 0) return parsed;
     }
+
     return [
       {
         id: 'standard',
@@ -142,6 +201,27 @@ const ProjectDetailScreen = ({ route, navigation }) => {
   const expressAddonPrice = Number(activeTier.expressDeliveryPrice || Math.round(activeTier.price * 0.3));
   const expressDays = Number(activeTier.expressDeliveryDays || 4);
   const finalPrice = activeTier.price + (expressAddon ? expressAddonPrice : 0);
+
+  const getTranslatedTierName = (tier) => {
+    if (!tier?.name) return '';
+    const key = String(tier.id || tier.name).toLowerCase();
+    if (key.includes('basic')) return t('project.basic', 'BASIC');
+    if (key.includes('standard')) return t('project.standard', 'STANDARD');
+    if (key.includes('premium')) return t('project.premium', 'PREMIUM');
+    return tier.name;
+  };
+
+  const getTranslatedTierLabel = (tier) => {
+    if (!tier?.label) return '';
+    const key = String(tier.id || tier.name).toLowerCase();
+    if (key.includes('basic')) return t('project.basicPackage', tier.label);
+    if (key.includes('standard')) return t('project.standardPackage', tier.label);
+    if (key.includes('premium')) return t('project.premiumPackage', tier.label);
+    return tier.label;
+  };
+
+  const tierNameTranslated = getTranslatedTierName(activeTier);
+  const tierLabelTranslated = getTranslatedTierLabel(activeTier);
 
   // Share project handler
   const handleShare = async () => {
@@ -360,25 +440,25 @@ const ProjectDetailScreen = ({ route, navigation }) => {
           {/* Active Tier Details Card */}
           <View style={[styles.tierDetailCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: isDarkMode ? '#1F2937' : '#E2E8F0' }]}>
             <Text style={[styles.tierTitleText, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>
-              {activeTier.name}
+              {tierNameTranslated}
             </Text>
 
             {activeTier.label ? (
               <Text style={[styles.tierSubtitleText, { color: isDarkMode ? '#CBD5E1' : '#475569', marginTop: 4, fontWeight: '700' }]}>
-                {activeTier.label}
+                {tierLabelTranslated}
               </Text>
             ) : null}
 
             {/* Package Details Table Rows */}
             <View style={{ marginTop: 12, marginBottom: 8, gap: 10 }}>
               <View style={styles.tableRowItem}>
-                <Text style={[styles.tableRowLabel, { color: isDarkMode ? '#94A3B8' : '#475569' }]}>Delivery days</Text>
-                <Text style={[styles.tableRowValue, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>{activeTier.deliveryDays} Days</Text>
+                <Text style={[styles.tableRowLabel, { color: isDarkMode ? '#94A3B8' : '#475569' }]}>{t('project.deliveryDays', 'Delivery days')}</Text>
+                <Text style={[styles.tableRowValue, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>{activeTier.deliveryDays} {t('project.days', 'Days')}</Text>
               </View>
 
               <View style={styles.tableRowItem}>
-                <Text style={[styles.tableRowLabel, { color: isDarkMode ? '#94A3B8' : '#475569' }]}>Revisions</Text>
-                <Text style={[styles.tableRowValue, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>{activeTier.revisions}</Text>
+                <Text style={[styles.tableRowLabel, { color: isDarkMode ? '#94A3B8' : '#475569' }]}>{t('project.revisions', 'Revisions')}</Text>
+                <Text style={[styles.tableRowValue, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>{activeTier.revisions || t('project.unlimited', 'Unlimited')}</Text>
               </View>
             </View>
 
@@ -407,7 +487,7 @@ const ProjectDetailScreen = ({ route, navigation }) => {
                   color={expressAddon ? colors.accent : '#94A3B8'}
                 />
                 <Text style={[styles.addonText, { color: isDarkMode ? '#E2E8F0' : '#334155' }]}>
-                  Express delivery in {expressDays} days
+                  {t('project.expressDelivery', 'Express delivery in {{days}} days', { days: expressDays })}
                 </Text>
                 <Text style={styles.addonPriceText}>+{currencyStr} {expressAddonPrice}</Text>
               </TouchableOpacity>
@@ -434,7 +514,7 @@ const ProjectDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.sectionHeadingText, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>
                 {t('profileDetail.portfolio', 'My portfolio')}
               </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('PortfolioDetails', { items: project.images || [], type: 'projects' })}>
+              <TouchableOpacity onPress={() => navigation.navigate('PortfolioDetails', { items: images, type: 'projects' })}>
                 <Text style={styles.seeAllLink}>{t('common.seeAll', 'See All')}</Text>
               </TouchableOpacity>
             </View>
@@ -494,7 +574,9 @@ const ProjectDetailScreen = ({ route, navigation }) => {
         <View style={styles.contentSection}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.sectionHeadingText, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>
-              {provider.reviewCount || (provider.reviews?.length || 0)} {t('profile.reviews', 'reviews')}
+              {(provider.reviewCount > 0 || (provider.reviews?.length > 0))
+                ? `${provider.reviewCount || provider.reviews?.length} ${t('profile.reviews', 'reviews')}`
+                : t('project.noReviewsYet', 'No reviews yet')}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: providerUserId, role: 'PROVIDER' })}>
               <Text style={styles.seeAllLink}>{t('common.seeAll', 'See All')}</Text>

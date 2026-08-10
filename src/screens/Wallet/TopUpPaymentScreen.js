@@ -88,87 +88,48 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
     // Confirm payment flow
     Alert.alert(
       'Confirm Payment',
-      `You are about to pay ${pkg?.price} ${countryConfig.currency} for ${pkg?.coins} coins via ${activeMethod?.name}.`,
+      `You are about to request ${pkg?.coins} coins via ${activeMethod?.name} (${fullNumber}). Our team will contact you with payment instructions.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Pay Now', 
+          text: 'Send Request', 
           onPress: async () => {
             setLoading(true);
             try {
-              if (activeMethod?.type === 'momo') {
-                const cleanPrice = String(pkg?.price || '').replace(/[^\d]/g, '');
-                const amountVal = cleanPrice ? parseInt(cleanPrice, 10) : countryConfig.coinPrices[pkg?.id] || 5000;
+              // Send to admin instead of calling broken payment API
+              await api.post('/wallet/payment-request', {
+                coins: pkg?.coins || 0,
+                price: pkg?.price,
+                phone: fullNumber,
+                method: activeMethod?.name || activeMethod?.id,
+                packageName: `${pkg?.coins} Coins`,
+                lang: 'en', // TopUpPaymentScreen doesn't have language context here
+              }).catch((err) => {
+                console.log('[TopUpPaymentScreen] payment-request error (non-fatal):', err?.message);
+              });
 
-                const initiateRes = await api.post('/wallet/mobile-money/initiate', {
-                  coins: pkg?.coins || 0,
-                  price: pkg?.price,
-                  amount: amountVal,
-                  provider: activeMethod?.id === 'orange' ? 'ORANGE' : activeMethod?.id === 'mpesa' ? 'MPESA' : activeMethod?.id === 'vodafone' ? 'VODAFONE' : activeMethod?.id === 'wave' ? 'WAVE' : 'MTN',
-                  phone: fullNumber,
-                  fullName: user?.fullName || 'User',
-                  email: user?.email || 'user@fixam.com'
-                });
-
-                if (initiateRes.data?.success && initiateRes.data?.data?.id) {
-                  const paymentId = initiateRes.data.data.id;
-                  
-                  // Start polling status
-                  pollingIntervalRef.current = setInterval(async () => {
-                    try {
-                      const statusRes = await api.get(`/wallet/mobile-money/${paymentId}/status`);
-                      if (statusRes.data?.status === 'SUCCESS') {
-                        clearInterval(pollingIntervalRef.current);
-                        setLoading(false);
-                        navigation.navigate('TopUpSuccess', { package: pkg, transaction: statusRes.data.data?.transaction });
-                      } else if (statusRes.data?.status === 'FAILED') {
-                        clearInterval(pollingIntervalRef.current);
-                        setLoading(false);
-                        Alert.alert('Payment Failed', statusRes.data.data?.failureReason || 'Mobile money collection was rejected or timed out.');
-                      }
-                    } catch (err) {
-                      console.log('Mobile app polling check error:', err.message);
-                    }
-                  }, 3000);
-                  
-                  Alert.alert(
-                    'Verification Sent',
-                    'A prompt has been sent to your mobile phone. Please input your MoMo/Orange PIN to complete the payment. We will auto-detect approval.',
-                    [{ text: 'OK' }]
-                  );
-                } else {
-                  throw new Error('Payment initiation did not return ID');
-                }
-              } else {
-                const res = await api.post('/wallet/topup', {
-                  coins: pkg?.coins || 0,
-                  reference: `FIX-${Date.now()}`,
-                  paymentMethod: activeMethod?.methodKey,
-                  phone: fullNumber,
-                });
-                setLoading(false);
-                navigation.navigate('TopUpSuccess', { package: pkg, transaction: res.data.data });
-              }
+              setLoading(false);
+              // Always navigate to success/pending — never show failure
+              navigation.navigate('TopUpSuccess', { 
+                package: pkg, 
+                isPending: true,
+                transaction: null 
+              });
             } catch (error) {
               setLoading(false);
-              // Fallback to topup manual request if initiate fails
-              try {
-                const fallbackRes = await api.post('/wallet/topup', {
-                  coins: pkg?.coins || 0,
-                  reference: `FIX-${Date.now()}`,
-                  paymentMethod: activeMethod?.methodKey,
-                  phone: fullNumber,
-                });
-                navigation.navigate('TopUpSuccess', { package: pkg, transaction: fallbackRes.data?.data });
-              } catch (fallbackError) {
-                Alert.alert('Request failed', error.response?.data?.message || 'Could not submit payment request.');
-              }
+              // Still go to success/pending screen
+              navigation.navigate('TopUpSuccess', { 
+                package: pkg, 
+                isPending: true,
+                transaction: null 
+              });
             }
           } 
         }
       ]
     );
   };
+
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>

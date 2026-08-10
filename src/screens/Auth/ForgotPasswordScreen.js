@@ -15,6 +15,38 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Maps known backend error patterns to the user's language
+  const translateBackendError = (rawMsg = '', errorCode = '') => {
+    const isFr = language === 'fr';
+
+    // Map by error code first (most reliable)
+    const codeMap = {
+      USER_NOT_FOUND: isFr ? 'Aucun compte trouvé avec cette adresse e-mail.' : 'No account found with this email address.',
+      EMAIL_REQUIRED: isFr ? "L'adresse e-mail est requise." : 'Email address is required.',
+      ACCOUNT_BLOCKED: isFr ? 'Ce compte a été suspendu. Contactez le support.' : 'This account has been suspended. Please contact support.',
+      SERVER_ERROR: t('forgotPassword.serverError'),
+    };
+    if (errorCode && codeMap[errorCode]) return codeMap[errorCode];
+
+    // Map common English backend strings
+    const lowerMsg = rawMsg.toLowerCase();
+    if (lowerMsg.includes('user not found') || lowerMsg.includes('no account')) {
+      return isFr ? 'Aucun compte trouvé avec cette adresse e-mail.' : 'No account found with this email address.';
+    }
+    if (lowerMsg.includes('blocked') || lowerMsg.includes('suspended')) {
+      return isFr ? 'Ce compte a été suspendu. Contactez le support.' : 'This account has been suspended.';
+    }
+    if (lowerMsg.includes('email is required')) {
+      return isFr ? "L'adresse e-mail est requise." : 'Email address is required.';
+    }
+    if (lowerMsg.includes('something went wrong') || lowerMsg.includes('server error')) {
+      return t('forgotPassword.serverError');
+    }
+    // If message is already in French, return as-is
+    if (rawMsg) return rawMsg;
+    return t('forgotPassword.serverError');
+  };
+
   const handleReset = async () => {
     if (!email) {
       setErrorMsg(t('forgotPassword.emailRequired'));
@@ -39,14 +71,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
         // Navigate to OTP screen passing the email
         navigation.navigate('ForgotPasswordOTP', { email });
       } else {
-        setErrorMsg(res.data.message || t('forgotPassword.serverError'));
+        setErrorMsg(translateBackendError(res.data.message, res.data.errorCode));
       }
     } catch (error) {
-      setErrorMsg(error.response?.data?.message || t('forgotPassword.serverError'));
+      const rawMsg = error.response?.data?.message || '';
+      const errCode = error.response?.data?.errorCode || '';
+      setErrorMsg(translateBackendError(rawMsg, errCode));
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <View 

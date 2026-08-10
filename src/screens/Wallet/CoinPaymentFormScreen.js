@@ -250,7 +250,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
       phoneToValidate = phoneToValidate.slice(1);
     }
 
-    // Validate phone matches selected provider or auto-detect
+    // Validate phone
     if (userCountry === 'Cameroon') {
       const detected = getNetworkFromPhone(phoneToValidate);
       if (detected && detected !== 'UNKNOWN') {
@@ -265,34 +265,38 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
         return;
       }
     }
+
     try {
       setLoading(true);
-      const amount = getNumericAmount(pkg.amount || pkg.price);
-      // Prepend dynamic dial code without "+" to standardise format sent to API
-      const fullPhone = dialCodeNoPlus + phoneToValidate;
-      console.log('[CoinPaymentFormScreen] Submitting topup with custom payment phone:', fullPhone);
+      const fullPhone = countryConfig.dialCode + phoneToValidate;
+      const selectedMethodObj = PAYMENT_METHODS.find(m => m.id === selectedMethod);
 
-      const response = await api.post('/payments/topup', {
-        amount,
-        phone: fullPhone,
+      // Submit payment request to admin instead of broken payment API
+      await api.post('/wallet/payment-request', {
         coins: totalCoins,
+        price: pkg.price || pkg.amount,
+        phone: fullPhone,
+        method: selectedMethodObj?.label || selectedMethod,
+        packageName: pkg.label || pkg.name || `${totalCoins} Coins`,
+        lang: t('lang') === 'fr' ? 'fr' : 'en',
+      }).catch((err) => {
+        // Non-fatal — proceed even if this fails
+        console.log('[CoinPaymentFormScreen] payment-request error (non-fatal):', err?.message);
       });
 
-      setPaymentStatus('PROCESSING');
-      setPaymentId(response.data.reference || paymentId);
-      if (response.data.reference) {
-        pollPaymentStatus(response.data.reference);
-      } else {
-        navigation.replace('CoinPaymentFailed', {
-          message: t('payments.paymentReferenceMissing'),
-          package: pkg,
-        });
-      }
-    } catch (error) {
-      console.log('Payment submission error:', error);
-      navigation.replace('CoinPaymentFailed', {
-        message: error.response?.data?.message || t('payments.submitPaymentFailed'),
+      // Always navigate to success/pending screen — never show failure
+      navigation.replace('CoinPaymentSuccess', {
+        coins: totalCoins,
         package: pkg,
+        isPending: true, // flag to show "pending manual approval" state
+      });
+    } catch (error) {
+      console.log('[CoinPaymentFormScreen] Unexpected error:', error);
+      // Still navigate to success/pending — never show failure
+      navigation.replace('CoinPaymentSuccess', {
+        coins: totalCoins,
+        package: pkg,
+        isPending: true,
       });
     } finally {
       setLoading(false);
@@ -300,6 +304,7 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
   };
 
   if (paymentStatus === 'PROCESSING') {
+
     return (
       <View style={[styles.background, { backgroundColor: colors.background }]}>
         

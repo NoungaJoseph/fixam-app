@@ -15,30 +15,32 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import TealSafeAreaView from '../../components/Common/TealSafeAreaView';
 
+import { getMediaUrl } from '../../services/api';
+
 const { width } = Dimensions.get('window');
 
 const PortfolioDetailsScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
-  const { title, items = [], type } = route.params || {};
+  const { title, items = [], type, provider } = route.params || {};
 
   const [selectedProject, setSelectedProject] = React.useState(null);
   const [projectModalVisible, setProjectModalVisible] = React.useState(false);
 
   const handleOpenProjectDetail = (project) => {
-    setSelectedProject(project);
-    setProjectModalVisible(true);
+    navigation.navigate('ProjectDetail', { project, provider });
   };
 
   const renderProjectItem = ({ item }) => {
+    const imgUri = getMediaUrl(item.imageUrl || (Array.isArray(item.images) ? item.images[0] : null));
     return (
       <TouchableOpacity
         style={[styles.projectCard, { backgroundColor: colors.card, borderColor: colors.border }]}
         activeOpacity={0.8}
         onPress={() => handleOpenProjectDetail(item)}
       >
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.projectImage} />
+        {imgUri ? (
+          <Image source={{ uri: imgUri }} style={styles.projectImage} />
         ) : (
           <View style={[styles.projectImage, styles.projectImageFallback, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
             <MaterialCommunityIcons name="image-outline" size={32} color="#94A3B8" />

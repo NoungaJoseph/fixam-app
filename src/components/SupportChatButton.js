@@ -71,7 +71,7 @@ const SupportChatButton = () => {
       const asset = result.assets[0];
       const formData = new FormData();
       formData.append('file', {
-        uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
+        uri: asset.uri,
         type: asset.mimeType || 'image/jpeg',
         name: asset.fileName || 'support-image.jpg',
       });

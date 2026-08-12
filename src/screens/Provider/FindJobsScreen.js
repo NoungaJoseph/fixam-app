@@ -24,7 +24,7 @@ const FindJobsScreen = ({ navigation }) => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'favorites' or 'rejected'
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'most_recent', 'remote_only', 'favorites' or 'rejected'
   const [activeCategory, setActiveCategory] = useState('all');
 
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -64,6 +64,16 @@ const FindJobsScreen = ({ navigation }) => {
     let list = sourceJobs.filter(j => {
       // Filter by tab
       if (activeTab === 'favorites' && !favoriteJobIds.includes(j.id)) return false;
+      if (activeTab === 'remote_only') {
+        const loc = String(j.location || '').toLowerCase();
+        const type = String(j.serviceCategory || j.category || j.serviceType || '').toLowerCase();
+        const title = String(j.title || '').toLowerCase();
+        const isRemote = j.isRemote === true || 
+          loc.includes('remote') || loc.includes('online') || loc.includes('virtual') || loc.includes('en ligne') ||
+          type.includes('remote') || type.includes('online') || type.includes('virtual') ||
+          title.includes('remote') || title.includes('online');
+        if (!isRemote) return false;
+      }
 
       // Filter by category
       const category = String(j.category || '');
@@ -109,11 +119,10 @@ const FindJobsScreen = ({ navigation }) => {
     });
 
     // Sort logic
-    if (filterSortBy === 'budget') {
-      list.sort((a, b) => (b.budgetMax || b.budget || 0) - (a.budgetMin || a.budget || 0));
-    } else {
-      // Default 'recent'
+    if (activeTab === 'most_recent' || filterSortBy === 'recent') {
       list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else if (filterSortBy === 'budget') {
+      list.sort((a, b) => (b.budgetMax || b.budget || 0) - (a.budgetMin || a.budget || 0));
     }
 
     return list;
@@ -216,19 +225,43 @@ const FindJobsScreen = ({ navigation }) => {
         </ScrollView>
 
         {/* Tab Switcher */}
-        <View style={styles.tabRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'all' && styles.tabBtnActive]}
             onPress={() => setActiveTab('all')}
           >
-            <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive, { color: activeTab === 'all' ? '#0D9488' : colors.textSecondary }]}>{t('jobs.allJobs')}</Text>
+            <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive, { color: activeTab === 'all' ? '#0D9488' : colors.textSecondary }]}>
+              {t('jobs.allJobs', 'All Jobs')}
+            </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'most_recent' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('most_recent')}
+          >
+            <Text style={[styles.tabText, activeTab === 'most_recent' && styles.tabTextActive, { color: activeTab === 'most_recent' ? '#0D9488' : colors.textSecondary }]}>
+              {t('jobs.mostRecent', 'Most Recent')}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'remote_only' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('remote_only')}
+          >
+            <Text style={[styles.tabText, activeTab === 'remote_only' && styles.tabTextActive, { color: activeTab === 'remote_only' ? '#0D9488' : colors.textSecondary }]}>
+              {t('jobs.remoteOnly', 'Remote Only')}
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'favorites' && styles.tabBtnActive]}
             onPress={() => setActiveTab('favorites')}
           >
-            <Text style={[styles.tabText, activeTab === 'favorites' && styles.tabTextActive, { color: activeTab === 'favorites' ? '#0D9488' : colors.textSecondary }]}>{t('jobs.favoritesCount', { count: favoritesCount })}</Text>
+            <Text style={[styles.tabText, activeTab === 'favorites' && styles.tabTextActive, { color: activeTab === 'favorites' ? '#0D9488' : colors.textSecondary }]}>
+              {t('jobs.favoritesCount', { count: favoritesCount, defaultValue: `Favorites (${favoritesCount})` })}
+            </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'rejected' && styles.tabBtnActive]}
             onPress={() => setActiveTab('rejected')}
@@ -237,7 +270,7 @@ const FindJobsScreen = ({ navigation }) => {
               {t('jobs.rejectedCount', { count: rejectedCount, defaultValue: `Rejected (${rejectedCount})` })}
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
 
       {/* List */}
@@ -248,10 +281,12 @@ const FindJobsScreen = ({ navigation }) => {
             <MaterialCommunityIcons name="briefcase-search-outline" size={60} color={colors.placeholder} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {activeTab === 'favorites' 
-                ? t('jobs.noFavoriteJobs') 
+                ? t('jobs.noFavoriteJobs', 'No saved/favorite jobs yet') 
                 : activeTab === 'rejected' 
                   ? t('jobs.noRejectedJobs', 'No rejected jobs') 
-                  : t('jobs.noJobsFound')}
+                  : activeTab === 'remote_only'
+                    ? t('jobs.noRemoteJobs', 'No remote jobs available')
+                    : t('jobs.noJobsFound', 'No jobs found')}
             </Text>
           </View>
         ) : (
@@ -676,7 +711,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
-  tabRow: {
+  tabScroll: {
     flexDirection: 'row',
     marginTop: 16,
     gap: 20,

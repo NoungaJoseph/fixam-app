@@ -43,7 +43,7 @@ const SelfieScreen = ({ navigation, route }) => {
     const filename = `${label}-${uri.split('/').pop() || Date.now()}.jpg`;
     const formData = new FormData();
     formData.append('file', {
-      uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+      uri,
       name: filename,
       type: 'image/jpeg',
     });

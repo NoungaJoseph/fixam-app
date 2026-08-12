@@ -311,6 +311,17 @@ const JobStatusScreen = ({ route, navigation }) => {
                         ) : null}
                       </View>
                     </TouchableOpacity>
+
+                    {assignment.coverLetter ? (
+                      <View style={[styles.coverLetterContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: colors.border }]}>
+                        <Text style={[styles.coverLetterTitle, { color: colors.textSecondary }]}>
+                          {t('jobs.proposalPitchLabel', 'Proposal Pitch / Cover Note')}
+                        </Text>
+                        <Text style={[styles.coverLetterText, { color: colors.text }]}>
+                          {assignment.coverLetter}
+                        </Text>
+                      </View>
+                    ) : null}
                     
                     <View style={styles.applicationActionRow}>
                       <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.border, flex: 1 }]} onPress={() => navigation.navigate('ProviderProfile', { provider })}>
@@ -749,6 +760,25 @@ const styles = StyleSheet.create({
   counterActionRow: { flexDirection: 'row', gap: 10, width: '100%', marginTop: 12, alignItems: 'center' },
   counterDeclineBtn: { flex: 1, height: 44, borderRadius: 8, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
   counterAcceptBtn: { flex: 1.5, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  coverLetterContainer: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 15,
+    width: '100%',
+  },
+  coverLetterTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  coverLetterText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
 });
 
 export default JobStatusScreen;

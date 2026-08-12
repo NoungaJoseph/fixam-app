@@ -50,6 +50,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState('');
   const [boostCoins, setBoostCoins] = useState('');
+  const [coverLetter, setCoverLetter] = useState('');
   const [jobDetails, setJobDetails] = useState(task);
   const [fetching, setFetching] = useState(true);
   const [applicationCount, setApplicationCount] = useState(task.assignments?.length || task.proposals || 0);
@@ -168,8 +169,12 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         ]);
       } else {
         const boostVal = Number(boostCoins) || 0;
-        const res = await api.post(`/jobs/${task.id}/apply`, { boostCoins: boostVal });
+        const res = await api.post(`/jobs/${task.id}/apply`, { 
+          boostCoins: boostVal,
+          coverLetter: coverLetter.trim() || undefined
+        });
         setApplied(true);
+        setCoverLetter('');
         await markJobApplied?.(task.id);
         setApplicationCount(res.data.applicationCount || applicationCount + 1);
 
@@ -496,6 +501,19 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 <Text style={[styles.modalText, { color: colors.textSecondary, marginBottom: 12 }]}>{t('jobs.applyCoinNotice', { count: coinCost })}</Text>
                 
                 <Text style={[styles.boostLabel, { color: colors.textSecondary }]}>
+                  {t('jobs.proposalPitchLabel', 'Proposal Pitch / Cover Note (Optional)')}
+                </Text>
+                <TextInput
+                  style={[styles.coverLetterInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC' }]}
+                  placeholder={t('jobs.proposalPitchPlaceholder', 'Explain why you are the best fit for this job...')}
+                  placeholderTextColor={colors.placeholder}
+                  multiline
+                  numberOfLines={4}
+                  value={coverLetter}
+                  onChangeText={setCoverLetter}
+                />
+
+                <Text style={[styles.boostLabel, { color: colors.textSecondary, marginTop: 12 }]}>
                   {t('profile.bidBoostTitle')}
                 </Text>
                 <TextInput
@@ -646,6 +664,18 @@ const styles = StyleSheet.create({
   cancelBtnText: { color: '#64748B', fontSize: 15, fontWeight: '700' },
   boostLabel: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', alignSelf: 'flex-start', marginBottom: 6 },
   boostInput: { width: '100%', height: 48, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 14, fontWeight: '700', marginBottom: 12 },
+  coverLetterInput: {
+    width: '100%',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '700',
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
   totalCostBadge: { width: '100%', paddingVertical: 10, borderRadius: 12, alignItems: 'center', marginBottom: 20 },
   totalCostText: { fontSize: 14, fontWeight: '800' },
   emptyLeaderboard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 16, width: '100%', marginBottom: 16 },

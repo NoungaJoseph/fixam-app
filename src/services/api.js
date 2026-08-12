@@ -8,6 +8,7 @@ export const API_ORIGIN = BASE_URL.replace(/\/api\/?$/, '');
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 15000, // Reduced from 30s to 15s for snappier failure handling
+  validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
 });
 
 let lastActiveWriteTime = 0;

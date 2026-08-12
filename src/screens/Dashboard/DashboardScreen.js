@@ -163,7 +163,7 @@ const DashboardScreen = ({ navigation }) => {
 
       const formData = new FormData();
       formData.append('file', {
-        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+        uri,
         name: filename,
         type,
       });

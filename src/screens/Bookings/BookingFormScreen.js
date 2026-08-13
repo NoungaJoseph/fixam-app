@@ -343,6 +343,40 @@ const BookingFormScreen = ({ route, navigation }) => {
               </View>
             </View>
 
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.text }]}>{t('bookings.durationLabel', 'Service Duration')}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                {[
+                  { key: '1 Hour', label: '1 Hour' },
+                  { key: '2-3 Hours', label: '2-3 Hours' },
+                  { key: 'Half Day (4 Hours)', label: 'Half Day (4h)' },
+                  { key: 'Full Day (8 Hours)', label: 'Full Day (8h)' },
+                  { key: 'Multi-Day Project', label: 'Multi-Day' },
+                  { key: 'Flexible', label: 'Flexible' }
+                ].map((opt) => {
+                  const isSel = form.bookingDuration === opt.key || (form.bookingDuration === 'DAY' && opt.key === 'Full Day (8 Hours)');
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      onPress={() => setForm({ ...form, bookingDuration: opt.key })}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        backgroundColor: isSel ? colors.accent : (isDarkMode ? '#1E293B' : '#F1F5F9'),
+                        borderColor: isSel ? colors.accent : colors.border
+                      }}
+                    >
+                      <Text style={{ color: isSel ? '#FFFFFF' : colors.text, fontSize: 13, fontWeight: '700' }}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
             {['URGENT', 'EMERGENCY'].includes(form.urgencyLevel) ? (
               <View style={[styles.field, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: colors.border }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>

@@ -215,14 +215,11 @@ const ProviderListScreen = ({ route, navigation }) => {
   }), [providers, search, category, verifiedOnly, favoritesOnly, favoriteProviderIds, activeFilter]);
 
   const renderProvider = ({ item }) => {
-    const rawImage = item.portfolio?.[0]?.imageUrl 
-      || item.portfolio?.[0]?.url 
-      || item.portfolio?.[0]?.image 
-      || item.image 
+    const rawAvatar = item.user?.avatar 
       || item.avatar 
-      || item.user?.avatar 
-      || item.user?.image;
-    const bannerUri = getMediaUrl(rawImage);
+      || item.image 
+      || (typeof item.portfolio?.[0] === 'string' ? item.portfolio[0] : (item.portfolio?.[0]?.imageUrl || item.portfolio?.[0]?.url || item.portfolio?.[0]?.image));
+    const avatarUri = getMediaUrl(rawAvatar);
     const isFavorite = favoriteProviderIds?.includes(item.id);
     const isVerified = item.verification === 'VERIFIED' || (item.boostExpiresAt && new Date(item.boostExpiresAt) > new Date());
     const ratingVal = Number(item.rating || 0).toFixed(1);
@@ -238,19 +235,15 @@ const ProviderListScreen = ({ route, navigation }) => {
         onPress={() => navigation.navigate('ProviderProfile', { provider: item })}
         activeOpacity={0.88}
       >
-        {/* Left Thumbnail Banner Image Column */}
+        {/* Left Provider Avatar Column */}
         <View style={styles.cardImageContainer}>
-          {bannerUri ? (
-            <Image source={{ uri: bannerUri }} style={styles.cardImage} resizeMode="cover" />
-          ) : (
-            <UserAvatar
-              uri={getMediaUrl(item.user?.avatar || item.avatar || item.image)}
-              name={item.user?.fullName || 'User'}
-              size={110}
-              radius={0}
-              style={styles.cardImage}
-            />
-          )}
+          <UserAvatar
+            uri={avatarUri}
+            name={item.user?.fullName || item.name || 'User'}
+            size={110}
+            radius={12}
+            style={styles.cardImage}
+          />
 
           {isVerified && (
             <View style={styles.proBadge}>

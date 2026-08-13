@@ -61,6 +61,17 @@ export const getMediaUrl = (value) => {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
+  // Handle local device URIs from mobile camera / file picker
+  if (trimmed.startsWith('file:') || trimmed.startsWith('content:')) {
+    return trimmed;
+  }
+
+  // Normalize /uploads/ paths so they dynamically point to active API_ORIGIN
+  if (trimmed.includes('/uploads/')) {
+    const relativePath = '/uploads/' + trimmed.split('/uploads/')[1];
+    return `${API_ORIGIN}${relativePath}`;
+  }
+
   // Handles relative paths
   if (trimmed.startsWith('/') || trimmed.startsWith('uploads/')) {
     return `${API_ORIGIN}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
@@ -72,11 +83,7 @@ export const getMediaUrl = (value) => {
     return trimmed;
   }
 
-  if (trimmed.startsWith('file:') || trimmed.startsWith('content:')) {
-    return trimmed;
-  }
-
-  return `${API_ORIGIN}/${trimmed}`;
+  return `${API_ORIGIN}/${trimmed.startsWith('/') ? trimmed.substring(1) : trimmed}`;
 };
 
 export const setAuthToken = (token) => {

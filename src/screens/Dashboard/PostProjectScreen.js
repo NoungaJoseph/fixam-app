@@ -168,8 +168,9 @@ const PostProjectScreen = ({ navigation, route }) => {
   // Helper to upload a single local file URI to the backend storage
   const uploadMediaToBackend = async (uri, type = 'file') => {
     if (!uri || typeof uri !== 'string') return null;
-    if (!uri.startsWith('file:') && !uri.startsWith('content:')) {
-      return uri; // Already a remote backend/cloud URL
+    // If it's already a remote HTTP/S or data URL, we don't need to upload it
+    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:')) {
+      return uri;
     }
     try {
       const formData = new FormData();
@@ -371,8 +372,8 @@ const PostProjectScreen = ({ navigation, route }) => {
         if (uploadedUrl) uploadedVideos.push(uploadedUrl);
       }
 
-      const finalImages = uploadedImages.length > 0 ? uploadedImages : (imageUris.length > 0 ? imageUris : [user?.avatar].filter(Boolean));
-      const finalVideos = uploadedVideos.length > 0 ? uploadedVideos : videoUris;
+      const finalImages = uploadedImages.length > 0 ? uploadedImages : [user?.avatar].filter(Boolean);
+      const finalVideos = uploadedVideos;
       const primaryVideo = finalVideos[0] || null;
 
       const projectPayload = {

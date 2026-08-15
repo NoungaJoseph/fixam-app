@@ -11,6 +11,7 @@ const hiddenJobsKey = (userId) => `fixam:hidden-jobs:${userId || 'guest'}`;
 const favoriteJobsKey = (userId) => `fixam:favorite-jobs:${userId || 'guest'}`;
 const appliedJobsKey = (userId) => `fixam:applied-jobs:${userId || 'guest'}`;
 const favoriteProvidersKey = (userId) => `fixam:favorite-providers:${userId || 'guest'}`;
+const favoriteProjectsKey = (userId) => `fixam:favorite-projects:${userId || 'guest'}`;
 
 const normalizeUserMedia = (item) => item ? ({
   ...item,
@@ -60,6 +61,7 @@ export const AppProvider = ({ children }) => {
   const [hiddenJobIds, setHiddenJobIds] = useState([]);
   const [favoriteJobIds, setFavoriteJobIds] = useState([]);
   const [favoriteProviderIds, setFavoriteProviderIds] = useState([]);
+  const [favoriteProjectIds, setFavoriteProjectIds] = useState([]);
   const [appliedJobIds, setAppliedJobIds] = useState([]);
   const [myTasksList, setMyTasksList] = useState([]);
   const [myBookingsList, setMyBookingsList] = useState([]);
@@ -155,21 +157,24 @@ export const AppProvider = ({ children }) => {
         setHiddenJobIds([]);
         setFavoriteJobIds([]);
         setFavoriteProviderIds([]);
+        setFavoriteProjectIds([]);
         setAppliedJobIds([]);
         return;
       }
 
       try {
-        const [hidden, favorites, applied, providerFavorites] = await Promise.all([
+        const [hidden, favorites, applied, providerFavorites, projectFavorites] = await Promise.all([
           AsyncStorage.getItem(hiddenJobsKey(user.id)),
           AsyncStorage.getItem(favoriteJobsKey(user.id)),
           AsyncStorage.getItem(appliedJobsKey(user.id)),
           AsyncStorage.getItem(favoriteProvidersKey(user.id)),
+          AsyncStorage.getItem(favoriteProjectsKey(user.id)),
         ]);
         setHiddenJobIds(hidden ? JSON.parse(hidden) : []);
         setFavoriteJobIds(favorites ? JSON.parse(favorites) : []);
         setAppliedJobIds(applied ? JSON.parse(applied) : []);
         setFavoriteProviderIds(providerFavorites ? JSON.parse(providerFavorites) : []);
+        setFavoriteProjectIds(projectFavorites ? JSON.parse(projectFavorites) : []);
       } catch (error) {
         console.log('Error loading job preferences:', error.message);
       }
@@ -525,6 +530,23 @@ export const AppProvider = ({ children }) => {
     return providers.filter((provider) => favorites.has(provider.id));
   }, [providers, favoriteProviderIds]);
 
+  const mappedPublishedProjects = useMemo(() => {
+    const favorites = new Set(favoriteProjectIds);
+    return publishedProjects.map((p) => {
+      const isLiked = favorites.has(p.id);
+      return {
+        ...p,
+        isLikedByMe: isLiked,
+        likesCount: Math.max(0, (p.likesCount || 0) + (isLiked ? 1 : 0)),
+      };
+    });
+  }, [publishedProjects, favoriteProjectIds]);
+
+  const favoriteProjects = useMemo(() => {
+    const favorites = new Set(favoriteProjectIds);
+    return mappedPublishedProjects.filter((proj) => favorites.has(proj.id) && proj.providerId !== user?.id && proj.provider?.user?.id !== user?.id);
+  }, [mappedPublishedProjects, favoriteProjectIds, user?.id]);
+
   const fetchFavoriteProviders = async () => {
     if (!token) return [];
     try {
@@ -683,18 +705,13 @@ export const AppProvider = ({ children }) => {
   };
 
   const toggleLikeProject = async (projectId) => {
-    const updated = publishedProjects.map(p => {
-      if (p.id === projectId) {
-        const isLiked = p.isLikedByMe;
-        return {
-          ...p,
-          isLikedByMe: !isLiked,
-          likesCount: Math.max(0, (p.likesCount || 0) + (isLiked ? -1 : 1))
-        };
-      }
-      return p;
-    });
-    setPublishedProjects(updated);
+    if (!projectId) return;
+    const exists = favoriteProjectIds.includes(projectId);
+    const next = exists
+      ? favoriteProjectIds.filter((id) => id !== projectId)
+      : [...favoriteProjectIds, projectId];
+    setFavoriteProjectIds(next);
+    await AsyncStorage.setItem(favoriteProjectsKey(user?.id), JSON.stringify(next));
   };
 
   const deleteProject = async (projectId) => {
@@ -720,7 +737,7 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{ 
       providers, 
       jobs, 
-      publishedProjects,
+      publishedProjects: mappedPublishedProjects,
       publishProject,
       toggleLikeProject,
       deleteProject,
@@ -729,6 +746,8 @@ export const AppProvider = ({ children }) => {
       favoriteJobIds,
       favoriteProviders,
       favoriteProviderIds,
+      favoriteProjects,
+      favoriteProjectIds,
       myReviews,
       appliedJobIds,
       hiddenJobIds,

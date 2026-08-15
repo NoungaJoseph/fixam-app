@@ -187,9 +187,7 @@ const PostProjectScreen = ({ navigation, route }) => {
         type: mimeType,
       });
 
-      const res = await api.post('/upload/portfolio', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post('/upload/portfolio', formData);
       const serverUrl = res.data?.url || res.data?.data?.url;
       if (!serverUrl) {
         throw new Error('Server did not return a valid media URL.');

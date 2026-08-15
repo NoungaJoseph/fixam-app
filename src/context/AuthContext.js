@@ -196,9 +196,7 @@ export const AuthProvider = ({ children }) => {
 
   const uploadFile = async (formData, endpoint = '/upload') => {
     try {
-      const res = await api.post(endpoint, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post(endpoint, formData);
       return res.data;
     } catch (error) {
       throw error;

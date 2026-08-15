@@ -618,6 +618,15 @@ export const AppProvider = ({ children }) => {
     await AsyncStorage.setItem(appliedJobsKey(user?.id), JSON.stringify(next));
   };
 
+  const uploadFile = async (formData, endpoint = '/upload') => {
+    try {
+      const res = await api.post(endpoint, formData);
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const postJob = async (newJob) => {
     try {
       const res = await api.post('/jobs', newJob);

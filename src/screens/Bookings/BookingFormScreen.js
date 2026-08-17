@@ -205,16 +205,33 @@ const BookingFormScreen = ({ route, navigation }) => {
 
     try {
       setSubmitting(true);
-      const bookingBudget = isUrgentOrEmergency ? 0 : (Number(String(form.budget || 0).replace(/[^\d.]/g, '')) || 0);
+      const durationMap = {
+        '1 Hour': 'HOURLY',
+        '2-3 Hours': 'HOURLY',
+        'Half Day (4 Hours)': 'HALF_DAY',
+        'Full Day (8 Hours)': 'DAY',
+        'Multi-Day Project': 'DAY',
+        'Flexible': 'FIXED',
+        'DAY': 'DAY',
+        'HALF_DAY': 'HALF_DAY',
+        'HOURLY': 'HOURLY',
+        'FIXED': 'FIXED'
+      };
+      const mappedDuration = durationMap[form.bookingDuration] || 'HOURLY';
+      let bookingBudget = isUrgentOrEmergency ? 0 : (Number(String(form.budget || 0).replace(/[^\d.]/g, '')) || 0);
+      if (!isUrgentOrEmergency && bookingBudget <= 0) {
+        bookingBudget = 1000;
+      }
+
       const res = await api.post('/bookings', {
         providerId,
         taskId: task?.id,
         bookingDate: form.bookingDate,
         bookingTime: form.bookingTime,
-        bookingDuration: form.bookingDuration,
+        bookingDuration: mappedDuration,
         urgencyLevel: form.urgencyLevel,
         budget: bookingBudget,
-        location: form.location || '',
+        location: form.location || 'Location Not Specified',
         latitude: form.latitude,
         longitude: form.longitude,
         notes: form.notes || '',

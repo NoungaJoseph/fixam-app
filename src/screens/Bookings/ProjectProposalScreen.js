@@ -64,13 +64,14 @@ const ProjectProposalScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       // 1. Create free proposal booking (0 coins for client)
+      const proposalBudget = Number(budget || project.price || 0) || 1000;
       await api.post('/bookings', {
         providerId: providerUserId,
         isProposal: true,
-        budget: Number(budget || project.price || 0),
+        budget: proposalBudget,
         bookingDate: new Date().toISOString(),
         bookingTime: '09:00',
-        bookingDuration: `${days || 3} DAYS`,
+        bookingDuration: 'DAY',
         notes: `PROJECT PROPOSAL: ${project.title || 'Custom Service'}\nRequirements: ${description.trim()}`,
         location: `Project: ${project.title || 'Custom Service'} (${project.selectedTier?.name || 'Package'})`,
         materialsList,

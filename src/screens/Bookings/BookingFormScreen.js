@@ -11,6 +11,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
 import { getVerificationMessageKey, isIdentityVerified, translateApiError } from '../../utils/eligibilityMessages';
+import MaterialsListEditor from '../../components/MaterialsListEditor';
 
 const formatAddressLabel = (address) => {
   if (!address) return '';
@@ -53,6 +54,8 @@ const BookingFormScreen = ({ route, navigation }) => {
     notes: task?.description || '',
     bookingDuration: 'DAY',
     urgencyLevel: 'NORMAL',
+    materialsList: task?.materialsList || [],
+    requiresDiagnosis: task?.requiresDiagnosis || false,
   });
   const [submitting, setSubmitting] = useState(false);
   const { walletBalance } = useAppContext();
@@ -215,6 +218,8 @@ const BookingFormScreen = ({ route, navigation }) => {
         latitude: form.latitude,
         longitude: form.longitude,
         notes: form.notes || '',
+        requiresDiagnosis: form.requiresDiagnosis,
+        materialsList: form.materialsList,
       });
       Alert.alert(t('bookings.sent'), t('bookings.sentBody'));
       handleSafeGoBack();
@@ -393,6 +398,13 @@ const BookingFormScreen = ({ route, navigation }) => {
               <Input label={t('bookings.budget')} placeholder="15000" value={form.budget} onChangeText={(budget) => setForm({ ...form, budget })} keyboardType="numeric" colors={colors} />
             )}
             <Input label={t('bookings.details')} placeholder={t('bookings.detailsPlaceholder')} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} multiline colors={colors} />
+
+            <MaterialsListEditor
+              items={form.materialsList}
+              onChangeItems={(items) => setForm(prev => ({ ...prev, materialsList: items }))}
+              requiresDiagnosis={form.requiresDiagnosis}
+              onToggleDiagnosis={(val) => setForm(prev => ({ ...prev, requiresDiagnosis: val }))}
+            />
 
             <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.summaryTitle, { color: colors.text }]}>{t('bookings.bookingSummary', 'Booking Summary')}</Text>

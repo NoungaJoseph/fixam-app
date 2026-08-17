@@ -11,6 +11,10 @@ import { translateStatus } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
 import { useAppContext } from '../../context/AppContext';
 import { translateApiError } from '../../utils/eligibilityMessages';
+import MaterialsListDisplay from '../../components/MaterialsListDisplay';
+import DisputeModal from '../../components/DisputeModal';
+import DisputeDetailsCard from '../../components/DisputeDetailsCard';
+import ServiceAgreementCard from '../../components/ServiceAgreementCard';
 
 const getProviderFromAssignment = (assignment) => {
   if (!assignment) return null;
@@ -74,6 +78,23 @@ const JobStatusScreen = ({ route, navigation }) => {
       }
     } catch (err) {
       Alert.alert(t('common.error'), translateApiError(err, t, 'jobs.updateFailedClient'));
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleRespondMaterials = async (action) => {
+    try {
+      setUpdatingStatus(true);
+      const endpoint = isBooking ? `/bookings/${job.id}/materials/respond` : `/jobs/${job.id}/materials/respond`;
+      const res = await api.post(endpoint, { action });
+      if (res.data?.data) {
+        setJob(res.data.data);
+      }
+      Alert.alert(t('common.success'), action === 'ACCEPT' ? 'Materials list accepted!' : 'Materials proposal rejected.');
+      await fetchAppData?.(true);
+    } catch (err) {
+      Alert.alert(t('common.error'), translateApiError(err, t));
     } finally {
       setUpdatingStatus(false);
     }
@@ -263,6 +284,18 @@ const JobStatusScreen = ({ route, navigation }) => {
               ))}
             </View>
           </View>
+
+          <MaterialsListDisplay
+            materialsList={job.materialsList}
+            materialsStatus={job.materialsStatus}
+            materialsVersion={job.materialsVersion}
+            requiresDiagnosis={job.requiresDiagnosis}
+            agreements={job.agreements || []}
+            isClient={true}
+            isProvider={false}
+            onAcceptProposal={() => handleRespondMaterials('ACCEPT')}
+            onRejectProposal={() => handleRespondMaterials('REJECT')}
+          />
 
           {job.assignments?.length > 0 && normalizedStatus === 'PENDING' && (
             <View style={styles.applicationsSection}>
@@ -475,36 +508,87 @@ const JobStatusScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
 
-            {user?.role === 'CLIENT' && assignedProvider && ['ACCEPTED', 'IN_PROGRESS'].includes(normalizedStatus) && (
-              <TouchableOpacity
-                style={[styles.mainActionBtn, { backgroundColor: colors.success }]}
-                onPress={() => Alert.alert(
-                  t('jobs.markCompleted'),
-                  t('jobs.completeAndFinalizeBody'),
-                  [
-                    { text: t('common.cancel'), style: 'cancel' },
-                    {
-                      text: t('jobs.completeAndRate'),
-                      onPress: async () => {
-                        try {
-                          await updateStatus('COMPLETED');
-                          navigation.navigate('Rating', {
-                            jobId: job.id,
-                            targetUser: assignedProviderUser,
-                            mode: 'rate_provider',
-                          });
-                        } catch (err) {
-                          // Handled by helper
+            {user?.role === 'CLIENT' && assignedProvider && ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(normalizedStatus) && (
+              <View style={{ gap: 8, width: '100%' }}>
+                <TouchableOpacity
+                  style={[styles.mainActionBtn, { backgroundColor: colors.success }]}
+                  onPress={() => Alert.alert(
+                    t('jobs.markCompleted'),
+                    t('jobs.completeAndFinalizeBody'),
+                    [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      {
+                        text: t('jobs.completeAndRate'),
+                        onPress: async () => {
+                          try {
+                            await updateStatus('COMPLETED');
+                            navigation.navigate('Rating', {
+                              jobId: job.id,
+                              targetUser: assignedProviderUser,
+                              mode: 'rate_provider',
+                            });
+                          } catch (err) {
+                            // Handled by helper
+                          }
                         }
                       }
-                    }
-                  ]
+                    ]
+                  )}
+                >
+                  <MaterialCommunityIcons name="check-decagram" size={22} color="#FFF" />
+                  <Text style={styles.mainActionText}>{t('bookings.acceptAndComplete', 'Accept & Complete')}</Text>
+                </TouchableOpacity>
+
+                {!activeDispute && (
+                  <TouchableOpacity
+                    style={[styles.secondaryActionBtn, { borderColor: '#EF4444', backgroundColor: '#FEF2F2' }]}
+                    onPress={() => setDisputeModalVisible(true)}
+                  >
+                    <MaterialCommunityIcons name="alert-decagram-outline" size={20} color="#EF4444" />
+                    <Text style={[styles.secondaryActionText, { color: '#EF4444', fontWeight: '700' }]}>
+                      {t('bookings.reportProblem', 'Report a Problem')}
+                    </Text>
+                  </TouchableOpacity>
                 )}
-              >
-                <MaterialCommunityIcons name="check-decagram" size={22} color="#FFF" />
-                <Text style={styles.mainActionText}>{t('jobs.markCompletedAndRate')}</Text>
-              </TouchableOpacity>
+              </View>
             )}
+
+            {Boolean(job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0])) && (
+              <ServiceAgreementCard
+                agreement={job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0])}
+                isClient={user?.role === 'CLIENT'}
+                isProvider={user?.role === 'PROVIDER'}
+                onRefresh={async () => {
+                  try {
+                    const res = await api.get(`/bookings/${job.id}`);
+                    if (res.data?.data) setJob(res.data.data);
+                  } catch (_) {}
+                }}
+              />
+            )}
+
+            {Boolean(activeDispute) && (
+              <DisputeDetailsCard
+                dispute={activeDispute}
+                isClient={user?.role === 'CLIENT'}
+                isProvider={user?.role === 'PROVIDER'}
+                onRefresh={async () => {
+                  try {
+                    const res = await api.get(`/disputes/${activeDispute.id}`);
+                    if (res.data?.data) setActiveDispute(res.data.data);
+                  } catch (_) {}
+                }}
+              />
+            )}
+
+            <DisputeModal
+              visible={disputeModalVisible}
+              onClose={() => setDisputeModalVisible(false)}
+              bookingId={job.id}
+              onSuccess={(newDispute) => {
+                setActiveDispute(newDispute);
+              }}
+            />
 
             {user?.role === 'CLIENT' && job.status === 'PENDING' && (
               <TouchableOpacity 

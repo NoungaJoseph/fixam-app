@@ -18,6 +18,10 @@ import { getCurrencyForUser } from '../../constants/countries';
 import UserAvatar from '../../components/UserAvatar';
 import VerificationRequiredModal from '../../components/VerificationRequiredModal';
 import { getVerificationMessageKey, isIdentityVerified, translateApiError } from '../../utils/eligibilityMessages';
+import MaterialsListDisplay from '../../components/MaterialsListDisplay';
+import MaterialsListEditor from '../../components/MaterialsListEditor';
+import DisputeDetailsCard from '../../components/DisputeDetailsCard';
+import ServiceAgreementCard from '../../components/ServiceAgreementCard';
 
 const formatDate = (value, locale = 'en') => {
   if (!value) return null;
@@ -395,6 +399,44 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             <>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.description')}</Text>
               <Text style={[styles.longText, { color: colors.textSecondary }]}>{task.description}</Text>
+
+              <MaterialsListDisplay
+                materialsList={task.materialsList}
+                materialsStatus={task.materialsStatus}
+                materialsVersion={task.materialsVersion}
+                requiresDiagnosis={task.requiresDiagnosis}
+                agreements={task.agreements || []}
+                isProvider={true}
+                isClient={false}
+              />
+
+              {Boolean(activeDispute) && (
+                <DisputeDetailsCard
+                  dispute={activeDispute}
+                  isClient={false}
+                  isProvider={true}
+                  onRefresh={async () => {
+                    try {
+                      const res = await api.get(`/disputes/${activeDispute.id}`);
+                      if (res.data?.data) setActiveDispute(res.data.data);
+                    } catch (_) {}
+                  }}
+                />
+              )}
+              {Boolean((jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0]) && (
+                <ServiceAgreementCard
+                  agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0]}
+                  isClient={false}
+                  isProvider={true}
+                  onRefresh={async () => {
+                    try {
+                      const res = await api.get(`/jobs/${task.id}`);
+                      if (res.data?.data) setJobDetails(res.data.data);
+                    } catch (_) {}
+                  }}
+                />
+              )}
+
               <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3' }]} onPress={handleShare}>
                 <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
                 <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>

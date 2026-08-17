@@ -17,6 +17,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { translateService, translateStatus } from '../../i18n/translate';
+import MaterialsListEditor from '../../components/MaterialsListEditor';
 
 const tasksHeroImage = require('../../../assets/tasks_hero.png');
 
@@ -163,6 +164,9 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [scheduledTime, setScheduledTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const [materialsList, setMaterialsList] = useState([]);
+  const [requiresDiagnosis, setRequiresDiagnosis] = useState(false);
 
   useEffect(() => {
     if (route?.params?.startOnPost) {
@@ -425,6 +429,8 @@ const PostTaskScreen = ({ route, navigation }) => {
         preferences: selectedPreferences,
         priority,
         isRemote,
+        materialsList,
+        requiresDiagnosis,
       };
       if (editingJob) {
         await api.put(`/jobs/${editingJob.id}`, payload);
@@ -1040,7 +1046,12 @@ const PostTaskScreen = ({ route, navigation }) => {
               })}
             </View>
 
-
+            <MaterialsListEditor
+              items={materialsList}
+              onChangeItems={setMaterialsList}
+              requiresDiagnosis={requiresDiagnosis}
+              onToggleDiagnosis={setRequiresDiagnosis}
+            />
 
             <View style={styles.descriptionActions}>
               <TouchableOpacity style={styles.descriptionBackBtn} onPress={() => setStep('details')}>

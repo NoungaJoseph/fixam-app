@@ -20,6 +20,7 @@ import api, { getMediaUrl } from '../../services/api';
 import { getCurrencyForUser } from '../../constants/countries';
 import VerificationRequiredModal from '../../components/VerificationRequiredModal';
 import { isIdentityVerified, getVerificationMessageKey, translateApiError } from '../../utils/eligibilityMessages';
+import MaterialsListEditor from '../../components/MaterialsListEditor';
 
 const ProjectProposalScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
@@ -36,6 +37,8 @@ const ProjectProposalScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState('');
+  const [materialsList, setMaterialsList] = useState([]);
+  const [requiresDiagnosis, setRequiresDiagnosis] = useState(false);
 
   const currencyStr = getCurrencyForUser(provider.user?.country || user?.country || 'Cameroon');
 
@@ -69,7 +72,9 @@ const ProjectProposalScreen = ({ route, navigation }) => {
         bookingTime: '09:00',
         bookingDuration: `${days || 3} DAYS`,
         notes: `PROJECT PROPOSAL: ${project.title || 'Custom Service'}\nRequirements: ${description.trim()}`,
-        location: `Project: ${project.title || 'Custom Service'} (${project.selectedTier?.name || 'Package'})`
+        location: `Project: ${project.title || 'Custom Service'} (${project.selectedTier?.name || 'Package'})`,
+        materialsList,
+        requiresDiagnosis,
       });
 
       // 2. Fetch or create conversation
@@ -195,6 +200,13 @@ const ProjectProposalScreen = ({ route, navigation }) => {
             onChangeText={setDescription}
           />
         </View>
+
+        <MaterialsListEditor
+          items={materialsList}
+          onChangeItems={setMaterialsList}
+          requiresDiagnosis={requiresDiagnosis}
+          onToggleDiagnosis={setRequiresDiagnosis}
+        />
 
         {/* Offered Price & Timeline */}
         <View style={styles.rowTwo}>

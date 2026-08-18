@@ -411,11 +411,14 @@ const JobStatusScreen = ({ route, navigation }) => {
               )}
             </View>
 
-            <Detail icon="map-marker-radius" label={t('jobs.location')} value={job.location || t('jobs.onSite')} colors={colors} isDarkMode={isDarkMode} />
-            <Detail icon="calendar-clock" label={t('jobs.scheduled')} value={isBooking ? `${new Date(job.bookingDate).toLocaleDateString()} ${job.bookingTime}` : (job.scheduledTime ? new Date(job.scheduledTime).toLocaleString() : t('jobs.asap'))} colors={colors} isDarkMode={isDarkMode} />
-            {isBooking && job.urgencyLevel && (
+            <Detail icon="map-marker-radius" label={t('jobs.location')} value={job.location || job.address || t('jobs.onSite')} colors={colors} isDarkMode={isDarkMode} />
+            <Detail icon="calendar-clock" label={t('jobs.scheduled')} value={isBooking ? `${new Date(job.bookingDate).toLocaleDateString()} ${job.bookingTime || ''}` : (job.scheduledTime ? new Date(job.scheduledTime).toLocaleString() : t('jobs.asap'))} colors={colors} isDarkMode={isDarkMode} />
+            {(job.bookingDuration || job.duration) ? (
+              <Detail icon="timer-outline" label={t('jobs.duration', 'Duration')} value={job.bookingDuration || job.duration} colors={colors} isDarkMode={isDarkMode} />
+            ) : null}
+            {job.urgencyLevel ? (
               <Detail icon="alert-circle-outline" label={t('jobs.urgency', 'Urgency')} value={job.urgencyLevel} colors={colors} isDarkMode={isDarkMode} />
-            )}
+            ) : null}
             <Detail icon="text-box-outline" label={t('jobs.description')} value={(isBooking ? job.notes : job.description) || t('jobs.noAdditionalDetails')} colors={colors} isDarkMode={isDarkMode} />
             {job.importantDetails ? (
               <Detail icon="alert-decagram-outline" label={t('jobs.importantDetails')} value={job.importantDetails} colors={colors} isDarkMode={isDarkMode} />

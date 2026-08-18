@@ -63,26 +63,45 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const coinCost = 1;
   const isBooking = Boolean(route.params?.isBooking || task?.isBooking || task?.bookingDate);
   const isFavorite = favoriteJobIds?.includes(task.id);
-  const clientName = typeof task.client === 'object' ? (task.client?.fullName || t('common.client')) : (task.client || t('common.client'));
-  const clientId = typeof task.client === 'object' ? task.client?.id : task.clientId;
-  const clientAvatar = getMediaUrl(typeof task.client === 'object' ? task.client?.avatar : null);
-  const isClientVerified = task.client?.isVerified === true || task.clientVerified === true || task.client?.providerProfile?.verification === 'VERIFIED';
-  const budgetMin = Number(task.budgetMin || task.budget || 0);
-  const budgetMax = Number(task.budgetMax || task.budget || 0);
+  
+  const displayTask = { ...task, ...(jobDetails || {}) };
+  const clientObj = typeof displayTask.client === 'object' ? displayTask.client : (typeof task.client === 'object' ? task.client : null);
+  const clientName = clientObj?.fullName || (typeof displayTask.client === 'string' ? displayTask.client : (typeof task.client === 'string' ? task.client : t('common.client')));
+  const clientId = clientObj?.id || displayTask.clientId || task.clientId;
+  const clientAvatar = getMediaUrl(clientObj?.avatar);
+  const isClientVerified = clientObj?.isVerified === true || displayTask.clientVerified === true || task.clientVerified === true || clientObj?.providerProfile?.verification === 'VERIFIED';
+  
+  const budgetMin = Number(displayTask.budgetMin || displayTask.budget || task.budgetMin || task.budget || 0);
+  const budgetMax = Number(displayTask.budgetMax || displayTask.budget || task.budgetMax || task.budget || 0);
   const budget = budgetMax;
-  const jobCurrency = getCurrencyForUser(task.country || user?.country || 'Cameroon');
+  const jobCurrency = getCurrencyForUser(displayTask.country || task.country || user?.country || 'Cameroon');
   const budgetLabel = budgetMin && budgetMax && budgetMin !== budgetMax
     ? `${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()} ${jobCurrency}`
     : `${budget.toLocaleString()} ${jobCurrency}`;
-  const photos = task.photos?.length ? task.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : [];
-  const fallbackIcon = CATEGORY_ICONS[String(task.category || '').toUpperCase()] || 'briefcase-outline';
-  const postedOn = formatDate(task.createdAt, locale);
-  const preferredDate = formatDate(task.scheduledTime, locale);
+    
+  const taskBookingDate = displayTask.bookingDate || task.bookingDate;
+  const taskBookingTime = displayTask.bookingTime || task.bookingTime || displayTask.time || task.time;
+  const taskDuration = displayTask.bookingDuration || displayTask.duration || task.bookingDuration || task.duration;
+  const taskUrgency = displayTask.urgencyLevel || task.urgencyLevel;
+  const taskLocation = displayTask.location || displayTask.address || task.location || task.address;
+  const taskCategory = displayTask.category || task.category;
+  const taskServiceType = displayTask.serviceType || task.serviceType;
+  const taskMaterialsProvider = displayTask.materialsProvider || task.materialsProvider;
+  const taskDescription = displayTask.notes || displayTask.description || task.notes || task.description;
+
+  const photos = displayTask.photos?.length ? displayTask.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : (task.photos?.length ? task.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : []);
+  const fallbackIcon = CATEGORY_ICONS[String(taskCategory || '').toUpperCase()] || 'briefcase-outline';
+  const postedOn = formatDate(displayTask.createdAt || task.createdAt, locale);
+  const preferredDate = isBooking
+    ? (taskBookingDate 
+        ? `${new Date(taskBookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}${taskBookingTime ? ` @ ${taskBookingTime}` : ''}`
+        : (displayTask.scheduledTime ? formatDate(displayTask.scheduledTime, locale) : null))
+    : (displayTask.scheduledTime ? formatDate(displayTask.scheduledTime, locale) : null);
   const hasApplied = applied || appliedJobIds?.includes(task.id) || task.assignments?.some((assignment) => (
     assignment.providerId === user?.providerProfile?.id ||
     assignment.provider?.userId === user?.id ||
     assignment.provider?.user?.id === user?.id
-  )) || (isBooking && ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(String(task.status || '').toUpperCase()));
+  )) || (isBooking && ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(String(displayTask.status || task.status || '').toUpperCase()));
   const providerAssignment = task.assignments?.find((assignment) => (
     assignment.providerId === user?.providerProfile?.id ||
     assignment.provider?.userId === user?.id ||
@@ -90,9 +109,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     assignment.id === task.assignmentId
   ));
   const assignmentStatus = String(task.assignmentStatus || providerAssignment?.status || '').toUpperCase();
-  const canMessageClient = assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(task.status || '').toUpperCase());
-  const hasLocationCoords = task.latitude != null && task.longitude != null;
-  const canViewLocation = Boolean(hasLocationCoords || task.location || task.address);
+  const canMessageClient = (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(task.status || '').toUpperCase()));
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
 
   React.useEffect(() => {
@@ -120,13 +137,16 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     const fetchDetails = async () => {
       try {
         setFetching(true);
-        const res = await api.get(`/jobs/${task.id}`);
+        const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
+        const res = await api.get(endpoint);
         if (res.data?.success && active) {
           setJobDetails(res.data.data);
-          setApplicationCount(res.data.data.assignments?.length || 0);
+          if (!isBooking) {
+            setApplicationCount(res.data.data.assignments?.length || 0);
+          }
         }
       } catch (err) {
-        console.log('Error fetching job details:', err);
+        console.log('Error fetching task details:', err);
       } finally {
         if (active) setFetching(false);
       }
@@ -135,7 +155,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
       fetchDetails();
     }
     return () => { active = false; };
-  }, [task.id]);
+  }, [task.id, isBooking]);
 
   const goToCoins = () => {
     navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' });
@@ -315,9 +335,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         <View style={styles.overviewCard}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.overview')}</Text>
           <View style={styles.inlineFacts}>
-            {task.id ? <Fact icon="clipboard-text-outline" label={t('jobs.jobId')} value={`#JOB-${String(task.id).slice(-7)}`} colors={colors} /> : null}
+            {task.id ? <Fact icon="clipboard-text-outline" label={isBooking ? t('jobs.bookingId', 'Booking ID') : t('jobs.jobId')} value={`#${isBooking ? 'BKG' : 'JOB'}-${String(task.id).slice(-7)}`} colors={colors} /> : null}
             {postedOn ? <Fact icon="calendar-month-outline" label={t('jobs.posted')} value={postedOn} colors={colors} /> : null}
-            {preferredDate ? <Fact icon="clock-outline" label={t('jobs.preferred')} value={preferredDate} colors={colors} /> : null}
+            {preferredDate ? <Fact icon="clock-outline" label={isBooking ? t('jobs.scheduled', 'Scheduled') : t('jobs.preferred')} value={preferredDate} colors={colors} /> : null}
             {!isBooking ? (
               <Fact icon="star-cog-outline" label={t('jobs.proposals')} value={t('jobs.receivedCount', { count: applicationCount })} colors={colors} />
             ) : null}
@@ -404,10 +424,10 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             </>
           )}
 
-          {task.description ? (
+          {taskDescription ? (
             <>
               <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{t('jobs.description')}</Text>
-              <Text style={[styles.longText, { color: colors.textSecondary }]}>{task.description}</Text>
+              <Text style={[styles.longText, { color: colors.textSecondary }]}>{taskDescription}</Text>
             </>
           ) : null}
 
@@ -426,11 +446,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           ) : null}
 
           <MaterialsListDisplay
-            materialsList={task.materialsList}
-            materialsStatus={task.materialsStatus}
-            materialsVersion={task.materialsVersion}
-            requiresDiagnosis={task.requiresDiagnosis}
-            agreements={task.agreements || []}
+            materialsList={displayTask.materialsList || task.materialsList}
+            materialsStatus={displayTask.materialsStatus || task.materialsStatus}
+            materialsVersion={displayTask.materialsVersion || task.materialsVersion}
+            requiresDiagnosis={displayTask.requiresDiagnosis || task.requiresDiagnosis}
+            agreements={displayTask.agreements || task.agreements || []}
             isProvider={true}
             isClient={false}
           />
@@ -482,18 +502,22 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             ) : (
               <View style={[styles.photoFallback, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.16)' : '#E6FDF3', borderColor: colors.border }]}>
                 <MaterialCommunityIcons name={fallbackIcon} size={38} color={colors.accent} />
-                <Text style={[styles.photoFallbackText, { color: colors.textSecondary }]}>{translateService(task.category || t('jobs.taskDetails'))}</Text>
+                <Text style={[styles.photoFallbackText, { color: colors.textSecondary }]}>{translateService(taskCategory || t('jobs.taskDetails'))}</Text>
               </View>
             )}
           </View>
 
           <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>{t('jobs.details')}</Text>
           <View style={styles.detailList}>
-            {task.category ? <DetailLine label={t('jobs.category')} value={translateService(task.category)} colors={colors} /> : null}
-            {task.serviceType ? <DetailLine label={t('jobs.serviceType')} value={translateService(task.serviceType)} colors={colors} /> : null}
+            {taskCategory ? <DetailLine label={t('jobs.category')} value={translateService(taskCategory)} colors={colors} /> : null}
+            {taskServiceType ? <DetailLine label={t('jobs.serviceType')} value={translateService(taskServiceType)} colors={colors} /> : null}
+            {taskBookingDate ? <DetailLine label={t('jobs.scheduledDate', 'Scheduled Date')} value={new Date(taskBookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} colors={colors} /> : null}
+            {taskBookingTime ? <DetailLine label={t('jobs.scheduledTime', 'Time / Hours')} value={taskBookingTime} colors={colors} /> : null}
+            {taskDuration ? <DetailLine label={t('jobs.duration', 'Duration')} value={taskDuration} colors={colors} /> : null}
+            {taskUrgency ? <DetailLine label={t('jobs.urgency', 'Urgency Level')} value={taskUrgency} colors={colors} /> : null}
+            {taskLocation ? <DetailLine label={t('jobs.location', 'Location')} value={taskLocation} colors={colors} /> : null}
             {budget > 0 ? <DetailLine label={t('jobs.budget')} value={budgetLabel} colors={colors} /> : null}
-            {task.materialsProvider ? <DetailLine label={t('jobs.materials')} value={task.materialsProvider === 'client' ? t('jobs.clientWillProvide') : t('jobs.professionalWillProvide')} colors={colors} /> : null}
-            {task.duration ? <DetailLine label={t('jobs.duration')} value={task.duration} colors={colors} /> : null}
+            {taskMaterialsProvider ? <DetailLine label={t('jobs.materials')} value={taskMaterialsProvider === 'client' ? t('jobs.clientWillProvide') : t('jobs.professionalWillProvide')} colors={colors} /> : null}
           </View>
         </View>
       </ScrollView>

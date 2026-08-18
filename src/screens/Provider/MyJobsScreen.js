@@ -66,7 +66,10 @@ const MyJobsScreen = ({ navigation }) => {
     setRefreshing(false);
   }, [fetchAppData]);
 
-  const jobs = myTasksList || [];
+  const jobs = (myTasksList || []).filter(job => 
+    job.assignmentStatus === 'ACCEPTED' || 
+    ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'ACCEPTED'].includes(String(job.status || '').toUpperCase())
+  );
   const bookings = myBookingsList || [];
 
   const mappedJobs = jobs.map(job => {

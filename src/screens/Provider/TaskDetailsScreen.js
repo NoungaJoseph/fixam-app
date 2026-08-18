@@ -108,7 +108,12 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     assignment.provider?.user?.id === user?.id ||
     assignment.id === task.assignmentId
   ));
-  const assignmentStatus = String(task.assignmentStatus || providerAssignment?.status || '').toUpperCase();
+  const assignmentStatus = String(displayTask.assignmentStatus || task.assignmentStatus || providerAssignment?.status || '').toUpperCase();
+  const isSelectedProvider = isBooking || assignmentStatus === 'ACCEPTED' || Boolean(
+    (displayTask.assignedProviderId && (displayTask.assignedProviderId === user?.providerProfile?.id || displayTask.assignedProviderId === user?.id)) ||
+    (task.assignedProviderId && (task.assignedProviderId === user?.providerProfile?.id || task.assignedProviderId === user?.id)) ||
+    (jobDetails?.assignedProviderId && (jobDetails.assignedProviderId === user?.providerProfile?.id || jobDetails.assignedProviderId === user?.id))
+  );
   const canMessageClient = (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(task.status || '').toUpperCase()));
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
 
@@ -469,19 +474,21 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             />
           )}
 
-          <ServiceAgreementCard
-            agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
-            booking={jobDetails || task}
-            isClient={false}
-            isProvider={true}
-            onRefresh={async () => {
-              try {
-                const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
-                const res = await api.get(endpoint);
-                if (res.data?.data) setJobDetails(res.data.data);
-              } catch (_) {}
-            }}
-          />
+          {isSelectedProvider && (
+            <ServiceAgreementCard
+              agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
+              booking={jobDetails || task}
+              isClient={false}
+              isProvider={true}
+              onRefresh={async () => {
+                try {
+                  const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
+                  const res = await api.get(endpoint);
+                  if (res.data?.data) setJobDetails(res.data.data);
+                } catch (_) {}
+              }}
+            />
+          )}
 
           <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3' }]} onPress={handleShare}>
             <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />

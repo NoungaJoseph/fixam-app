@@ -97,32 +97,31 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
             setLoading(true);
             try {
               // Send to admin instead of calling broken payment API
-              await api.post('/wallet/payment-request', {
+              const response = await api.post('/wallet/payment-request', {
                 coins: pkg?.coins || 0,
                 price: pkg?.price,
                 phone: fullNumber,
                 method: activeMethod?.name || activeMethod?.id,
                 packageName: `${pkg?.coins} Coins`,
                 lang: 'en', // TopUpPaymentScreen doesn't have language context here
-              }).catch((err) => {
-                console.log('[TopUpPaymentScreen] payment-request error (non-fatal):', err?.message);
               });
 
-              setLoading(false);
-              // Always navigate to success/pending — never show failure
+              if (!response.data?.success) {
+                throw new Error(response.data?.message || 'Payment request was not submitted.');
+              }
               navigation.navigate('TopUpSuccess', { 
                 package: pkg, 
                 isPending: true,
-                transaction: null 
+                transaction: response.data?.data || null
               });
             } catch (error) {
+              console.log('[TopUpPaymentScreen] payment-request error:', error?.response?.data || error?.message);
+              Alert.alert(
+                'Request Not Submitted',
+                error.response?.data?.message || error.message || 'Please check your connection and try again.'
+              );
+            } finally {
               setLoading(false);
-              // Still go to success/pending screen
-              navigation.navigate('TopUpSuccess', { 
-                package: pkg, 
-                isPending: true,
-                transaction: null 
-              });
             }
           } 
         }
@@ -226,6 +225,7 @@ const TopUpPaymentScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[styles.payBtn, { backgroundColor: colors.accent }]}
             onPress={handlePay}
+            disabled={loading}
           >
             <MaterialCommunityIcons name="lock-outline" size={20} color="#FFF" />
             <Text style={styles.payBtnText}>{loading ? 'Submitting...' : `Confirm & Pay ${pkg?.price} ${countryConfig.currency}`}</Text>

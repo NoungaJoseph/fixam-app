@@ -272,32 +272,29 @@ const CoinPaymentFormScreen = ({ navigation, route }) => {
       const selectedMethodObj = PAYMENT_METHODS.find(m => m.id === selectedMethod);
 
       // Submit payment request to admin instead of broken payment API
-      await api.post('/wallet/payment-request', {
+      const response = await api.post('/wallet/payment-request', {
         coins: totalCoins,
         price: pkg.price || pkg.amount,
         phone: fullPhone,
         method: selectedMethodObj?.label || selectedMethod,
         packageName: pkg.label || pkg.name || `${totalCoins} Coins`,
         lang: t('lang') === 'fr' ? 'fr' : 'en',
-      }).catch((err) => {
-        // Non-fatal — proceed even if this fails
-        console.log('[CoinPaymentFormScreen] payment-request error (non-fatal):', err?.message);
       });
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || t('payments.requestFailed', 'Payment request was not submitted.'));
+      }
 
-      // Always navigate to success/pending screen — never show failure
       navigation.replace('CoinPaymentSuccess', {
         coins: totalCoins,
         package: pkg,
         isPending: true, // flag to show "pending manual approval" state
       });
     } catch (error) {
-      console.log('[CoinPaymentFormScreen] Unexpected error:', error);
-      // Still navigate to success/pending — never show failure
-      navigation.replace('CoinPaymentSuccess', {
-        coins: totalCoins,
-        package: pkg,
-        isPending: true,
-      });
+      console.log('[CoinPaymentFormScreen] payment-request error:', error?.response?.data || error?.message);
+      Alert.alert(
+        t('common.error', 'Error'),
+        error.response?.data?.message || error.message || t('payments.requestFailed', 'Please check your connection and try again.')
+      );
     } finally {
       setLoading(false);
     }

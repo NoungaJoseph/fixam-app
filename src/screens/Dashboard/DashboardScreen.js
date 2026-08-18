@@ -156,10 +156,10 @@ const DashboardScreen = ({ navigation }) => {
   const uploadAvatar = async (uri) => {
     setLoading(true);
     try {
-      const filename = uri.split('/').pop();
+      const filename = uri.split('/').pop() || `avatar-${Date.now()}.jpg`;
       const match = /\.(\w+)$/.exec(filename);
       const ext = match ? match[1].toLowerCase() : 'jpg';
-      const type = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+      const type = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : (ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : `image/${ext}`));
 
       const formData = new FormData();
       formData.append('file', {
@@ -170,11 +170,19 @@ const DashboardScreen = ({ navigation }) => {
       formData.append('type', 'avatar');
 
       const res = await uploadFile(formData, '/upload/profile');
-      await updateProfile({ avatar: res.url });
-      Alert.alert(t('common.success'), t('profileDetail.pictureUpdated'));
+      const avatarUrl = res?.url || res?.data?.url;
+      if (avatarUrl) {
+        await updateProfile({ avatar: avatarUrl });
+        Alert.alert(t('common.success', 'Success'), t('profileDetail.pictureUpdated', 'Profile picture updated!'));
+      } else {
+        throw new Error(t('profileDetail.imageUploadFailed', 'Could not upload image'));
+      }
     } catch (error) {
-      console.log('Upload error:', error);
-      Alert.alert(t('profileDetail.uploadFailed'), t('profileDetail.imageUploadFailed'));
+      console.log('Upload error:', error?.response?.data || error?.message);
+      Alert.alert(
+        t('profileDetail.uploadFailed', 'Upload Failed'),
+        error?.response?.data?.message || error?.message || t('profileDetail.imageUploadFailed', 'Could not upload image')
+      );
     } finally {
       setLoading(false);
     }

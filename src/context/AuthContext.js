@@ -196,9 +196,15 @@ export const AuthProvider = ({ children }) => {
 
   const uploadFile = async (formData, endpoint = '/upload') => {
     try {
-      const res = await api.post(endpoint, formData);
+      const res = await api.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        transformRequest: (data) => data,
+      });
       return res.data;
     } catch (error) {
+      console.error('[uploadFile Error]:', error?.response?.data || error?.message);
       throw error;
     }
   };

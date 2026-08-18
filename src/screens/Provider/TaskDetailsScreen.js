@@ -228,17 +228,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  const openJobLocation = () => {
-    navigation.navigate('LiveTaskMap', {
-      task: {
-        ...task,
-        latitude: task.latitude,
-        longitude: task.longitude,
-        location: task.location,
-      },
-    });
-  };
-
   const handleShare = async () => {
     try {
       const shareUrl = `https://usefixam.com/job/${task.id}`;
@@ -329,178 +318,157 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             {task.id ? <Fact icon="clipboard-text-outline" label={t('jobs.jobId')} value={`#JOB-${String(task.id).slice(-7)}`} colors={colors} /> : null}
             {postedOn ? <Fact icon="calendar-month-outline" label={t('jobs.posted')} value={postedOn} colors={colors} /> : null}
             {preferredDate ? <Fact icon="clock-outline" label={t('jobs.preferred')} value={preferredDate} colors={colors} /> : null}
-            <Fact icon="star-cog-outline" label={t('jobs.proposals')} value={t('jobs.receivedCount', { count: applicationCount })} colors={colors} />
+            {!isBooking ? (
+              <Fact icon="star-cog-outline" label={t('jobs.proposals')} value={t('jobs.receivedCount', { count: applicationCount })} colors={colors} />
+            ) : null}
           </View>
 
-          {/* Top Bids Leaderboard */}
-          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24, marginBottom: 12 }]}>
-            {t('jobs.topBids', 'Top Application Bids')}
-          </Text>
-          
-          {fetching ? (
-            <ActivityIndicator size="small" color={colors.accent} style={{ marginVertical: 12 }} />
-          ) : !jobDetails.assignments || jobDetails.assignments.length === 0 ? (
-            <View style={[styles.emptyLeaderboard, { borderColor: colors.border }]}>
-              <MaterialCommunityIcons name="trophy-outline" size={24} color={colors.textSecondary} />
-              <Text style={[styles.emptyLeaderboardText, { color: colors.textSecondary }]}>
-                {t('jobs.noBidsYet', 'No applications boosted yet. Apply with a bid to secure the top spot!')}
+          {/* Top Bids Leaderboard - Only for Open Jobs, never for Direct Bookings */}
+          {!isBooking && (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24, marginBottom: 12 }]}>
+                {t('jobs.topBids', 'Top Application Bids')}
               </Text>
-            </View>
-          ) : (
-            <View style={[styles.leaderboardContainer, { borderColor: colors.border, backgroundColor: colors.card, borderBlockColor: colors.border }]}>
-              {jobDetails.assignments.slice(0, 5).map((assignment, index) => {
-                const isOwn = assignment.provider?.userId === user?.id;
-                const displayName = isOwn ? (user?.fullName || 'You') : (assignment.provider?.user?.fullName || `Provider #${index + 1}`);
-                const avatarUri = isOwn ? getMediaUrl(user?.avatar) : null;
-                const isAnon = assignment.isAnonymous;
-                const bidAmount = assignment.boostCoins || 0;
+              
+              {fetching ? (
+                <ActivityIndicator size="small" color={colors.accent} style={{ marginVertical: 12 }} />
+              ) : !jobDetails.assignments || jobDetails.assignments.length === 0 ? (
+                <View style={[styles.emptyLeaderboard, { borderColor: colors.border }]}>
+                  <MaterialCommunityIcons name="trophy-outline" size={24} color={colors.textSecondary} />
+                  <Text style={[styles.emptyLeaderboardText, { color: colors.textSecondary }]}>
+                    {t('jobs.noBidsYet', 'No applications boosted yet. Apply with a bid to secure the top spot!')}
+                  </Text>
+                </View>
+              ) : (
+                <View style={[styles.leaderboardContainer, { borderColor: colors.border, backgroundColor: colors.card, borderBlockColor: colors.border }]}>
+                  {jobDetails.assignments.slice(0, 5).map((assignment, index) => {
+                    const isOwn = assignment.provider?.userId === user?.id;
+                    const displayName = isOwn ? (user?.fullName || 'You') : (assignment.provider?.user?.fullName || `Provider #${index + 1}`);
+                    const avatarUri = isOwn ? getMediaUrl(user?.avatar) : null;
+                    const isAnon = assignment.isAnonymous;
+                    const bidAmount = assignment.boostCoins || 0;
 
-                return (
-                  <View key={assignment.id || index} style={[styles.leaderboardRow, { borderBottomColor: index < 4 ? colors.border : 'transparent' }]}>
-                    {/* Rank Badge */}
-                    <View style={styles.rankCol}>
-                      {index === 0 ? (
-                        <MaterialCommunityIcons name="crown" size={20} color="#F59E0B" />
-                      ) : (
-                        <Text style={[styles.rankText, { color: colors.textSecondary }]}>#{index + 1}</Text>
-                      )}
-                    </View>
-
-                    {/* Avatar */}
-                    <View style={[styles.leaderboardAvatar, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]}>
-                      {avatarUri ? (
-                        <Image source={{ uri: avatarUri }} style={styles.leaderboardAvatarImg} />
-                      ) : (
-                        <MaterialCommunityIcons name="account" size={18} color={isDarkMode ? '#94A3B8' : '#64748B'} />
-                      )}
-                    </View>
-
-                    {/* Name (blurred if anonymous) */}
-                    <View style={styles.nameCol}>
-                      <Text 
-                        style={[
-                          styles.leaderboardName, 
-                          { color: colors.text },
-                          isAnon && {
-                            color: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)',
-                            textShadowColor: isDarkMode ? '#CBD5E1' : '#64748B',
-                            textShadowRadius: 7,
-                            textShadowOffset: { width: 0, height: 0 }
-                          }
-                        ]}
-                      >
-                        {displayName}
-                      </Text>
-                      {isOwn && (
-                        <View style={[styles.ownBadge, { backgroundColor: colors.accent + '20' }]}>
-                          <Text style={[styles.ownBadgeText, { color: colors.accent }]}>{t('common.you', 'You')}</Text>
+                    return (
+                      <View key={assignment.id || index} style={[styles.leaderboardRow, { borderBottomColor: index < 4 ? colors.border : 'transparent' }]}>
+                        {/* Rank Badge */}
+                        <View style={styles.rankCol}>
+                          {index === 0 ? (
+                            <MaterialCommunityIcons name="crown" size={20} color="#F59E0B" />
+                          ) : (
+                            <Text style={[styles.rankText, { color: colors.textSecondary }]}>#{index + 1}</Text>
+                          )}
                         </View>
-                      )}
-                    </View>
 
-                    {/* Bid Coins */}
-                    <View style={[styles.bidBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
-                      <MaterialCommunityIcons name="rocket-launch" size={14} color="#0D9488" style={{ marginRight: 4 }} />
-                      <Text style={[styles.bidText, { color: colors.text }]}>{bidAmount} {t('payments.coins', 'Coins')}</Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
+                        {/* Avatar */}
+                        <View style={[styles.leaderboardAvatar, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]}>
+                          {avatarUri ? (
+                            <Image source={{ uri: avatarUri }} style={styles.leaderboardAvatarImg} />
+                          ) : (
+                            <MaterialCommunityIcons name="account" size={18} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+                          )}
+                        </View>
+
+                        {/* Name */}
+                        <View style={styles.nameCol}>
+                          <Text 
+                            style={[
+                              styles.leaderboardName, 
+                              { color: colors.text },
+                              isAnon && {
+                                color: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)',
+                                textShadowColor: isDarkMode ? '#CBD5E1' : '#64748B',
+                                textShadowRadius: 7,
+                                textShadowOffset: { width: 0, height: 0 }
+                              }
+                            ]}
+                          >
+                            {displayName}
+                          </Text>
+                          {isOwn && (
+                            <View style={[styles.ownBadge, { backgroundColor: colors.accent + '20' }]}>
+                              <Text style={[styles.ownBadgeText, { color: colors.accent }]}>{t('common.you', 'You')}</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Bid Coins */}
+                        <View style={[styles.bidBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+                          <MaterialCommunityIcons name="rocket-launch" size={14} color="#0D9488" style={{ marginRight: 4 }} />
+                          <Text style={[styles.bidText, { color: colors.text }]}>{bidAmount} {t('payments.coins', 'Coins')}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </>
           )}
 
           {task.description ? (
             <>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.description')}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{t('jobs.description')}</Text>
               <Text style={[styles.longText, { color: colors.textSecondary }]}>{task.description}</Text>
-
-              <MaterialsListDisplay
-                materialsList={task.materialsList}
-                materialsStatus={task.materialsStatus}
-                materialsVersion={task.materialsVersion}
-                requiresDiagnosis={task.requiresDiagnosis}
-                agreements={task.agreements || []}
-                isProvider={true}
-                isClient={false}
-              />
-
-              {Boolean(activeDispute) && (
-                <DisputeDetailsCard
-                  dispute={activeDispute}
-                  isClient={false}
-                  isProvider={true}
-                  onRefresh={async () => {
-                    try {
-                      const res = await api.get(`/disputes/${activeDispute.id}`);
-                      if (res.data?.data) setActiveDispute(res.data.data);
-                    } catch (_) {}
-                  }}
-                />
-              )}
-
-              <ServiceAgreementCard
-                agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
-                booking={jobDetails || task}
-                isClient={false}
-                isProvider={true}
-                onRefresh={async () => {
-                  try {
-                    const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
-                    const res = await api.get(endpoint);
-                    if (res.data?.data) setJobDetails(res.data.data);
-                  } catch (_) {}
-                }}
-              />
-
-              <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3' }]} onPress={handleShare}>
-                <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
-                <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <ServiceAgreementCard
-                agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
-                booking={jobDetails || task}
-                isClient={false}
-                isProvider={true}
-                onRefresh={async () => {
-                  try {
-                    const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
-                    const res = await api.get(endpoint);
-                    if (res.data?.data) setJobDetails(res.data.data);
-                  } catch (_) {}
-                }}
-              />
-
-              <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3', marginTop: 16 }]} onPress={handleShare}>
-                <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
-                <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {(jobDetails.importantDetails || task.importantDetails) ? (
-            <>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>{t('jobs.importantDetails')}</Text>
-              <View style={[styles.todoBox, { backgroundColor: colors.card, borderColor: colors.border, flexDirection: 'row', gap: 10, padding: 12, borderRadius: 8, alignItems: 'center' }]}>
-                <MaterialCommunityIcons name="alert-decagram-outline" size={20} color="#0D9488" />
-                <Text style={[styles.todoText, { color: colors.textSecondary, flex: 1, marginLeft: 0 }]}>{jobDetails.importantDetails || task.importantDetails}</Text>
-              </View>
             </>
           ) : null}
 
           {(jobDetails.whatNeedsDone || task.whatNeedsDone) ? (
             <>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.whatNeedsDone')}</Text>
-              <View style={[styles.todoBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <MaterialCommunityIcons name="check-circle" size={20} color="#0D9488" />
-                <Text style={[styles.todoText, { color: colors.textSecondary }]}>{jobDetails.whatNeedsDone || task.whatNeedsDone}</Text>
-              </View>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{t('jobs.whatNeedsDone')}</Text>
+              <Text style={[styles.longText, { color: colors.textSecondary }]}>{jobDetails.whatNeedsDone || task.whatNeedsDone}</Text>
             </>
           ) : null}
 
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.photos')}</Text>
+          {(jobDetails.importantDetails || task.importantDetails) ? (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{t('jobs.importantDetails')}</Text>
+              <Text style={[styles.longText, { color: colors.textSecondary }]}>{jobDetails.importantDetails || task.importantDetails}</Text>
+            </>
+          ) : null}
+
+          <MaterialsListDisplay
+            materialsList={task.materialsList}
+            materialsStatus={task.materialsStatus}
+            materialsVersion={task.materialsVersion}
+            requiresDiagnosis={task.requiresDiagnosis}
+            agreements={task.agreements || []}
+            isProvider={true}
+            isClient={false}
+          />
+
+          {Boolean(activeDispute) && (
+            <DisputeDetailsCard
+              dispute={activeDispute}
+              isClient={false}
+              isProvider={true}
+              onRefresh={async () => {
+                try {
+                  const res = await api.get(`/disputes/${activeDispute.id}`);
+                  if (res.data?.data) setActiveDispute(res.data.data);
+                } catch (_) {}
+              }}
+            />
+          )}
+
+          <ServiceAgreementCard
+            agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
+            booking={jobDetails || task}
+            isClient={false}
+            isProvider={true}
+            onRefresh={async () => {
+              try {
+                const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
+                const res = await api.get(endpoint);
+                if (res.data?.data) setJobDetails(res.data.data);
+              } catch (_) {}
+            }}
+          />
+
+          <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3' }]} onPress={handleShare}>
+            <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
+            <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>{t('jobs.photos')}</Text>
           <View style={styles.photoRow}>
             {photos.length > 0 ? (
               <>
@@ -519,7 +487,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             )}
           </View>
 
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.details')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>{t('jobs.details')}</Text>
           <View style={styles.detailList}>
             {task.category ? <DetailLine label={t('jobs.category')} value={translateService(task.category)} colors={colors} /> : null}
             {task.serviceType ? <DetailLine label={t('jobs.serviceType')} value={translateService(task.serviceType)} colors={colors} /> : null}
@@ -527,12 +495,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             {task.materialsProvider ? <DetailLine label={t('jobs.materials')} value={task.materialsProvider === 'client' ? t('jobs.clientWillProvide') : t('jobs.professionalWillProvide')} colors={colors} /> : null}
             {task.duration ? <DetailLine label={t('jobs.duration')} value={task.duration} colors={colors} /> : null}
           </View>
-          {canViewLocation && (
-            <TouchableOpacity style={[styles.viewLocationBtn, { borderColor: colors.border, backgroundColor: colors.card }]} onPress={openJobLocation}>
-              <MaterialCommunityIcons name="map-marker" size={21} color={colors.accent} />
-              <Text style={[styles.viewLocationText, { color: colors.text }]}>{t('jobs.viewLocation')}</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </ScrollView>
 

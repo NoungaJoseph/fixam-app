@@ -195,8 +195,7 @@ const JobStatusScreen = ({ route, navigation }) => {
               setJob(res.data.data);
               await fetchAppData?.(true);
               Alert.alert(t('jobs.providerSelected'), t('jobs.providerSelectedBody', { name: providerName }), [
-                { text: t('common.close') },
-                { text: t('jobs.trackProvider'), onPress: () => navigation.navigate('LiveTaskMap', { task: res.data.data }) }
+                { text: t('common.close') }
               ]);
             } catch (error) {
               Alert.alert(t('jobs.couldNotChooseProvider'), translateApiError(error, t));
@@ -516,13 +515,6 @@ const JobStatusScreen = ({ route, navigation }) => {
           })()}
 
           <View style={styles.actions}>
-            {canViewLocation && (
-              <TouchableOpacity style={[styles.secondaryActionBtn, { borderColor: colors.border, backgroundColor: colors.card }]} onPress={() => navigation.navigate('LiveTaskMap', { task: job })}>
-                <MaterialCommunityIcons name="crosshairs-gps" size={22} color={colors.accent} />
-                <Text style={[styles.secondaryActionText, { color: colors.text }]}>{t('jobs.viewLocation')}</Text>
-              </TouchableOpacity>
-            )}
-
             {user?.role === 'CLIENT' && assignedProvider && ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(normalizedStatus) && (
               <View style={{ gap: 8, width: '100%' }}>
                 <TouchableOpacity

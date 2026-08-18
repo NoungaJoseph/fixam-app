@@ -437,19 +437,20 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                   }}
                 />
               )}
-              {Boolean((jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0]) && (
-                <ServiceAgreementCard
-                  agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0]}
-                  isClient={false}
-                  isProvider={true}
-                  onRefresh={async () => {
-                    try {
-                      const res = await api.get(`/jobs/${task.id}`);
-                      if (res.data?.data) setJobDetails(res.data.data);
-                    } catch (_) {}
-                  }}
-                />
-              )}
+
+              <ServiceAgreementCard
+                agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
+                booking={jobDetails || task}
+                isClient={false}
+                isProvider={true}
+                onRefresh={async () => {
+                  try {
+                    const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
+                    const res = await api.get(endpoint);
+                    if (res.data?.data) setJobDetails(res.data.data);
+                  } catch (_) {}
+                }}
+              />
 
               <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3' }]} onPress={handleShare}>
                 <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
@@ -457,10 +458,26 @@ const TaskDetailsScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             </>
           ) : (
-            <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3', marginTop: 16 }]} onPress={handleShare}>
-              <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
-              <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>
-            </TouchableOpacity>
+            <>
+              <ServiceAgreementCard
+                agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
+                booking={jobDetails || task}
+                isClient={false}
+                isProvider={true}
+                onRefresh={async () => {
+                  try {
+                    const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
+                    const res = await api.get(endpoint);
+                    if (res.data?.data) setJobDetails(res.data.data);
+                  } catch (_) {}
+                }}
+              />
+
+              <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3', marginTop: 16 }]} onPress={handleShare}>
+                <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
+                <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {(jobDetails.importantDetails || task.importantDetails) ? (

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert, Share } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
 import ServiceAgreementModal from './ServiceAgreementModal';
+import { exportAgreementPdf } from '../utils/exportAgreementPdf';
 
 export default function ServiceAgreementCard({ agreement, booking, isClient, isProvider, onRefresh }) {
   const { colors, isDark } = useTheme();
   const { t, locale } = useLanguage();
-  const { user, token } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const targetAgreement = agreement || booking?.serviceAgreement || (booking?.serviceAgreements && booking.serviceAgreements[0]) || (booking?.agreements && booking.agreements[0]);
   const bookingId = booking?.id || targetAgreement?.bookingId;
@@ -27,34 +28,16 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
   const clientName = terms.client?.name || terms.client?.fullName || booking?.client?.fullName || 'Client';
   const providerName = terms.provider?.name || terms.provider?.fullName || booking?.provider?.fullName || 'Provider';
 
-  const handleDownloadOrSharePdf = async () => {
-    const userToken = token || user?.token;
-    const tokenQuery = userToken ? `&token=${encodeURIComponent(userToken)}` : '';
-    const pdfUrl = targetAgreement?.id 
-      ? `https://api.usefixam.com/api/agreements/${targetAgreement.id}/pdf?lang=${locale || 'en'}${tokenQuery}`
-      : `https://api.usefixam.com/api/bookings/${bookingId}/contract-pdf?lang=${locale || 'en'}${tokenQuery}`;
-
+  const handleDownloadPdf = async () => {
+    setIsExporting(true);
     try {
-      const canOpen = await Linking.canOpenURL(pdfUrl);
-      if (canOpen) {
-        await Linking.openURL(pdfUrl);
-      } else {
-        await Share.share({
-          url: pdfUrl,
-          title: `Fixam Service Contract PDF`,
-          message: `Download Official Fixam Service Contract: ${pdfUrl}`
-        });
-      }
-    } catch (_) {
-      try {
-        await Share.share({
-          url: pdfUrl,
-          title: `Fixam Service Contract PDF`,
-          message: `Download Official Fixam Service Contract: ${pdfUrl}`
-        });
-      } catch (err) {
-        Alert.alert('Error', 'Unable to open PDF contract link.');
-      }
+      await exportAgreementPdf({
+        agreement: targetAgreement,
+        booking,
+        locale: locale || 'en'
+      });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -112,10 +95,16 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
 
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: targetAgreement ? (isDark ? '#334155' : '#E2E8F0') : '#0D9488' }]}
-          onPress={handleDownloadOrSharePdf}
+          onPress={handleDownloadPdf}
+          disabled={isExporting}
         >
+          {isExporting ? (
+            <ActivityIndicator size="small" color={targetAgreement ? colors.text : '#FFFFFF'} style={{ marginRight: 6 }} />
+          ) : (
+            <MaterialCommunityIcons name="file-pdf-box" size={16} color={targetAgreement ? (isDark ? '#FFFFFF' : '#0F172A') : '#FFFFFF'} style={{ marginRight: 4 }} />
+          )}
           <Text style={[styles.actionBtnText, { color: targetAgreement ? (isDark ? '#FFFFFF' : '#0F172A') : '#FFFFFF' }]}>
-            {t('bookings.downloadPdf', 'Download Contract (PDF)')}
+            {isExporting ? t('common.loading', 'Generating...') : t('bookings.downloadPdf', 'Download Contract (PDF)')}
           </Text>
         </TouchableOpacity>
       </View>

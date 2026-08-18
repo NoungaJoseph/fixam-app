@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -6,16 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Linking,
-  Alert,
-  Share
+  ActivityIndicator
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { exportAgreementPdf } from '../utils/exportAgreementPdf';
 
 export default function ServiceAgreementModal({ visible, onClose, agreement }) {
   const { colors, isDark } = useTheme();
   const { t, locale } = useLanguage();
+  const [isExporting, setIsExporting] = useState(false);
 
   if (!visible || !agreement) return null;
 
@@ -27,15 +28,14 @@ export default function ServiceAgreementModal({ visible, onClose, agreement }) {
   const isFr = locale === 'fr';
 
   const handleDownloadOrSharePdf = async () => {
-    const pdfUrl = `https://api.usefixam.com/api/agreements/${agreement.id}/pdf?lang=${locale || 'en'}`;
+    setIsExporting(true);
     try {
-      await Share.share({
-        url: pdfUrl,
-        title: `${agreement.publicAgreementNumber} PDF`,
-        message: `Fixam Service Agreement: ${pdfUrl}`
+      await exportAgreementPdf({
+        agreement,
+        locale: locale || 'en'
       });
-    } catch (_) {
-      Linking.openURL(pdfUrl).catch(() => Alert.alert('Error', 'Unable to open PDF link.'));
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -120,10 +120,17 @@ export default function ServiceAgreementModal({ visible, onClose, agreement }) {
             </View>
           </ScrollView>
 
-          {/* Footer Buttons (NO ICONS) */}
+          {/* Footer Buttons */}
           <View style={styles.footerRow}>
-            <TouchableOpacity style={styles.acceptBtn} onPress={handleDownloadOrSharePdf}>
-              <Text style={styles.acceptBtnText}>{isFr ? 'Télécharger / Partager PDF' : 'Download / Share PDF'}</Text>
+            <TouchableOpacity style={styles.acceptBtn} onPress={handleDownloadOrSharePdf} disabled={isExporting}>
+              {isExporting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+              ) : (
+                <MaterialCommunityIcons name="file-pdf-box" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+              )}
+              <Text style={styles.acceptBtnText}>
+                {isExporting ? (isFr ? 'Génération...' : 'Generating...') : (isFr ? 'Télécharger / Partager PDF' : 'Download / Share PDF')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.closeModalBtn} onPress={onClose}>

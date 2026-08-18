@@ -553,9 +553,10 @@ const JobStatusScreen = ({ route, navigation }) => {
               </View>
             )}
 
-            {Boolean(job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0])) && (
+            {(Boolean(job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0]) || (job.agreements && job.agreements[0])) || ['ACCEPTED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(normalizedStatus)) && (
               <ServiceAgreementCard
-                agreement={job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0])}
+                agreement={job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0]) || (job.agreements && job.agreements[0])}
+                booking={job}
                 isClient={user?.role === 'CLIENT'}
                 isProvider={user?.role === 'PROVIDER'}
                 onRefresh={async () => {

@@ -4,29 +4,44 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import ServiceAgreementModal from './ServiceAgreementModal';
 
-export default function ServiceAgreementCard({ agreement, isClient, isProvider, onRefresh }) {
+export default function ServiceAgreementCard({ agreement, booking, isClient, isProvider, onRefresh }) {
   const { colors, isDark } = useTheme();
   const { t, locale } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
 
-  if (!agreement) return null;
+  const targetAgreement = agreement || booking?.serviceAgreement || (booking?.serviceAgreements && booking.serviceAgreements[0]) || (booking?.agreements && booking.agreements[0]);
+  const bookingId = booking?.id || targetAgreement?.bookingId;
 
-  const terms = agreement.terms || {};
+  if (!targetAgreement && !bookingId) return null;
+
+  const terms = targetAgreement?.terms || {
+    title: booking?.service || booking?.title || 'Service Contract',
+    price: booking?.budget || 0,
+    currency: 'XAF',
+    client: { name: booking?.client?.fullName || 'Client' },
+    provider: { name: booking?.provider?.fullName || booking?.providerDetails?.fullName || 'Provider' }
+  };
+
   const clientName = terms.client?.name || 'Client';
   const providerName = terms.provider?.name || 'Provider';
 
   const handleDownloadOrSharePdf = async () => {
-    const pdfUrl = `https://api.usefixam.com/api/agreements/${agreement.id}/pdf?lang=${locale || 'en'}`;
+    const pdfUrl = targetAgreement?.id 
+      ? `https://api.usefixam.com/api/agreements/${targetAgreement.id}/pdf?lang=${locale || 'en'}`
+      : `https://api.usefixam.com/api/bookings/${bookingId}/contract-pdf?lang=${locale || 'en'}`;
+
     try {
-      await Share.share({
-        url: pdfUrl,
-        title: `${agreement.publicAgreementNumber} PDF`,
-        message: `Fixam Service Agreement: ${pdfUrl}`
-      });
+      await Linking.openURL(pdfUrl);
     } catch (_) {
-      Linking.openURL(pdfUrl).catch(() => {
+      try {
+        await Share.share({
+          url: pdfUrl,
+          title: `Fixam Service Contract PDF`,
+          message: `Download Official Fixam Service Contract: ${pdfUrl}`
+        });
+      } catch (err) {
         Alert.alert('Error', 'Unable to open PDF contract link.');
-      });
+      }
     }
   };
 
@@ -46,7 +61,7 @@ export default function ServiceAgreementCard({ agreement, isClient, isProvider, 
       </View>
 
       <Text style={[styles.agreementNumber, { color: colors.textSecondary }]}>
-        {agreement.publicAgreementNumber} (v{agreement.version})
+        {targetAgreement?.publicAgreementNumber || `FSA-CONTRACT-${(bookingId || '').substring(0, 8).toUpperCase()}`}
       </Text>
 
       {/* Summary Box */}
@@ -73,18 +88,22 @@ export default function ServiceAgreementCard({ agreement, isClient, isProvider, 
 
       {/* Action Buttons (NO ICONS) */}
       <View style={styles.actionRow}>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#0D9488' }]}
-          onPress={() => setModalVisible(true)}
-        >
-          <Text style={styles.actionBtnText}>{t('bookings.viewAgreement', 'View Agreement')}</Text>
-        </TouchableOpacity>
+        {targetAgreement ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#0D9488' }]}
+            onPress={() => setModalVisible(true)}
+          >
+            <Text style={styles.actionBtnText}>{t('bookings.viewAgreement', 'View Details')}</Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: isDark ? '#334155' : '#E2E8F0' }]}
+          style={[styles.actionBtn, { backgroundColor: targetAgreement ? (isDark ? '#334155' : '#E2E8F0') : '#0D9488' }]}
           onPress={handleDownloadOrSharePdf}
         >
-          <Text style={[styles.actionBtnText, { color: colors.text }]}>{t('bookings.downloadPdf', 'Download PDF')}</Text>
+          <Text style={[styles.actionBtnText, { color: targetAgreement ? colors.text : '#FFFFFF' }]}>
+            {t('bookings.downloadPdf', 'Download Contract (PDF)')}
+          </Text>
         </TouchableOpacity>
       </View>
 

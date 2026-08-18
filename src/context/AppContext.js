@@ -152,6 +152,18 @@ export const AppProvider = ({ children }) => {
   }, [token, user?.role]);
 
   useEffect(() => {
+    const off = on('provider:status-changed', ({ isOnline, isAvailable }) => {
+      const statusVal = isAvailable !== undefined ? Boolean(isAvailable) : Boolean(isOnline);
+      setIsProviderOnline(statusVal);
+      if (user) {
+        user.isOnline = statusVal;
+        if (user.providerProfile) user.providerProfile.isAvailable = statusVal;
+      }
+    });
+    return () => off?.();
+  }, [on, user?.id]);
+
+  useEffect(() => {
     const loadProviderJobPrefs = async () => {
       if (!user?.id) {
         setHiddenJobIds([]);
@@ -637,12 +649,22 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const updateProviderStatus = (status) => {
+  const updateProviderStatus = async (status) => {
     setIsProviderOnline(status);
-    api.put('/providers/status', { isOnline: status }).catch((error) => {
+    if (user) {
+      user.isOnline = status;
+      if (user.providerProfile) user.providerProfile.isAvailable = status;
+    }
+    try {
+      await api.put('/providers/status', { isOnline: status, isAvailable: status });
+    } catch (error) {
       console.log('Error updating provider status:', error.message);
       setIsProviderOnline(prev => !prev);
-    });
+      if (user) {
+        user.isOnline = !status;
+        if (user.providerProfile) user.providerProfile.isAvailable = !status;
+      }
+    }
   };
 
   const buyCoins = (amount) => {

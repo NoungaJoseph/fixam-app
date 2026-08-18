@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator, TextInput, Modal, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,10 +38,25 @@ const JobStatusScreen = ({ route, navigation }) => {
   const { fetchAppData } = useAppContext();
   const [job, setJob] = useState(route.params?.job || {});
   const [selectingAssignmentId, setSelectingAssignmentId] = useState(null);
+  const [activeDispute, setActiveDispute] = useState(job.disputes?.[0] || null);
+  const [disputeModalVisible, setDisputeModalVisible] = useState(false);
 
   const normalizedStatus = String(job.status || 'PENDING').toUpperCase();
   const displayStatus = translateStatus(normalizedStatus);
   const isBooking = Boolean(route.params?.isBooking || job?.isBooking || job?.bookingDate);
+
+  useEffect(() => {
+    if (job?.id) {
+      const endpoint = isBooking ? `/disputes?bookingId=${job.id}` : `/disputes?jobId=${job.id}`;
+      api.get(endpoint)
+        .then(res => {
+          if (res.data?.data && res.data.data.length > 0) {
+            setActiveDispute(res.data.data[0]);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [job?.id]);
   const selectedAssignment = job.assignments?.find((assignment) => assignment.id === job.selectedAssignmentId) || job.assignments?.find((assignment) => assignment.status === 'ACCEPTED');
   const assignedProviderUser = job.provider || selectedAssignment?.provider?.user;
   const assignedProvider = assignedProviderUser ? {

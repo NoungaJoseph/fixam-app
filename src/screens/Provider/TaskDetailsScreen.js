@@ -92,7 +92,20 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const assignmentStatus = String(task.assignmentStatus || providerAssignment?.status || '').toUpperCase();
   const canMessageClient = assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(task.status || '').toUpperCase());
   const hasLocationCoords = task.latitude != null && task.longitude != null;
-  const canViewLocation = canMessageClient && ['ASSIGNED', 'IN_PROGRESS'].includes(String(task.status || '').toUpperCase()) && hasLocationCoords;
+  const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
+
+  React.useEffect(() => {
+    if (task?.id) {
+      const endpoint = isBooking ? `/disputes?bookingId=${task.id}` : `/disputes?jobId=${task.id}`;
+      api.get(endpoint)
+        .then(res => {
+          if (res.data?.data && res.data.data.length > 0) {
+            setActiveDispute(res.data.data[0]);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [task?.id, isBooking]);
 
   React.useEffect(() => {
     const off = on('job:application-count', ({ jobId, applicationCount: count }) => {

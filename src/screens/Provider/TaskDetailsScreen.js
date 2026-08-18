@@ -92,6 +92,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const assignmentStatus = String(task.assignmentStatus || providerAssignment?.status || '').toUpperCase();
   const canMessageClient = assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(task.status || '').toUpperCase());
   const hasLocationCoords = task.latitude != null && task.longitude != null;
+  const canViewLocation = Boolean(hasLocationCoords || task.location || task.address);
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
 
   React.useEffect(() => {

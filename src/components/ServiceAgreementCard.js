@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert, Share } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import ServiceAgreementModal from './ServiceAgreementModal';
 
 export default function ServiceAgreementCard({ agreement, booking, isClient, isProvider, onRefresh }) {
   const { colors, isDark } = useTheme();
   const { t, locale } = useLanguage();
+  const { user, token } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
 
   const targetAgreement = agreement || booking?.serviceAgreement || (booking?.serviceAgreements && booking.serviceAgreements[0]) || (booking?.agreements && booking.agreements[0]);
@@ -22,16 +24,27 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
     provider: { name: booking?.provider?.fullName || booking?.providerDetails?.fullName || 'Provider' }
   };
 
-  const clientName = terms.client?.name || 'Client';
-  const providerName = terms.provider?.name || 'Provider';
+  const clientName = terms.client?.name || terms.client?.fullName || booking?.client?.fullName || 'Client';
+  const providerName = terms.provider?.name || terms.provider?.fullName || booking?.provider?.fullName || 'Provider';
 
   const handleDownloadOrSharePdf = async () => {
+    const userToken = token || user?.token;
+    const tokenQuery = userToken ? `&token=${encodeURIComponent(userToken)}` : '';
     const pdfUrl = targetAgreement?.id 
-      ? `https://api.usefixam.com/api/agreements/${targetAgreement.id}/pdf?lang=${locale || 'en'}`
-      : `https://api.usefixam.com/api/bookings/${bookingId}/contract-pdf?lang=${locale || 'en'}`;
+      ? `https://api.usefixam.com/api/agreements/${targetAgreement.id}/pdf?lang=${locale || 'en'}${tokenQuery}`
+      : `https://api.usefixam.com/api/bookings/${bookingId}/contract-pdf?lang=${locale || 'en'}${tokenQuery}`;
 
     try {
-      await Linking.openURL(pdfUrl);
+      const canOpen = await Linking.canOpenURL(pdfUrl);
+      if (canOpen) {
+        await Linking.openURL(pdfUrl);
+      } else {
+        await Share.share({
+          url: pdfUrl,
+          title: `Fixam Service Contract PDF`,
+          message: `Download Official Fixam Service Contract: ${pdfUrl}`
+        });
+      }
     } catch (_) {
       try {
         await Share.share({
@@ -47,15 +60,15 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
 
   return (
     <View style={[styles.card, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#CBD5E1' }]}>
-      {/* Header (NO ICONS) */}
+      {/* Header with Title and Status Badge inside Card bounds */}
       <View style={styles.headerRow}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
           {t('bookings.serviceAgreement', 'Fixam Service Agreement')}
         </Text>
 
-        <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
+        <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5', borderColor: '#A7F3D0' }]}>
           <Text style={[styles.statusText, { color: '#059669' }]}>
-            {t('bookings.agreementActive', 'ACTIVE')}
+            ACTIVE
           </Text>
         </View>
       </View>
@@ -68,13 +81,13 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
       <View style={[styles.summaryBox, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}>
         <View style={styles.infoRow}>
           <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Service:</Text>
-          <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={1}>{terms.title || 'Service'}</Text>
+          <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={1}>{terms.title || 'Professional Service'}</Text>
         </View>
 
         <View style={styles.infoRow}>
           <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Agreed Amount:</Text>
           <Text style={[styles.infoValue, { color: '#0D9488', fontWeight: '700' }]}>
-            {terms.price ? terms.price.toLocaleString() : '0'} {terms.currency || 'XAF'}
+            {Number(terms.price || 0).toLocaleString()} {terms.currency || 'XAF'}
           </Text>
         </View>
 
@@ -86,7 +99,7 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
         </View>
       </View>
 
-      {/* Action Buttons (NO ICONS) */}
+      {/* Action Buttons */}
       <View style={styles.actionRow}>
         {targetAgreement ? (
           <TouchableOpacity
@@ -101,7 +114,7 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
           style={[styles.actionBtn, { backgroundColor: targetAgreement ? (isDark ? '#334155' : '#E2E8F0') : '#0D9488' }]}
           onPress={handleDownloadOrSharePdf}
         >
-          <Text style={[styles.actionBtnText, { color: targetAgreement ? colors.text : '#FFFFFF' }]}>
+          <Text style={[styles.actionBtnText, { color: targetAgreement ? (isDark ? '#FFFFFF' : '#0F172A') : '#FFFFFF' }]}>
             {t('bookings.downloadPdf', 'Download Contract (PDF)')}
           </Text>
         </TouchableOpacity>
@@ -111,7 +124,7 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
       <ServiceAgreementModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        agreement={agreement}
+        agreement={targetAgreement}
         isClient={isClient}
         isProvider={isProvider}
         onRefresh={onRefresh}
@@ -123,27 +136,34 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
 const styles = StyleSheet.create({
   card: {
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     marginVertical: 8,
+    overflow: 'hidden',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
+    width: '100%',
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '700',
+    flex: 1,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
+    borderWidth: 1,
+    flexShrink: 0,
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   agreementNumber: {
     fontSize: 11,
@@ -153,7 +173,7 @@ const styles = StyleSheet.create({
   },
   summaryBox: {
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     gap: 4,
   },
   infoRow: {
@@ -180,7 +200,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 9,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   actionBtnText: {
     fontSize: 12,

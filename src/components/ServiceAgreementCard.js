@@ -43,7 +43,7 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
 
   return (
     <View style={[styles.card, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#CBD5E1' }]}>
-      {/* Header with Title and Status Badge inside Card bounds */}
+      {/* Header */}
       <View style={styles.headerRow}>
         <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
           {t('bookings.serviceAgreement', 'Fixam Service Agreement')}
@@ -82,31 +82,36 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
         </View>
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.actionRow}>
-        {targetAgreement ? (
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: '#0D9488' }]}
-            onPress={() => setModalVisible(true)}
-          >
-            <Text style={styles.actionBtnText}>{t('bookings.viewAgreement', 'View Details')}</Text>
-          </TouchableOpacity>
-        ) : null}
-
+      {/* Full-width Stacked Action Buttons */}
+      <View style={styles.actionColumn}>
         <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: targetAgreement ? (isDark ? '#334155' : '#E2E8F0') : '#0D9488' }]}
+          style={[styles.primaryActionBtn, { backgroundColor: '#0D9488' }]}
           onPress={handleDownloadPdf}
           disabled={isExporting}
+          activeOpacity={0.8}
         >
           {isExporting ? (
-            <ActivityIndicator size="small" color={targetAgreement ? colors.text : '#FFFFFF'} style={{ marginRight: 6 }} />
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
           ) : (
-            <MaterialCommunityIcons name="file-pdf-box" size={16} color={targetAgreement ? (isDark ? '#FFFFFF' : '#0F172A') : '#FFFFFF'} style={{ marginRight: 4 }} />
+            <MaterialCommunityIcons name="file-pdf-box" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
           )}
-          <Text style={[styles.actionBtnText, { color: targetAgreement ? (isDark ? '#FFFFFF' : '#0F172A') : '#FFFFFF' }]}>
-            {isExporting ? t('common.loading', 'Generating...') : t('bookings.downloadPdf', 'Download Contract (PDF)')}
+          <Text style={styles.primaryActionBtnText}>
+            {isExporting ? t('common.loading', 'Generating PDF...') : t('bookings.downloadPdf', 'Download Contract (PDF)')}
           </Text>
         </TouchableOpacity>
+
+        {targetAgreement ? (
+          <TouchableOpacity
+            style={[styles.secondaryActionBtn, { backgroundColor: isDark ? '#334155' : '#F1F5F9', borderColor: isDark ? '#475569' : '#E2E8F0' }]}
+            onPress={() => setModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="text-box-search-outline" size={16} color={colors.text} style={{ marginRight: 6 }} />
+            <Text style={[styles.secondaryActionBtnText, { color: colors.text }]}>
+              {t('bookings.viewAgreement', 'View Contract Details')}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* Full Detail Modal */}
@@ -127,7 +132,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    marginVertical: 8,
+    marginVertical: 10,
     overflow: 'hidden',
   },
   headerRow: {
@@ -178,22 +183,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     maxWidth: '65%',
   },
-  actionRow: {
-    flexDirection: 'row',
+  actionColumn: {
+    flexDirection: 'column',
     gap: 8,
-    marginTop: 10,
+    marginTop: 12,
+    width: '100%',
   },
-  actionBtn: {
-    flex: 1,
+  primaryActionBtn: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
     borderRadius: 10,
+    elevation: 1,
   },
-  actionBtnText: {
-    fontSize: 12,
+  primaryActionBtnText: {
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  secondaryActionBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  secondaryActionBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

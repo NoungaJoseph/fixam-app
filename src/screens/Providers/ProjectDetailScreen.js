@@ -115,15 +115,23 @@ const ProjectDetailScreen = ({ route, navigation }) => {
   const currencyStr = getCurrencyForUser(provider.user?.country || user?.country || 'Cameroon');
   const baseRate = Number(project.price || provider.rate || 40);
 
-  // Resolve Real Pricing Tiers from project.packages or project.tiers
+  // Resolve Real Pricing Tiers from project.packages or project.tiers (Ordered: Basic -> Standard -> Premium)
   const resolveTiers = () => {
+    const getTierOrder = (pkg) => {
+      const key = String(pkg?.id || pkg?.name || '').toLowerCase();
+      if (key.includes('basic')) return 1;
+      if (key.includes('standard')) return 2;
+      if (key.includes('premium')) return 3;
+      return 4;
+    };
+
     // 1. Check if project.tiers array exists
     let tiersArr = project.tiers;
     if (typeof tiersArr === 'string') {
       try { tiersArr = JSON.parse(tiersArr); } catch (_) {}
     }
     if (Array.isArray(tiersArr) && tiersArr.length > 0) {
-      return tiersArr.map((pkg, idx) => ({
+      const mapped = tiersArr.map((pkg, idx) => ({
         id: pkg.id || `tier_${idx}`,
         name: (pkg.name || `TIER ${idx + 1}`).toUpperCase(),
         label: pkg.label || pkg.summary || '',
@@ -135,6 +143,7 @@ const ProjectDetailScreen = ({ route, navigation }) => {
         expressDeliveryPrice: pkg.expressDeliveryPrice ? Number(pkg.expressDeliveryPrice) : Math.round(Number(pkg.price || 0) * 0.3),
         features: Array.isArray(pkg.features) ? pkg.features.filter(f => f && typeof f === 'string' && f.trim()) : []
       }));
+      return mapped.sort((a, b) => getTierOrder(a) - getTierOrder(b));
     }
 
     // 2. Check project.packages object or array
@@ -144,7 +153,7 @@ const ProjectDetailScreen = ({ route, navigation }) => {
     }
 
     if (Array.isArray(packagesObj) && packagesObj.length > 0) {
-      return packagesObj.map((pkg, idx) => ({
+      const mapped = packagesObj.map((pkg, idx) => ({
         id: pkg.id || `tier_${idx}`,
         name: (pkg.name || `TIER ${idx + 1}`).toUpperCase(),
         label: pkg.label || pkg.summary || '',
@@ -156,11 +165,12 @@ const ProjectDetailScreen = ({ route, navigation }) => {
         expressDeliveryPrice: pkg.expressDeliveryPrice ? Number(pkg.expressDeliveryPrice) : Math.round(Number(pkg.price || 0) * 0.3),
         features: Array.isArray(pkg.features) ? pkg.features.filter(f => f && typeof f === 'string' && f.trim()) : []
       }));
+      return mapped.sort((a, b) => getTierOrder(a) - getTierOrder(b));
     }
 
     if (packagesObj && typeof packagesObj === 'object') {
       const parsed = [];
-      Object.keys(packagesObj).forEach((key) => {
+      ['basic', 'standard', 'premium'].forEach((key) => {
         const pkg = packagesObj[key];
         if (pkg && (pkg.enabled || pkg.price)) {
           parsed.push({
@@ -177,7 +187,9 @@ const ProjectDetailScreen = ({ route, navigation }) => {
           });
         }
       });
-      if (parsed.length > 0) return parsed;
+      if (parsed.length > 0) {
+        return parsed.sort((a, b) => getTierOrder(a) - getTierOrder(b));
+      }
     }
 
     return [

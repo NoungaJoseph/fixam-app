@@ -638,33 +638,6 @@ const ProjectDetailScreen = ({ route, navigation }) => {
 
       </ScrollView>
 
-      {/* Floating Chat Button on Bottom Right (Matching Screenshots 1, 2 & 3) */}
-      {!isOwner && providerUserId && (
-        <TouchableOpacity
-          style={[styles.floatingChatPill, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}
-          onPress={async () => {
-            try {
-              const convRes = await api.post('/chat/conversations', { participantId: providerUserId });
-              const conversation = convRes.data.data;
-              navigation.navigate('Chat', {
-                conversationId: conversation.id,
-                receiverId: providerUserId,
-                userName: provider.user?.fullName || 'Provider',
-                avatar: getMediaUrl(provider.user?.avatar),
-                otherParticipant: conversation.participants?.[0] || { id: providerUserId, role: 'PROVIDER' },
-              });
-            } catch (err) {
-              Alert.alert(t('common.error'), translateApiError(err, t));
-            }
-          }}
-          activeOpacity={0.88}
-        >
-          <UserAvatar uri={getMediaUrl(provider.user?.avatar)} name={provider.user?.fullName || 'Provider'} size={32} radius={16} />
-          <Text style={[styles.floatingChatPillText, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>
-            {t('common.chat', 'Chat')}
-          </Text>
-        </TouchableOpacity>
-      )}
 
       <VerificationRequiredModal
         visible={showVerificationModal}

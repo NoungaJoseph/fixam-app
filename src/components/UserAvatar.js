@@ -50,7 +50,13 @@ const UserAvatar = ({
     },
   ];
 
-  if (uri) {
+  const [hasError, setHasError] = React.useState(false);
+
+  React.useEffect(() => {
+    setHasError(false);
+  }, [uri]);
+
+  if (uri && !hasError) {
     const fullUri = getMediaUrl(uri);
     return (
       <Image
@@ -59,6 +65,7 @@ const UserAvatar = ({
         contentFit="cover"
         transition={180}
         cachePolicy="disk"
+        onError={() => setHasError(true)}
       />
     );
   }

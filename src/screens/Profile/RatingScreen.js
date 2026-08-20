@@ -1,27 +1,28 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
-  StatusBar, ScrollView, Alert, ActivityIndicator, Platform,
+  ScrollView, Alert, ActivityIndicator, Platform,
+  KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { useAppContext } from '../../context/AppContext';
 import UserAvatar from '../../components/UserAvatar';
-
 import api from '../../services/api';
-
-const CLIENT_TAGS = ['Friendly', 'Clear Instructions', 'Paid on Time', 'Respectful', 'Easy to Work With'];
-const PROVIDER_TAGS = ['Punctual', 'Professional', 'Clean Work', 'Great Value', 'Highly Skilled'];
 
 const RatingScreen = ({ route, navigation }) => {
   const { isDarkMode, colors } = useTheme();
   const { user } = useAuth();
+  const { t, locale } = useLanguage();
+  const { fetchAppData } = useAppContext();
 
   // mode: 'rate_provider' (client rates provider) OR 'rate_client' (provider rates client)
-  const { jobId, targetUser, mode = 'rate_provider' } = route.params || {};
+  const { jobId, targetUser, mode = 'rate_provider', onReviewSuccess } = route.params || {};
   const isRatingClient = mode === 'rate_client';
 
-  const displayName = targetUser?.fullName || targetUser?.name || (isRatingClient ? 'Client' : 'Provider');
+  const displayName = targetUser?.fullName || targetUser?.name || (isRatingClient ? t('common.client', 'Client') : t('common.provider', 'Provider'));
   const displayAvatar = targetUser?.avatar;
   const isVerified = targetUser?.providerProfile?.verification === 'VERIFIED';
 
@@ -30,19 +31,50 @@ const RatingScreen = ({ route, navigation }) => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const TAGS = isRatingClient ? CLIENT_TAGS : PROVIDER_TAGS;
+  const TAGS = isRatingClient
+    ? [
+        { key: 'Friendly', label: t('reviews.tagFriendly', 'Friendly') },
+        { key: 'Clear Instructions', label: t('reviews.tagClearInstructions', 'Clear Instructions') },
+        { key: 'Paid on Time', label: t('reviews.tagPaidOnTime', 'Paid on Time') },
+        { key: 'Respectful', label: t('reviews.tagRespectful', 'Respectful') },
+        { key: 'Easy to Work With', label: t('reviews.tagEasyToWorkWith', 'Easy to Work With') },
+      ]
+    : [
+        { key: 'Punctual', label: t('reviews.tagPunctual', 'Punctual') },
+        { key: 'Professional', label: t('reviews.tagProfessional', 'Professional') },
+        { key: 'Clean Work', label: t('reviews.tagCleanWork', 'Clean Work') },
+        { key: 'Great Value', label: t('reviews.tagGreatValue', 'Great Value') },
+        { key: 'Highly Skilled', label: t('reviews.tagHighlySkilled', 'Highly Skilled') },
+      ];
 
-  const toggleTag = (tag) => {
-    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  const toggleTag = (tagKey) => {
+    setSelectedTags(prev => prev.includes(tagKey) ? prev.filter(t => t !== tagKey) : [...prev, tagKey]);
+  };
+
+  const getRatingLabel = () => {
+    switch (rating) {
+      case 5: return t('reviews.excellent', 'Excellent!');
+      case 4: return t('reviews.veryGood', 'Very Good');
+      case 3: return t('reviews.good', 'Good');
+      case 2: return t('reviews.fair', 'Fair');
+      case 1: return t('reviews.needsImprovement', 'Needs Improvement');
+      default: return t('reviews.tapToRate', 'Tap to rate');
+    }
   };
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Rating Required', 'Please select a star rating before submitting.');
+      Alert.alert(
+        t('reviews.ratingRequired', 'Rating Required'),
+        t('reviews.ratingRequiredBody', 'Please select a star rating before submitting.')
+      );
       return;
     }
     if (!jobId || !targetUser?.id) {
-      Alert.alert('Error', 'Missing job or user information. Please go back and try again.');
+      Alert.alert(
+        t('common.error', 'Error'),
+        t('reviews.missingInfo', 'Missing job or user information. Please go back and try again.')
+      );
       return;
     }
 
@@ -60,40 +92,47 @@ const RatingScreen = ({ route, navigation }) => {
         comment: fullComment || null,
       });
 
+      // Call callbacks & refresh context data
+      if (typeof onReviewSuccess === 'function') {
+        onReviewSuccess({ rating, comment: fullComment });
+      }
+      await fetchAppData?.(true);
+
       Alert.alert(
-        'Review Submitted!',
-        `Thank you for rating ${displayName}.`,
-        [{ text: 'Done', onPress: () => navigation.goBack() }]
+        t('reviews.reviewSubmitted', 'Review Submitted!'),
+        t('reviews.thankYouForRating', 'Thank you for rating {{name}}.', { name: displayName }),
+        [{ text: t('common.done', 'Done'), onPress: () => navigation.goBack() }]
       );
     } catch (error) {
-      const msg = error.response?.data?.message || 'Could not submit your review. Please try again.';
-      Alert.alert('Error', msg);
+      const msg = error.response?.data?.message || t('common.tryAgain', 'Could not submit your review. Please try again.');
+      Alert.alert(t('common.error', 'Error'), msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const ratingLabel = rating === 5 ? 'Excellent!' : rating === 4 ? 'Very Good' : rating === 3 ? 'Good' : rating === 2 ? 'Fair' : rating === 1 ? 'Needs Improvement' : 'Tap to rate';
-
   return (
-    <View 
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      
-
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}>
           <MaterialCommunityIcons name="close" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {isRatingClient ? 'Rate Client' : 'Rate Service'}
+          {isRatingClient ? t('reviews.rateClient', 'Rate Client') : t('reviews.rateService', 'Rate Service')}
         </Text>
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 140 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Target Hero */}
         <View style={styles.providerHero}>
           <View style={styles.avatarContainer}>
@@ -106,14 +145,18 @@ const RatingScreen = ({ route, navigation }) => {
           </View>
           <Text style={[styles.providerName, { color: colors.text }]}>{displayName}</Text>
           <Text style={[styles.serviceText, { color: colors.textSecondary }]}>
-            {isRatingClient ? 'How was this client to work with?' : 'Service completed successfully'}
+            {isRatingClient 
+              ? t('reviews.howWasClient', 'How was this client to work with?') 
+              : t('reviews.serviceCompletedSuccess', 'Service completed successfully')}
           </Text>
         </View>
 
         {/* Star Rating */}
         <View style={styles.ratingSection}>
           <Text style={[styles.ratingTitle, { color: colors.text }]}>
-            {isRatingClient ? 'How was your experience?' : 'How was the service?'}
+            {isRatingClient 
+              ? t('reviews.howWasExperience', 'How was your experience?') 
+              : t('reviews.howWasService', 'How was the service?')}
           </Text>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map(s => (
@@ -127,44 +170,53 @@ const RatingScreen = ({ route, navigation }) => {
             ))}
           </View>
           <Text style={[styles.ratingLabel, { color: rating > 0 ? colors.accent : colors.textSecondary }]}>
-            {ratingLabel}
+            {getRatingLabel()}
           </Text>
         </View>
 
         {/* Quick Tags */}
         <View style={styles.tagsSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>What stood out?</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            {t('reviews.whatStoodOut', 'What stood out?')}
+          </Text>
           <View style={styles.tagsRow}>
-            {TAGS.map(tag => (
-              <TouchableOpacity
-                key={tag}
-                style={[
-                  styles.tag,
-                  { borderColor: colors.border, backgroundColor: colors.card },
-                  selectedTags.includes(tag) && { backgroundColor: colors.accent, borderColor: colors.accent }
-                ]}
-                onPress={() => toggleTag(tag)}
-              >
-                <Text style={[
-                  styles.tagText,
-                  { color: colors.textSecondary },
-                  selectedTags.includes(tag) && { color: '#FFF' }
-                ]}>
-                  {tag}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {TAGS.map(tag => {
+              const isSelected = selectedTags.includes(tag.key);
+              return (
+                <TouchableOpacity
+                  key={tag.key}
+                  style={[
+                    styles.tag,
+                    { borderColor: colors.border, backgroundColor: colors.card },
+                    isSelected && { backgroundColor: colors.accent, borderColor: colors.accent }
+                  ]}
+                  onPress={() => toggleTag(tag.key)}
+                >
+                  <Text style={[
+                    styles.tagText,
+                    { color: colors.textSecondary },
+                    isSelected && { color: '#FFF' }
+                  ]}>
+                    {tag.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Comment Box */}
         <View style={styles.commentSection}>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            {isRatingClient ? 'Leave a remark (Optional)' : 'Leave a Review (Optional)'}
+            {isRatingClient 
+              ? t('reviews.leaveRemarkOptional', 'Leave a remark (Optional)') 
+              : t('reviews.leaveReviewOptional', 'Leave a Review (Optional)')}
           </Text>
           <TextInput
             style={[styles.commentInput, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-            placeholder={isRatingClient ? 'Share your experience working with this client...' : 'Tell others about the quality of service...'}
+            placeholder={isRatingClient 
+              ? t('reviews.shareClientExp', 'Share your experience working with this client...') 
+              : t('reviews.shareServiceExp', 'Tell others about the quality of service...')}
             placeholderTextColor={colors.placeholder}
             value={comment}
             onChangeText={setComment}
@@ -185,7 +237,9 @@ const RatingScreen = ({ route, navigation }) => {
               <ActivityIndicator color="#FFF" />
             ) : (
               <>
-                <Text style={styles.submitBtnText}>Submit {isRatingClient ? 'Remark' : 'Review'}</Text>
+                <Text style={styles.submitBtnText}>
+                  {isRatingClient ? t('reviews.submitRemark', 'Submit Remark') : t('reviews.submitReview', 'Submit Review')}
+                </Text>
                 <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
               </>
             )}
@@ -193,7 +247,7 @@ const RatingScreen = ({ route, navigation }) => {
         </View>
 
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

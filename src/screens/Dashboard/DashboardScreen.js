@@ -497,7 +497,7 @@ const DashboardScreen = ({ navigation }) => {
               <View style={styles.portfolioGrid}>
                 {portfolio.map((item, index) => (
                   <View key={`${item.title}-${index}`} style={styles.portfolioItem}>
-                    {item.imageUrl ? <Image source={{ uri: item.imageUrl }} style={styles.portfolioPreview} /> : <View style={[styles.portfolioPreview, { backgroundColor: colors.border }]} />}
+                    {item.imageUrl || item.images?.[0] ? <Image source={{ uri: getMediaUrl(item.imageUrl || item.images?.[0]) }} style={styles.portfolioPreview} /> : <View style={[styles.portfolioPreview, { backgroundColor: colors.border }]} />}
                     <Text style={[styles.portfolioItemTitle, { color: colors.accent }]}>{item.title || t('profileDetail.project')}</Text>
                   </View>
                 ))}

@@ -142,7 +142,7 @@ const NotificationDetailScreen = ({ route, navigation }) => {
       case 'NEW_REVIEW':
         return {
           label: 'View Review',
-          onPress: () => navigation.navigate('Profile')
+          onPress: () => navigation.navigate('Reviews')
         };
 
       case 'PROVIDER_OF_MONTH':

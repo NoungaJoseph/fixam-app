@@ -784,8 +784,8 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                   onPress={() => handleOpenProjectDetail(item)}
                   activeOpacity={0.75}
                 >
-                  {item.imageUrl ? (
-                    <Image source={{ uri: item.imageUrl }} style={styles.projectImageFull} />
+                  {item.imageUrl || item.images?.[0] || item.image || item.url ? (
+                    <Image source={{ uri: getMediaUrl(item.imageUrl || item.images?.[0] || item.image || item.url) }} style={styles.projectImageFull} />
                   ) : (
                     <View style={[styles.projectImageFull, styles.projectImageFallback]}>
                       <MaterialCommunityIcons name="image-outline" size={36} color="#94A3B8" />

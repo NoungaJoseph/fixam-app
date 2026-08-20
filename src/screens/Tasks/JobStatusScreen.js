@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator, TextInput, Modal, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -37,6 +38,7 @@ const JobStatusScreen = ({ route, navigation }) => {
   const { t, locale } = useLanguage();
   const { fetchAppData } = useAppContext();
   const [job, setJob] = useState(route.params?.job || {});
+  const [hasReviewedLocally, setHasReviewedLocally] = useState(false);
   const [selectingAssignmentId, setSelectingAssignmentId] = useState(null);
   const [activeDispute, setActiveDispute] = useState(job.disputes?.[0] || null);
   const [disputeModalVisible, setDisputeModalVisible] = useState(false);
@@ -44,6 +46,11 @@ const JobStatusScreen = ({ route, navigation }) => {
   const normalizedStatus = String(job.status || 'PENDING').toUpperCase();
   const displayStatus = translateStatus(normalizedStatus);
   const isBooking = Boolean(route.params?.isBooking || job?.isBooking || job?.bookingDate);
+
+  const isReviewed = hasReviewedLocally ||
+    job.isReviewed ||
+    job.hasReviewed ||
+    Boolean(Array.isArray(job.reviews) && job.reviews.some(r => (r.reviewerId && r.reviewerId === user?.id) || (r.userId && r.userId === user?.id)));
 
   useEffect(() => {
     if (job?.id) {
@@ -149,33 +156,38 @@ const JobStatusScreen = ({ route, navigation }) => {
     }
   };
 
-  React.useEffect(() => {
-    if (!route.params?.job?.id) return;
+  const refreshJobDetails = useCallback(async () => {
+    const targetId = route.params?.job?.id || job?.id;
+    if (!targetId) return;
 
-    let isMounted = true;
-    
-    if (isBooking) {
-      api.get(`/bookings/check?id=${route.params.job.id}`)
-        .then((res) => {
-          if (isMounted && res.data?.data) {
-            setJob(res.data.data);
+    try {
+      if (isBooking) {
+        const res = await api.get(`/bookings/check?id=${targetId}`);
+        if (res.data?.data) {
+          setJob(res.data.data);
+          const rList = res.data.data.reviews || [];
+          if (res.data.data.isReviewed || res.data.data.hasReviewed || rList.some(r => r.reviewerId === user?.id || r.userId === user?.id)) {
+            setHasReviewedLocally(true);
           }
-        })
-        .catch(() => {});
-    } else {
-      api.get(`/jobs/${route.params.job.id}`)
-        .then((res) => {
-          if (isMounted && res.data?.data) {
-            setJob(res.data.data);
+        }
+      } else {
+        const res = await api.get(`/jobs/${targetId}`);
+        if (res.data?.data) {
+          setJob(res.data.data);
+          const rList = res.data.data.reviews || [];
+          if (res.data.data.isReviewed || res.data.data.hasReviewed || rList.some(r => r.reviewerId === user?.id || r.userId === user?.id)) {
+            setHasReviewedLocally(true);
           }
-        })
-        .catch(() => {});
-    }
+        }
+      }
+    } catch (_) {}
+  }, [route.params?.job?.id, job?.id, isBooking, user?.id]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [route.params?.job?.id, isBooking]);
+  useFocusEffect(
+    useCallback(() => {
+      refreshJobDetails();
+    }, [refreshJobDetails])
+  );
 
 
   const chooseProvider = (assignment) => {
@@ -518,7 +530,7 @@ const JobStatusScreen = ({ route, navigation }) => {
           })()}
 
           <View style={styles.actions}>
-            {user?.role === 'CLIENT' && assignedProvider && ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(normalizedStatus) && (
+            {user?.role === 'CLIENT' && assignedProvider && ['ACCEPTED', 'IN_PROGRESS'].includes(normalizedStatus) && (
               <View style={{ gap: 8, width: '100%' }}>
                 <TouchableOpacity
                   style={[styles.mainActionBtn, { backgroundColor: colors.success }]}
@@ -536,6 +548,10 @@ const JobStatusScreen = ({ route, navigation }) => {
                               jobId: job.id,
                               targetUser: assignedProviderUser,
                               mode: 'rate_provider',
+                              onReviewSuccess: () => {
+                                setHasReviewedLocally(true);
+                                refreshJobDetails();
+                              }
                             });
                           } catch (err) {
                             // Handled by helper
@@ -629,20 +645,50 @@ const JobStatusScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
 
-            {user?.role === 'CLIENT' && normalizedStatus === 'COMPLETED' && !(job.reviews?.some(r => r.reviewerId === job.clientId)) && (
-              <TouchableOpacity
-                style={[styles.mainActionBtn, { backgroundColor: '#F59E0B' }]}
-                onPress={() => {
-                  navigation.navigate('Rating', {
-                    jobId: job.id,
-                    targetUser: assignedProviderUser || job.provider,
-                    mode: 'rate_provider',
-                  });
-                }}
-              >
-                <MaterialCommunityIcons name="star-outline" size={22} color="#FFF" />
-                <Text style={styles.mainActionText}>{t('jobs.leaveReview', 'Leave a Review')}</Text>
-              </TouchableOpacity>
+            {user?.role === 'CLIENT' && normalizedStatus === 'COMPLETED' && (
+              !isReviewed ? (
+                <TouchableOpacity
+                  style={[styles.mainActionBtn, { backgroundColor: '#F59E0B' }]}
+                  onPress={() => {
+                    navigation.navigate('Rating', {
+                      jobId: job.id,
+                      targetUser: assignedProviderUser || job.provider,
+                      mode: 'rate_provider',
+                      onReviewSuccess: () => {
+                        setHasReviewedLocally(true);
+                        refreshJobDetails();
+                      }
+                    });
+                  }}
+                >
+                  <MaterialCommunityIcons name="star-outline" size={22} color="#FFF" />
+                  <Text style={styles.mainActionText}>{t('reviews.leaveReview', 'Leave a Review')}</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isDarkMode ? '#064E3B20' : '#ECFDF5',
+                  borderWidth: 1.5,
+                  borderColor: '#10B981',
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  paddingHorizontal: 20,
+                  gap: 10,
+                  width: '100%',
+                  marginTop: 6
+                }}>
+                  <MaterialCommunityIcons name="star-check" size={24} color="#10B981" />
+                  <Text style={{
+                    color: '#10B981',
+                    fontSize: 15,
+                    fontWeight: '800'
+                  }}>
+                    {t('reviews.reviewSubmittedBadge', 'Review submitted successfully ⭐')}
+                  </Text>
+                </View>
+              )
             )}
 
             {user?.role === 'PROVIDER' && isBooking && normalizedStatus === 'PENDING' && (

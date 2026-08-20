@@ -1,6 +1,6 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, StatusBar, FlatList, Dimensions, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, FlatList, Dimensions, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -23,7 +23,7 @@ const getSlides = (role) => {
         key: 'requests',
         title: 'Manage every request in one place',
         text: 'Review new jobs, ask questions in chat, accept only the work you can deliver, and keep clients updated.',
-        image: require('../../../assets/onboarding/verification.png'),
+        image: require('../../../assets/onboarding/verified.png'),
         icon: 'briefcase-check-outline',
       },
       {
@@ -48,7 +48,7 @@ const getSlides = (role) => {
       key: 'verify',
       title: 'Choose verified providers',
       text: 'Check the verification badge, ratings, reviews, skill match, and response history before accepting help.',
-      image: require('../../../assets/onboarding/verification.png'),
+      image: require('../../../assets/onboarding/verified.png'),
       icon: 'shield-check-outline',
     },
     {

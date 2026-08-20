@@ -2,7 +2,7 @@
   "expo": {
     "name": "Fixam",
     "slug": "Fixam",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "scheme": "fixam",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.fixam.app.iosapp",
       "googleServicesFile": "./firebase/GoogleService-Info.plist",
-      "buildNumber": "16",
+      "buildNumber": "18",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -31,7 +31,7 @@
     "android": {
       "package": "com.fixam.app.android",
       "googleServicesFile": "./firebase/google-services.json",
-      "versionCode": 10,
+      "versionCode": 12,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",

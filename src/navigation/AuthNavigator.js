@@ -37,6 +37,10 @@ const AuthNavigator = () => {
       <Stack.Screen name="OTP" component={OTPScreen} />
       <Stack.Screen name="TwoFactorLoginScreen" component={require('../screens/Auth/TwoFactorLoginScreen').default} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="PostRegistrationOnboarding" component={require('../screens/Auth/PostRegistrationOnboardingScreen').default} />
+      <Stack.Screen name="ProviderSkills" component={require('../screens/Auth/ProviderSkillsScreen').default} />
+      <Stack.Screen name="ProviderDocUpload" component={require('../screens/Auth/ProviderDocUploadScreen').default} />
+      <Stack.Screen name="ProviderPhoto" component={require('../screens/Auth/ProviderPhotoScreen').default} />
     </Stack.Navigator>
   );
 };

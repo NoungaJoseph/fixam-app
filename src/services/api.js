@@ -7,7 +7,7 @@ export const API_ORIGIN = BASE_URL.replace(/\/api\/?$/, '');
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000, // Reduced from 30s to 15s for snappier failure handling
+  timeout: 35000, // 35s timeout to support slow 2G/3G/4G connections
   validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
 });
 
@@ -33,10 +33,21 @@ export const registerUnauthorizedListener = (callback) => {
   onUnauthorizedCallback = callback;
 };
 
+// Automatic retry for idempotent GET requests on slow/dropped connections
 api.interceptors.response.use(response => {
   if (__DEV__) console.log(`[API Response] ${response.status} from ${response.config.url}`);
   return response;
-}, error => {
+}, async error => {
+  const config = error.config;
+  
+  // If request failed due to network timeout/disconnect and hasn't been retried yet (for safe GET requests)
+  if (config && config.method === 'get' && !config._retry && (error.code === 'ECONNABORTED' || !error.response)) {
+    config._retry = true;
+    if (__DEV__) console.log(`[API Retry] Retrying slow request: ${config.url}`);
+    await new Promise(res => setTimeout(res, 1200));
+    return api(config);
+  }
+
   if (__DEV__) console.log(`[API Error] ${error.response?.status} from ${error.config?.url}:`, error.response?.data || error.message);
   
   if (error.response?.status === 401) {

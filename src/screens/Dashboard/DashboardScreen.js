@@ -145,7 +145,7 @@ const DashboardScreen = ({ navigation }) => {
         quality: 0.6,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets?.[0]?.uri) {
         uploadAvatar(result.assets[0].uri);
       }
     } catch (err) {
@@ -153,9 +153,11 @@ const DashboardScreen = ({ navigation }) => {
     }
   };
 
-  const uploadAvatar = async (uri) => {
+  const uploadAvatar = async (rawUri) => {
     setLoading(true);
     try {
+      const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 800, quality: 0.7 });
+      const uri = optimized.uri;
       const filename = uri.split('/').pop() || `avatar-${Date.now()}.jpg`;
       const match = /\.(\w+)$/.exec(filename);
       const ext = match ? match[1].toLowerCase() : 'jpg';
@@ -169,7 +171,7 @@ const DashboardScreen = ({ navigation }) => {
       });
       formData.append('type', 'avatar');
 
-      const res = await uploadFile(formData, '/upload/profile');
+      const res = await uploadFile(formData, '/upload/profile', { timeout: 60000 });
       const avatarUrl = res?.url || res?.data?.url;
       if (avatarUrl) {
         await updateProfile({ avatar: avatarUrl });

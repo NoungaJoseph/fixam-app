@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
 const DocUploadScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
@@ -16,7 +17,16 @@ const DocUploadScreen = ({ navigation, route }) => {
   const [frontImage, setFrontImage] = useState(null);
   const [backImage, setBackImage] = useState(null);
 
-
+  const processAndSetImage = async (rawUri, side) => {
+    try {
+      const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 1200, quality: 0.65 });
+      if (side === 'front') setFrontImage(optimized.uri);
+      else setBackImage(optimized.uri);
+    } catch (e) {
+      if (side === 'front') setFrontImage(rawUri);
+      else setBackImage(rawUri);
+    }
+  };
 
   const pickImage = async (side) => {
     Alert.alert(
@@ -28,10 +38,9 @@ const DocUploadScreen = ({ navigation, route }) => {
           onPress: async () => {
             const { status } = await ImagePicker.requestCameraPermissionsAsync();
             if (status !== 'granted') { Alert.alert(t('verification.permissionRequired'), t('verification.cameraAccessDoc')); return; }
-            const result = await ImagePicker.launchCameraAsync({ quality: 0.8, allowsEditing: false });
-            if (!result.canceled) {
-              if (side === 'front') setFrontImage(result.assets[0].uri);
-              else setBackImage(result.assets[0].uri);
+            const result = await ImagePicker.launchCameraAsync({ quality: 0.65, allowsEditing: false });
+            if (!result.canceled && result.assets?.[0]?.uri) {
+              await processAndSetImage(result.assets[0].uri, side);
             }
           },
         },
@@ -39,10 +48,9 @@ const DocUploadScreen = ({ navigation, route }) => {
           text: t('verification.uploadDevice'),
           onPress: async () => {
             try {
-              const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsEditing: false, mediaTypes: ['images'] });
+              const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.65, allowsEditing: false, mediaTypes: ['images'] });
               if (!result.canceled && result.assets?.[0]?.uri) {
-                if (side === 'front') setFrontImage(result.assets[0].uri);
-                else setBackImage(result.assets[0].uri);
+                await processAndSetImage(result.assets[0].uri, side);
               }
             } catch (error) {
               console.error(error);

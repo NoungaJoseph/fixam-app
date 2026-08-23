@@ -194,12 +194,13 @@ export const AuthProvider = ({ children }) => {
     return freshUser;
   };
 
-  const uploadFile = async (formData, endpoint = '/upload') => {
+  const uploadFile = async (formData, endpoint = '/upload', options = {}) => {
     try {
       const res = await api.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: options.timeout || 60000, // 60s timeout for file uploads on low-speed networks
         transformRequest: (data) => data,
       });
       return res.data;

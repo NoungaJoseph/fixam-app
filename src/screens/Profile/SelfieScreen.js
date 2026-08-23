@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
+import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
 const SelfieScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
@@ -15,6 +16,7 @@ const SelfieScreen = ({ navigation, route }) => {
   const { t } = useLanguage();
   const [selfieImage, setSelfieImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadStatusText, setUploadStatusText] = useState('');
   const params = route.params || {};
 
   const takeSelfie = async () => {
@@ -27,29 +29,47 @@ const SelfieScreen = ({ navigation, route }) => {
     try {
       const result = await ImagePicker.launchCameraAsync({
         cameraType: ImagePicker.CameraType.front,
-        quality: 0.85,
+        quality: 0.65,
         allowsEditing: false,
       });
 
-      if (!result.canceled) {
-        setSelfieImage(result.assets[0].uri);
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        const optimized = await optimizeImageForUpload(result.assets[0].uri, { maxWidth: 1080, quality: 0.65 });
+        setSelfieImage(optimized.uri);
       }
     } catch (error) {
       Alert.alert(t('verification.error'), t('verification.camError'));
     }
   };
 
-  const uploadOne = async (uri, label) => {
-    const filename = `${label}-${uri.split('/').pop() || Date.now()}.jpg`;
+  const uploadOne = async (uri, label, retries = 2) => {
+    // Compress on-device before uploading over network
+    const optimized = await optimizeImageForUpload(uri, { maxWidth: 1200, quality: 0.65 });
+    const finalUri = optimized.uri;
+    const filename = `${label}-${finalUri.split('/').pop() || Date.now()}.jpg`;
+    
     const formData = new FormData();
     formData.append('file', {
-      uri,
+      uri: finalUri,
       name: filename,
       type: 'image/jpeg',
     });
     formData.append('type', 'verification');
-    const res = await uploadFile(formData);
-    return res.url || res.data?.url;
+
+    let lastError;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const res = await uploadFile(formData, '/upload/verification', { timeout: 60000 });
+        return res.url || res.data?.url;
+      } catch (err) {
+        lastError = err;
+        if (__DEV__) console.warn(`[SelfieScreen] Upload attempt ${attempt} failed:`, err.message);
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    }
+    throw lastError;
   };
 
   const handleSubmit = async () => {
@@ -58,14 +78,17 @@ const SelfieScreen = ({ navigation, route }) => {
       return;
     }
     setSubmitting(true);
+    setUploadStatusText(t('verification.uploading', 'Uploading documents...'));
     try {
       const uploads = [
-        { type: `${params.docType?.id || 'document'}_front`, uri: params.frontImage },
-        params.backImage ? { type: `${params.docType?.id || 'document'}_back`, uri: params.backImage } : null,
-        { type: 'selfie', uri: selfieImage },
+        { type: `${params.docType?.id || 'document'}_front`, uri: params.frontImage, name: 'Front ID' },
+        params.backImage ? { type: `${params.docType?.id || 'document'}_back`, uri: params.backImage, name: 'Back ID' } : null,
+        { type: 'selfie', uri: selfieImage, name: 'Selfie' },
       ].filter(Boolean);
 
-      for (const item of uploads) {
+      for (let i = 0; i < uploads.length; i++) {
+        const item = uploads[i];
+        setUploadStatusText(`${t('verification.uploadingDoc', 'Uploading')} ${item.name} (${i + 1}/${uploads.length})...`);
         const url = await uploadOne(item.uri, item.type);
         await api.post('/providers/verify', { type: item.type, url });
       }
@@ -82,6 +105,7 @@ const SelfieScreen = ({ navigation, route }) => {
       Alert.alert(t('verification.submitFailed'), error.response?.data?.message || t('verification.submitFailedDesc'));
     } finally {
       setSubmitting(false);
+      setUploadStatusText('');
     }
   };
 
@@ -174,7 +198,7 @@ const SelfieScreen = ({ navigation, route }) => {
               disabled={submitting}
             >
               {submitting ? <ActivityIndicator color="#FFF" /> : <MaterialCommunityIcons name="send-check" size={20} color="#FFF" />}
-              <Text style={styles.submitBtnText}>{submitting ? t('common.loading') : t('verification.submitDocuments')}</Text>
+              <Text style={styles.submitBtnText}>{submitting ? (uploadStatusText || t('common.loading')) : t('verification.submitDocuments')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

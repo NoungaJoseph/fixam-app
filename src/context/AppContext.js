@@ -82,8 +82,16 @@ export const AppProvider = ({ children }) => {
   }, [hasLoadedData]);
 
   useEffect(() => {
-    if (user?.role?.toUpperCase() === 'PROVIDER') {
-      setIsProviderOnline(Boolean(user?.isOnline));
+    if (user?.role?.toUpperCase() === 'PROVIDER' && user?.id) {
+      AsyncStorage.getItem(`fixam:provider-online:${user.id}`).then((stored) => {
+        if (stored !== null) {
+          setIsProviderOnline(stored === 'true');
+        } else {
+          setIsProviderOnline(Boolean(user?.isOnline ?? user?.providerProfile?.isAvailable ?? true));
+        }
+      }).catch(() => {
+        setIsProviderOnline(Boolean(user?.isOnline ?? user?.providerProfile?.isAvailable ?? true));
+      });
     }
 
     if (token) {
@@ -652,6 +660,9 @@ export const AppProvider = ({ children }) => {
 
   const updateProviderStatus = async (status) => {
     setIsProviderOnline(status);
+    if (user?.id) {
+      AsyncStorage.setItem(`fixam:provider-online:${user.id}`, String(status)).catch(() => {});
+    }
     if (user) {
       user.isOnline = status;
       if (user.providerProfile) user.providerProfile.isAvailable = status;
@@ -660,11 +671,6 @@ export const AppProvider = ({ children }) => {
       await api.put('/providers/status', { isOnline: status, isAvailable: status });
     } catch (error) {
       console.log('Error updating provider status:', error.message);
-      setIsProviderOnline(prev => !prev);
-      if (user) {
-        user.isOnline = !status;
-        if (user.providerProfile) user.providerProfile.isAvailable = !status;
-      }
     }
   };
 

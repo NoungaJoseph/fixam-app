@@ -32,9 +32,38 @@ export async function exportAgreementPdf({ agreement, booking, locale = 'en' }) 
     const providerPhone = providerRaw.phone || 'Verified on platform';
     const providerEmail = providerRaw.email || 'Verified pro account';
 
-    const serviceTitle = terms.title || bookingData.service || bookingData.title || bookingData.notes || 'Professional Fixam Service';
-    const serviceCategory = terms.category || bookingData.category || 'Home & Maintenance';
-    const scopeDetails = terms.scopeOfWork || bookingData.notes || bookingData.description || (isFr ? 'Prestation de service professionnel exécutée selon les normes de qualité et de sécurité Fixam.' : 'Execution of requested professional service in compliance with Fixam quality and safety standards.');
+    const isTask = targetAgreement.sourceType === 'TASK' || Boolean(targetAgreement.taskId || bookingData.isJob || bookingData.title);
+    
+    let serviceTitle;
+    let serviceCategory;
+    let scopeDetails;
+
+    if (isTask) {
+      // Exact service type for Jobs/Tasks
+      serviceTitle = terms.title || bookingData.title || (isFr ? 'Prestation de service' : 'Professional Task Service');
+      serviceCategory = terms.category || bookingData.category || (isFr ? 'Prestation sur mesure' : 'Custom Task Service');
+      scopeDetails = terms.scopeOfWork || bookingData.description || (isFr ? 'Exécution des travaux selon le descriptif de la tâche.' : 'Execution of the task as detailed in the posted job request.');
+    } else {
+      // Direct Booking: derive from provider skills or dynamic booking details
+      const providerSkills = Array.isArray(providerRaw.skills) ? providerRaw.skills : (Array.isArray(bookingData.provider?.skills) ? bookingData.provider.skills : (Array.isArray(bookingData.provider?.providerProfile?.skills) ? bookingData.provider.providerProfile.skills : []));
+      const primarySkill = providerSkills.length > 0 ? providerSkills[0] : null;
+
+      serviceCategory = terms.category && terms.category !== 'General Service' && terms.category !== 'Home & Maintenance'
+        ? terms.category
+        : (primarySkill
+            ? (isFr ? `Réservation directe (${providerSkills.slice(0, 2).join(', ')})` : `Direct Booking (${providerSkills.slice(0, 2).join(', ')})`)
+            : (isFr ? 'Réservation de service direct' : 'Direct On-Demand Service Booking'));
+
+      serviceTitle = terms.title && terms.title !== 'Professional Fixam Service' && terms.title !== 'Fixam Direct Booking'
+        ? terms.title
+        : (primarySkill
+            ? (isFr ? `Service professionnel — ${primarySkill}` : `Professional ${primarySkill} Service`)
+            : (bookingData.service || (isFr ? 'Prestation directe Fixam' : 'Fixam Direct Service Booking')));
+
+      scopeDetails = terms.scopeOfWork && terms.scopeOfWork !== 'As specified in booking details.'
+        ? terms.scopeOfWork
+        : (bookingData.notes || (isFr ? 'Intervention directe convenue entre le client et le prestataire selon les compétences professionnelles du prestataire et les exigences du client.' : 'Direct on-demand service execution agreed between client and provider based on provider expertise and client specifications.'));
+    }
 
     const scheduleDate = scheduleRaw.date || (bookingData.bookingDate ? new Date(bookingData.bookingDate).toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : (isFr ? 'Date convenue' : 'Agreed Date'));
     const scheduleTime = scheduleRaw.time || bookingData.bookingTime || (isFr ? 'Heure convenue' : 'Agreed Time');

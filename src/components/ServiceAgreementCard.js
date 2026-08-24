@@ -82,7 +82,7 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
         </View>
       </View>
 
-      {/* Full-width Stacked Action Buttons */}
+      {/* Download Action Button */}
       <View style={styles.actionColumn}>
         <TouchableOpacity
           style={[styles.primaryActionBtn, { backgroundColor: '#0D9488' }]}
@@ -99,30 +99,7 @@ export default function ServiceAgreementCard({ agreement, booking, isClient, isP
             {isExporting ? t('common.loading', 'Generating PDF...') : t('bookings.downloadPdf', 'Download Contract (PDF)')}
           </Text>
         </TouchableOpacity>
-
-        {targetAgreement ? (
-          <TouchableOpacity
-            style={[styles.secondaryActionBtn, { backgroundColor: isDark ? '#334155' : '#F1F5F9', borderColor: isDark ? '#475569' : '#E2E8F0' }]}
-            onPress={() => setModalVisible(true)}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons name="text-box-search-outline" size={16} color={colors.text} style={{ marginRight: 6 }} />
-            <Text style={[styles.secondaryActionBtnText, { color: colors.text }]}>
-              {t('bookings.viewAgreement', 'View Contract Details')}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
       </View>
-
-      {/* Full Detail Modal */}
-      <ServiceAgreementModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        agreement={targetAgreement}
-        isClient={isClient}
-        isProvider={isProvider}
-        onRefresh={onRefresh}
-      />
     </View>
   );
 }

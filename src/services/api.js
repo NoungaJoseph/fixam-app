@@ -13,6 +13,8 @@ const api = axios.create({
 
 let lastActiveWriteTime = 0;
 
+const inFlightGetRequests = new Map();
+
 api.interceptors.request.use(config => {
   if (__DEV__) console.log(`[API Request] ${config.method.toUpperCase()} ${config.url}`);
   
@@ -22,6 +24,12 @@ api.interceptors.request.use(config => {
     AsyncStorage.setItem('last_active_time', now.toString()).catch(() => {});
   }
   
+  // Ensure lightweight gzip encoding is preferred
+  config.headers = config.headers || {};
+  if (!config.headers['Accept-Encoding']) {
+    config.headers['Accept-Encoding'] = 'gzip, deflate';
+  }
+
   return config;
 }, error => {
   return Promise.reject(error);
@@ -33,19 +41,23 @@ export const registerUnauthorizedListener = (callback) => {
   onUnauthorizedCallback = callback;
 };
 
-// Automatic retry for idempotent GET requests on slow/dropped connections
+// Automatic retry with exponential backoff for idempotent GET requests on slow/dropped connections
 api.interceptors.response.use(response => {
   if (__DEV__) console.log(`[API Response] ${response.status} from ${response.config.url}`);
   return response;
 }, async error => {
   const config = error.config;
   
-  // If request failed due to network timeout/disconnect and hasn't been retried yet (for safe GET requests)
-  if (config && config.method === 'get' && !config._retry && (error.code === 'ECONNABORTED' || !error.response)) {
-    config._retry = true;
-    if (__DEV__) console.log(`[API Retry] Retrying slow request: ${config.url}`);
-    await new Promise(res => setTimeout(res, 1200));
-    return api(config);
+  // If request failed due to network timeout/disconnect and hasn't exceeded 2 retries (for safe GET requests)
+  if (config && config.method === 'get') {
+    config._retryCount = config._retryCount || 0;
+    if (config._retryCount < 2 && (error.code === 'ECONNABORTED' || !error.response || error.message?.includes('Network Error'))) {
+      config._retryCount += 1;
+      const delayMs = config._retryCount * 1500;
+      if (__DEV__) console.log(`[API Retry ${config._retryCount}/2] Retrying slow request in ${delayMs}ms: ${config.url}`);
+      await new Promise(res => setTimeout(res, delayMs));
+      return api(config);
+    }
   }
 
   if (__DEV__) console.log(`[API Error] ${error.response?.status} from ${error.config?.url}:`, error.response?.data || error.message);

@@ -18,6 +18,7 @@ import api, { getMediaUrl } from '../../services/api';
 import { useAppContext } from '../../context/AppContext';
 import UserAvatar from '../../components/UserAvatar';
 import AudioPlayer from '../../components/AudioPlayer';
+import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
 const SUPPORTED_MESSAGE_TYPES = new Set(['TEXT', 'IMAGE', 'FILE', 'AUDIO']);
 
@@ -755,15 +756,17 @@ const ChatScreen = ({ route, navigation }) => {
       if (selectedImages.length > 0) {
         setIsUploading(true);
         for (const img of selectedImages) {
+          const optimized = await optimizeImageForUpload(img.uri, { maxWidth: 1080, quality: 0.65 });
+          const finalUri = optimized.uri;
           const formData = new FormData();
           formData.append('file', {
-            uri: img.uri,
-            type: img.type,
-            name: img.name,
+            uri: finalUri,
+            type: 'image/jpeg',
+            name: img.name || `chat_image_${Date.now()}.jpg`,
           });
           formData.append('type', 'chat');
 
-          const res = await uploadFile(formData);
+          const res = await uploadFile(formData, '/upload', { timeout: 60000 });
           const url = res.url || res.data?.url;
           if (!url) throw new Error('Upload did not return a URL');
           

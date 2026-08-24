@@ -26,6 +26,7 @@ import TealSafeAreaView from '../../components/Common/TealSafeAreaView';
 import UserAvatar from '../../components/UserAvatar';
 import { getCurrencyForUser } from '../../constants/countries';
 import api, { getMediaUrl } from '../../services/api';
+import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
 const PostProjectScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
@@ -166,13 +167,18 @@ const PostProjectScreen = ({ navigation, route }) => {
   );
 
   // Helper to upload a single local file URI to the backend storage
-  const uploadMediaToBackend = async (uri, type = 'file') => {
-    if (!uri || typeof uri !== 'string') return null;
+  const uploadMediaToBackend = async (rawUri, type = 'file') => {
+    if (!rawUri || typeof rawUri !== 'string') return null;
     // If it's already a remote HTTP/S or data URL, we don't need to upload it
-    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:')) {
-      return uri;
+    if (rawUri.startsWith('http://') || rawUri.startsWith('https://') || rawUri.startsWith('data:')) {
+      return rawUri;
     }
     try {
+      let uri = rawUri;
+      if (type === 'image') {
+        const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 1200, quality: 0.7 });
+        uri = optimized.uri;
+      }
       const formData = new FormData();
       const filename = uri.split('/').pop() || (type === 'video' ? 'video.mp4' : 'image.jpg');
       const match = /\.(\w+)$/.exec(filename);
@@ -187,7 +193,7 @@ const PostProjectScreen = ({ navigation, route }) => {
         type: mimeType,
       });
 
-      const res = await api.post('/upload/portfolio', formData);
+      const res = await api.post('/upload/portfolio', formData, { timeout: 60000 });
       const serverUrl = res.data?.url || res.data?.data?.url;
       if (!serverUrl) {
         throw new Error('Server did not return a valid media URL.');

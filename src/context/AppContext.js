@@ -51,7 +51,7 @@ const normalizeConversation = (conversation) => conversation ? ({
 
 export const AppProvider = ({ children }) => {
   const { token, user, updateProfile } = useAuth();
-  const { on } = useSocket();
+  const { on, isConnected } = useSocket();
   const [providers, setProviders] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -138,18 +138,19 @@ export const AppProvider = ({ children }) => {
     });
 
     const pollInterval = setInterval(() => {
-      if (token) {
+      // If WebSocket is active, live events handle updates; only poll if disconnected to save 2G/3G data
+      if (token && !isConnected) {
         fetchNotifications();
         fetchConversations();
         fetchAppData(false);
       }
-    }, 60 * 1000);
+    }, 90 * 1000);
 
     return () => {
       subscription.remove();
       clearInterval(pollInterval);
     };
-  }, [token, user?.role]);
+  }, [token, user?.role, isConnected]);
 
   useEffect(() => {
     const off = on('provider:status-changed', ({ isOnline, isAvailable }) => {

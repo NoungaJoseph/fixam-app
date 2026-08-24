@@ -37,15 +37,27 @@ const JobStatusScreen = ({ route, navigation }) => {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
   const { fetchAppData } = useAppContext();
-  const [job, setJob] = useState(route.params?.job || {});
+  const incomingJob = route.params?.job || {};
+  const currentJobId = incomingJob.id || route.params?.jobId || route.params?.id;
+  const isBooking = Boolean(route.params?.isBooking || incomingJob.isBooking || incomingJob.bookingDate);
+
+  const [job, setJob] = useState(incomingJob);
   const [hasReviewedLocally, setHasReviewedLocally] = useState(false);
   const [selectingAssignmentId, setSelectingAssignmentId] = useState(null);
-  const [activeDispute, setActiveDispute] = useState(job.disputes?.[0] || null);
+  const [activeDispute, setActiveDispute] = useState(incomingJob.disputes?.[0] || null);
   const [disputeModalVisible, setDisputeModalVisible] = useState(false);
+
+  // Sync state whenever the active job ID or incoming job changes
+  useEffect(() => {
+    if (incomingJob && incomingJob.id) {
+      setJob(incomingJob);
+      setHasReviewedLocally(false);
+      setActiveDispute(incomingJob.disputes?.[0] || null);
+    }
+  }, [currentJobId]);
 
   const normalizedStatus = String(job.status || 'PENDING').toUpperCase();
   const displayStatus = translateStatus(normalizedStatus);
-  const isBooking = Boolean(route.params?.isBooking || job?.isBooking || job?.bookingDate);
 
   const isReviewed = hasReviewedLocally ||
     job.isReviewed ||
@@ -53,8 +65,8 @@ const JobStatusScreen = ({ route, navigation }) => {
     Boolean(Array.isArray(job.reviews) && job.reviews.some(r => (r.reviewerId && r.reviewerId === user?.id) || (r.userId && r.userId === user?.id)));
 
   useEffect(() => {
-    if (job?.id) {
-      const endpoint = isBooking ? `/disputes?bookingId=${job.id}` : `/disputes?jobId=${job.id}`;
+    if (currentJobId) {
+      const endpoint = isBooking ? `/disputes?bookingId=${currentJobId}` : `/disputes?jobId=${currentJobId}`;
       api.get(endpoint)
         .then(res => {
           if (res.data?.data && res.data.data.length > 0) {
@@ -63,7 +75,7 @@ const JobStatusScreen = ({ route, navigation }) => {
         })
         .catch(() => {});
     }
-  }, [job?.id]);
+  }, [currentJobId, isBooking]);
   const selectedAssignment = job.assignments?.find((assignment) => assignment.id === job.selectedAssignmentId) || job.assignments?.find((assignment) => assignment.status === 'ACCEPTED');
   const assignedProviderUser = job.provider || selectedAssignment?.provider?.user;
   const assignedProvider = assignedProviderUser ? {
@@ -157,7 +169,7 @@ const JobStatusScreen = ({ route, navigation }) => {
   };
 
   const refreshJobDetails = useCallback(async () => {
-    const targetId = route.params?.job?.id || job?.id;
+    const targetId = currentJobId;
     if (!targetId) return;
 
     try {
@@ -181,7 +193,7 @@ const JobStatusScreen = ({ route, navigation }) => {
         }
       }
     } catch (_) {}
-  }, [route.params?.job?.id, job?.id, isBooking, user?.id]);
+  }, [currentJobId, isBooking, user?.id]);
 
   useFocusEffect(
     useCallback(() => {

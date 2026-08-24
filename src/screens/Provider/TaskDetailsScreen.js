@@ -45,6 +45,7 @@ const CATEGORY_ICONS = {
 const TaskDetailsScreen = ({ route, navigation }) => {
   const { isDarkMode, colors } = useTheme();
   const task = route.params?.task || route.params?.job || {};
+  const currentTaskId = task.id || route.params?.taskId || route.params?.jobId;
   const { walletBalance, appliedJobIds, markJobApplied, favoriteJobIds, toggleFavoriteJob, isProviderOnline } = useAppContext();
   const { user } = useAuth();
   const { on } = useSocket();
@@ -62,9 +63,24 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const [applied, setApplied] = useState(false);
   const coinCost = 1;
   const isBooking = Boolean(route.params?.isBooking || task?.isBooking || task?.bookingDate);
-  const isFavorite = favoriteJobIds?.includes(task.id);
+  const isFavorite = favoriteJobIds?.includes(currentTaskId);
   
-  const displayTask = { ...task, ...(jobDetails || {}) };
+  // Reset state whenever the active task/job changes
+  React.useEffect(() => {
+    setJobDetails(task);
+    setApplied(false);
+    setShowConfirm(false);
+    setBoostCoins('');
+    setCoverLetter('');
+    setApplicationCount(task.assignments?.length || task.proposals || 0);
+    setActiveDispute(task.disputes?.[0] || null);
+  }, [currentTaskId]);
+
+  // Only use jobDetails if it matches the current active taskId to prevent stale previous task leak
+  const displayTask = (jobDetails && (!currentTaskId || jobDetails.id === currentTaskId))
+    ? { ...task, ...jobDetails }
+    : (task || {});
+
   const clientObj = typeof displayTask.client === 'object' ? displayTask.client : (typeof task.client === 'object' ? task.client : null);
   const clientName = clientObj?.fullName || (typeof displayTask.client === 'string' ? displayTask.client : (typeof task.client === 'string' ? task.client : t('common.client')));
   const clientId = clientObj?.id || displayTask.clientId || task.clientId;
@@ -97,12 +113,12 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         ? `${new Date(taskBookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}${taskBookingTime ? ` @ ${taskBookingTime}` : ''}`
         : (displayTask.scheduledTime ? formatDate(displayTask.scheduledTime, locale) : null))
     : (displayTask.scheduledTime ? formatDate(displayTask.scheduledTime, locale) : null);
-  const hasApplied = applied || appliedJobIds?.includes(task.id) || task.assignments?.some((assignment) => (
+  const hasApplied = applied || appliedJobIds?.includes(currentTaskId) || displayTask.assignments?.some((assignment) => (
     assignment.providerId === user?.providerProfile?.id ||
     assignment.provider?.userId === user?.id ||
     assignment.provider?.user?.id === user?.id
   )) || (isBooking && ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(String(displayTask.status || task.status || '').toUpperCase()));
-  const providerAssignment = task.assignments?.find((assignment) => (
+  const providerAssignment = displayTask.assignments?.find((assignment) => (
     assignment.providerId === user?.providerProfile?.id ||
     assignment.provider?.userId === user?.id ||
     assignment.provider?.user?.id === user?.id ||
@@ -114,12 +130,12 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     (task.assignedProviderId && (task.assignedProviderId === user?.providerProfile?.id || task.assignedProviderId === user?.id)) ||
     (jobDetails?.assignedProviderId && (jobDetails.assignedProviderId === user?.providerProfile?.id || jobDetails.assignedProviderId === user?.id))
   );
-  const canMessageClient = (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(task.status || '').toUpperCase()));
+  const canMessageClient = (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase()));
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
 
   React.useEffect(() => {
-    if (task?.id) {
-      const endpoint = isBooking ? `/disputes?bookingId=${task.id}` : `/disputes?jobId=${task.id}`;
+    if (currentTaskId) {
+      const endpoint = isBooking ? `/disputes?bookingId=${currentTaskId}` : `/disputes?jobId=${currentTaskId}`;
       api.get(endpoint)
         .then(res => {
           if (res.data?.data && res.data.data.length > 0) {
@@ -128,21 +144,22 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         })
         .catch(() => {});
     }
-  }, [task?.id, isBooking]);
+  }, [currentTaskId, isBooking]);
 
   React.useEffect(() => {
     const off = on('job:application-count', ({ jobId, applicationCount: count }) => {
-      if (jobId === task.id) setApplicationCount(count);
+      if (jobId === currentTaskId) setApplicationCount(count);
     });
     return () => off?.();
-  }, [on, task.id]);
+  }, [on, currentTaskId]);
 
   React.useEffect(() => {
     let active = true;
     const fetchDetails = async () => {
+      if (!currentTaskId) return;
       try {
         setFetching(true);
-        const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
+        const endpoint = isBooking ? `/bookings/${currentTaskId}` : `/jobs/${currentTaskId}`;
         const res = await api.get(endpoint);
         if (res.data?.success && active) {
           setJobDetails(res.data.data);
@@ -156,11 +173,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         if (active) setFetching(false);
       }
     };
-    if (task.id) {
-      fetchDetails();
-    }
+    fetchDetails();
     return () => { active = false; };
-  }, [task.id, isBooking]);
+  }, [currentTaskId, isBooking]);
 
   const goToCoins = () => {
     navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' });

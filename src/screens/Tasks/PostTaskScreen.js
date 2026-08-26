@@ -414,23 +414,29 @@ const PostTaskScreen = ({ route, navigation }) => {
         scheduledTime.getHours(),
         scheduledTime.getMinutes()
       );
+      const parsedBudget = parseInt(budget, 10) || 5000;
+      const parsedMin = parseInt(budgetMin, 10) || parsedBudget;
+      const parsedMax = parseInt(budgetMax, 10) || parsedBudget;
+      const finalBudget = budgetMode === 'range' ? parsedMax : parsedBudget;
+
       const payload = {
-        title, description,
-        location: isRemote ? 'Remote / Online' : location,
-        budget: budgetMode === 'range' ? parseInt(budgetMax) : parseInt(budget),
-        budgetMin: budgetMode === 'range' ? parseInt(budgetMin) : parseInt(budget),
-        budgetMax: budgetMode === 'range' ? parseInt(budgetMax) : parseInt(budget),
-        providersNeeded: parseInt(providersNeeded),
-        category: locale === 'fr' ? getCategoryLabel(selectedCat) : selectedCat,
+        title: String(title || '').trim(),
+        description: String(description || '').trim(),
+        location: isRemote ? 'Remote / Online' : (String(location || '').trim() || 'Douala, Cameroon'),
+        budget: finalBudget,
+        budgetMin: budgetMode === 'range' ? parsedMin : parsedBudget,
+        budgetMax: budgetMode === 'range' ? parsedMax : parsedBudget,
+        providersNeeded: parseInt(providersNeeded, 10) || 1,
+        category: selectedCat || 'OTHER',
         scheduledTime: scheduledDateTime.toISOString(),
-        whatNeedsDone,
-        importantDetails,
-        taskScope,
-        preferences: selectedPreferences,
-        priority,
-        isRemote,
-        materialsList,
-        requiresDiagnosis,
+        whatNeedsDone: whatNeedsDone || undefined,
+        importantDetails: importantDetails || undefined,
+        taskScope: taskScope || undefined,
+        preferences: Array.isArray(selectedPreferences) ? selectedPreferences : [],
+        priority: priority || 'NORMAL',
+        isRemote: Boolean(isRemote),
+        materialsList: Array.isArray(materialsList) ? materialsList : [],
+        requiresDiagnosis: Boolean(requiresDiagnosis),
       };
       if (editingJob) {
         await api.put(`/jobs/${editingJob.id}`, payload);
@@ -440,7 +446,8 @@ const PostTaskScreen = ({ route, navigation }) => {
       await fetchAppData?.(true);
       setStep('success');
     } catch (error) {
-      Alert.alert(t('common.error'), error.response?.data?.message || t('jobs.publishFailed'));
+      const errMsg = error.response?.data?.message || error.message || t('jobs.publishFailed');
+      Alert.alert(t('common.error'), errMsg);
     } finally {
       setLoading(false);
     }

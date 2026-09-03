@@ -103,7 +103,8 @@ const BookingsScreen = ({ navigation }) => {
 
   const sortedBookings = useMemo(() => {
     const urgencyWeight = {
-      EMERGENCY: 3,
+      HIGH_PRIORITY: 2,
+      EMERGENCY: 2,
       URGENT: 2,
       NORMAL: 1,
       LOW: 1
@@ -144,19 +145,15 @@ const BookingsScreen = ({ navigation }) => {
     const reviewed = hasUserReviewed(item, user?.id);
     const isUpdating = updatingId === item.id;
 
-    const isUrgent = item.urgencyLevel === 'URGENT';
-    const isEmergency = item.urgencyLevel === 'EMERGENCY';
-    const highlightBorderColor = isEmergency ? '#EF4444' : (isUrgent ? '#F97316' : colors.border);
-    const highlightBorderWidth = (isEmergency || isUrgent) ? 2 : 1;
+    const isHighPriority = ['HIGH_PRIORITY', 'URGENT', 'EMERGENCY'].includes(item.urgencyLevel);
+    const highlightBorderColor = isHighPriority ? '#F59E0B' : colors.border;
+    const highlightBorderWidth = isHighPriority ? 2 : 1;
 
-    const hasNoBudget = !item.budget || item.budget === 0;
-    const budgetLabel = (hasNoBudget && (isUrgent || isEmergency))
-      ? t('bookings.toBeQuoted', 'To be quoted')
-      : `${Number(item.budget || 0).toLocaleString()} ${getCurrencyForUser(item.country || user?.country || 'Cameroon')}`;
+    const budgetLabel = `${Number(item.budget || 0).toLocaleString()} ${getCurrencyForUser(item.country || user?.country || 'Cameroon')}`;
 
     return (
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: highlightBorderColor, borderWidth: highlightBorderWidth }]}>
-        {item.urgencyLevel && item.urgencyLevel !== 'NORMAL' && (
+        {isHighPriority && (
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -164,12 +161,12 @@ const BookingsScreen = ({ navigation }) => {
             paddingHorizontal: 8,
             paddingVertical: 3,
             borderRadius: 4,
-            backgroundColor: isEmergency ? '#EF4444' : '#F97316',
+            backgroundColor: '#F59E0B',
             marginBottom: 10,
             gap: 4
           }}>
             <MaterialCommunityIcons
-              name={isEmergency ? 'alert-decagram' : 'alert-circle'}
+              name="flash"
               size={14}
               color="#FFFFFF"
             />
@@ -179,7 +176,7 @@ const BookingsScreen = ({ navigation }) => {
               fontWeight: '900',
               textTransform: 'uppercase'
             }}>
-              {isEmergency ? t('bookings.emergencyUrgency', 'Emergency') : t('bookings.urgentUrgency', 'Urgent')}
+              {t('bookings.highPriority', 'High Priority')}
             </Text>
           </View>
         )}
@@ -252,33 +249,21 @@ const BookingsScreen = ({ navigation }) => {
                 <Text style={[styles.secondaryText, { color: '#EF4444' }]}>{t('jobs.reject')}</Text>
               </TouchableOpacity>
               
-              {['URGENT', 'EMERGENCY'].includes(item.urgencyLevel) && (!item.budget || item.budget === 0) ? (
-                <TouchableOpacity
-                  style={[styles.primaryBtn, { backgroundColor: '#8B5CF6', flex: 2 }]}
-                  disabled={isUpdating}
-                  onPress={() => handleOpenCounterModal(item)}
-                >
-                  <Text style={styles.primaryText}>{t('bookings.quotePriceAccept', 'Quote Price')}</Text>
-                </TouchableOpacity>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[styles.secondaryBtn, { borderColor: '#8B5CF6', flex: 1, marginRight: 2 }]}
-                    disabled={isUpdating}
-                    onPress={() => handleOpenCounterModal(item)}
-                  >
-                    <Text style={[styles.secondaryText, { color: '#8B5CF6' }]}>{t('booking.bookings.counter', 'Counter')}</Text>
-                  </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.secondaryBtn, { borderColor: '#8B5CF6', flex: 1, marginRight: 2 }]}
+                disabled={isUpdating}
+                onPress={() => handleOpenCounterModal(item)}
+              >
+                <Text style={[styles.secondaryText, { color: '#8B5CF6' }]}>{t('booking.bookings.counter', 'Counter')}</Text>
+              </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.primaryBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
-                    disabled={isUpdating}
-                    onPress={() => updateStatus(item.id, 'ACCEPTED')}
-                  >
-                    {isUpdating ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryText}>{t('jobs.accept')}</Text>}
-                  </TouchableOpacity>
-                </>
-              )}
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
+                disabled={isUpdating}
+                onPress={() => confirmStatus(item, 'ACCEPTED', t('jobs.acceptBookingTitle', 'Accept Booking'), t('jobs.acceptBookingCoinNotice', 'Accepting this booking will deduct 1 coin from your wallet. Do you want to proceed?'))}
+              >
+                {isUpdating ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryText}>{t('jobs.accept')}</Text>}
+              </TouchableOpacity>
             </>
           ) : null}
 

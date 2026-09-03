@@ -177,10 +177,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     return () => { active = false; };
   }, [currentTaskId, isBooking]);
 
-  const goToCoins = () => {
-    navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' });
-  };
-
   const handleAccept = () => {
     if (hasApplied) {
       Alert.alert(t('jobs.alreadyApplied'), t('jobs.alreadyAppliedBody'));
@@ -201,47 +197,28 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     }
 
     if (isBooking) {
-      confirmAccept();
+      Alert.alert(
+        t('jobs.acceptBookingTitle', 'Accept Booking'),
+        t('jobs.acceptBookingCoinNotice', 'Accepting this booking will deduct 1 coin from your wallet. Do you want to proceed?'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('jobs.accept', 'Accept'), onPress: confirmAcceptBooking }
+        ]
+      );
       return;
     }
 
-    if (walletBalance < coinCost) {
-      Alert.alert(t('jobs.insufficientCoins'), t('jobs.needCoinsToApply', { count: coinCost }), [
-        { text: t('common.cancel') },
-        { text: t('jobs.buyCoins'), onPress: goToCoins }
-      ]);
-      return;
-    }
-    setShowConfirm(true);
+    navigation.navigate('JobProposal', { task: displayTask, taskId: currentTaskId });
   };
 
-  const confirmAccept = async () => {
+  const confirmAcceptBooking = async () => {
     try {
       setSubmitting(true);
-      setShowConfirm(false);
-      if (isBooking) {
-        await api.patch(`/bookings/${task.id}/status`, { status: 'ACCEPTED' });
-        setApplied(true);
-        Alert.alert(t('common.success', 'Success'), t('jobs.bookingAccepted', 'You have successfully accepted this booking.'), [
-          { text: t('common.close') }
-        ]);
-      } else {
-        const boostVal = Number(boostCoins) || 0;
-        const res = await api.post(`/jobs/${task.id}/apply`, { 
-          boostCoins: boostVal,
-          coverLetter: coverLetter.trim() || undefined
-        });
-        setApplied(true);
-        setCoverLetter('');
-        await markJobApplied?.(task.id);
-        setApplicationCount(res.data.applicationCount || applicationCount + 1);
-
-        const alertTitle = boostVal > 0 ? t('jobs.boostedProposalSent') : t('jobs.proposalSent');
-        const alertBody = boostVal > 0 ? t('jobs.boostedProposalSentBody', { coins: boostVal }) : t('jobs.proposalSentBody');
-        Alert.alert(alertTitle, alertBody, [
-          { text: t('common.close') }
-        ]);
-      }
+      await api.patch(`/bookings/${task.id}/status`, { status: 'ACCEPTED' });
+      setApplied(true);
+      Alert.alert(t('common.success', 'Success'), t('jobs.bookingAccepted', 'You have successfully accepted this booking. 1 coin was deducted.'), [
+        { text: t('common.close') }
+      ]);
     } catch (error) {
       const message = translateApiError(error, t);
       Alert.alert(t('jobs.couldNotApply'), message);
@@ -554,14 +531,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <>
-              <Text style={styles.proposalTitle}>
-                {isBooking 
-                  ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBooking', 'Accept Booking')) 
-                  : (hasApplied ? t('jobs.alreadyApplied') : t('jobs.sendProposal'))}
-              </Text>
-              {!isBooking && !hasApplied && <Text style={styles.proposalSub}>{t('wallet.coinCount', { count: coinCost })}</Text>}
-            </>
+            <Text style={styles.proposalTitle}>
+              {isBooking 
+                ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')) 
+                : (hasApplied ? t('jobs.alreadyApplied', 'Proposal Submitted') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
+            </Text>
           )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.footerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
@@ -572,71 +546,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         <MaterialCommunityIcons name="lock" size={18} color="#64748B" />
         <Text style={[styles.secureText, { color: colors.textSecondary }]}>{t('jobs.proposalSecure')}</Text>
       </View>
-
-      <Modal visible={showConfirm} transparent animationType="fade" onRequestClose={() => setShowConfirm(false)}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFFFFF' }]}>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('jobs.sendProposalQuestion')}</Text>
-                <Text style={[styles.modalText, { color: colors.textSecondary, marginBottom: 12 }]}>{t('jobs.applyCoinNotice', { count: coinCost })}</Text>
-                
-                <Text style={[styles.boostLabel, { color: colors.textSecondary }]}>
-                  {t('jobs.proposalPitchLabel', 'Proposal Pitch / Cover Note (Optional)')}
-                </Text>
-                <TextInput
-                  style={[styles.coverLetterInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC' }]}
-                  placeholder={t('jobs.proposalPitchPlaceholder', 'Explain why you are the best fit for this job...')}
-                  placeholderTextColor={colors.placeholder}
-                  multiline
-                  numberOfLines={4}
-                  value={coverLetter}
-                  onChangeText={setCoverLetter}
-                />
-
-                <Text style={[styles.boostLabel, { color: colors.textSecondary, marginTop: 12 }]}>
-                  {t('profile.bidBoostTitle')}
-                </Text>
-                <TextInput
-                  style={[styles.boostInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC' }]}
-                  placeholder={t('profile.bidBoostPlaceholder')}
-                  placeholderTextColor={colors.placeholder}
-                  keyboardType="numeric"
-                  value={boostCoins}
-                  onChangeText={(val) => setBoostCoins(val.replace(/[^0-9]/g, ''))}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                
-                <View style={[styles.totalCostBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#ECFDF5' }]}>
-                  <Text style={[styles.totalCostText, { color: colors.accent }]}>
-                    Total: {coinCost + (Number(boostCoins) || 0)} Credits
-                  </Text>
-                </View>
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity 
-                    style={[
-                      styles.cancelBtn, 
-                      { 
-                        borderColor: colors.border, 
-                        backgroundColor: isDarkMode ? '#1F2937' : '#F1F5F9',
-                        borderWidth: isDarkMode ? 1 : 0
-                      }
-                    ]} 
-                    onPress={() => setShowConfirm(false)}
-                  >
-                    <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.confirmBtn} onPress={confirmAccept}>
-                    <Text style={styles.confirmBtnText}>{t('jobs.yesApply')}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
 
       <VerificationRequiredModal 
         visible={showVerificationModal} 

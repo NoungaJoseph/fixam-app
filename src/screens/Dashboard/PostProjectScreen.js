@@ -22,11 +22,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import TealSafeAreaView from '../../components/Common/TealSafeAreaView';
 import UserAvatar from '../../components/UserAvatar';
 import { getCurrencyForUser } from '../../constants/countries';
 import api, { getMediaUrl } from '../../services/api';
 import { optimizeImageForUpload } from '../../utils/imageOptimizer';
+
+const DRAFT_PROJECT_STORAGE_KEY = '@fixam_post_project_draft';
 
 const PostProjectScreen = ({ navigation, route }) => {
   const { colors, isDarkMode } = useTheme();
@@ -40,6 +43,8 @@ const PostProjectScreen = ({ navigation, route }) => {
   // Mode: 'LIST' (shows published projects) vs 'FORM' (create new project)
   const [viewMode, setViewMode] = useState(editProject ? 'FORM' : 'LIST');
   const [loading, setLoading] = useState(false);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const isDraftLoadedRef = useRef(false);
 
   // Form States
   const [title, setTitle] = useState(editProject?.title || '');
@@ -50,6 +55,36 @@ const PostProjectScreen = ({ navigation, route }) => {
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
   const [modalKeyboardOffset, setModalKeyboardOffset] = useState(0);
   const categoryScrollRef = useRef(null);
+
+  // Restore draft on mount if not editing an existing project
+  useEffect(() => {
+    if (editProject) return;
+    const loadDraft = async () => {
+      try {
+        const savedDraftJson = await AsyncStorage.getItem(DRAFT_PROJECT_STORAGE_KEY);
+        if (savedDraftJson) {
+          const draft = JSON.parse(savedDraftJson);
+          if (draft && draft.hasDraftContent) {
+            if (draft.title) setTitle(draft.title);
+            if (draft.category) setCategory(draft.category);
+            if (draft.customCategory) setCustomCategory(draft.customCategory);
+            if (draft.isCustomCategorySelected !== undefined) setIsCustomCategorySelected(draft.isCustomCategorySelected);
+            if (draft.description) setDescription(draft.description);
+            if (Array.isArray(draft.imageUris)) setImageUris(draft.imageUris);
+            if (Array.isArray(draft.videoUris)) setVideoUris(draft.videoUris);
+            if (draft.tierData) setTierData(draft.tierData);
+            setHasRestoredDraft(true);
+            setViewMode('FORM');
+          }
+        }
+      } catch (e) {
+        console.log('[PostProjectScreen] Error loading draft:', e);
+      } finally {
+        isDraftLoadedRef.current = true;
+      }
+    };
+    loadDraft();
+  }, [editProject]);
 
   useEffect(() => {
     if (editProject) {
@@ -144,7 +179,35 @@ const PostProjectScreen = ({ navigation, route }) => {
 
   const currencyStr = getCurrencyForUser(user?.country || 'Cameroon');
 
-  const resetForm = () => {
+  // Auto-save project draft when fields change
+  useEffect(() => {
+    if (!isProjectDraftLoadedRef.current || editingId) return;
+    const hasContent = Boolean(
+      title.trim() ||
+      description.trim() ||
+      (imageUris && imageUris.length > 0) ||
+      (videoUris && videoUris.length > 0)
+    );
+
+    if (hasContent) {
+      const draftPayload = {
+        title,
+        category,
+        customCategory,
+        isCustomCategorySelected,
+        description,
+        imageUris,
+        videoUris,
+        tierData,
+        hasDraftContent: true,
+        savedAt: Date.now(),
+      };
+      AsyncStorage.setItem(DRAFT_PROJECT_STORAGE_KEY, JSON.stringify(draftPayload)).catch(() => {});
+      setHasRestoredDraft(true);
+    }
+  }, [title, category, customCategory, isCustomCategorySelected, description, imageUris, videoUris, tierData, editingId]);
+
+  const resetForm = async () => {
     setEditingId(null);
     setTitle('');
     setCategory(popularCategories?.[0]?.name || 'Web Development');
@@ -159,6 +222,8 @@ const PostProjectScreen = ({ navigation, route }) => {
       premium: { enabled: false, name: 'Premium Package', summary: '', price: '', deliveryDays: '', revisions: '', expressDeliveryDays: '', expressDeliveryPrice: '', features: [] },
     });
     setActiveTierId('standard');
+    setHasRestoredDraft(false);
+    await AsyncStorage.removeItem(DRAFT_PROJECT_STORAGE_KEY).catch(() => {});
   };
 
   // Filter provider's own projects
@@ -166,6 +231,7 @@ const PostProjectScreen = ({ navigation, route }) => {
     p => p.provider?.id === user?.id || p.provider?.user?.id === user?.id
   );
 
+  // Helper to upload a single local file URI to the backend storage
   // Helper to upload a single local file URI to the backend storage
   const uploadMediaToBackend = async (rawUri, type = 'file') => {
     if (!rawUri || typeof rawUri !== 'string') return null;
@@ -176,8 +242,13 @@ const PostProjectScreen = ({ navigation, route }) => {
     try {
       let uri = rawUri;
       if (type === 'image') {
-        const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 1200, quality: 0.7 });
-        uri = optimized.uri;
+        try {
+          const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 1200, quality: 0.75 });
+          if (optimized?.uri) uri = optimized.uri;
+        } catch (optErr) {
+          console.warn('[Image Optimizer] Skipped optimization:', optErr.message);
+          uri = rawUri;
+        }
       }
       const formData = new FormData();
       const filename = uri.split('/').pop() || (type === 'video' ? 'video.mp4' : 'image.jpg');
@@ -185,15 +256,22 @@ const PostProjectScreen = ({ navigation, route }) => {
       const ext = match ? match[1].toLowerCase() : (type === 'video' ? 'mp4' : 'jpg');
       const mimeType = type === 'video'
         ? `video/${ext === 'mov' ? 'quicktime' : (ext === '3gp' ? '3gpp' : ext)}`
-        : `image/${ext === 'png' ? 'png' : 'jpeg'}`;
+        : `image/${ext === 'png' ? 'png' : (ext === 'webp' ? 'webp' : 'jpeg')}`;
 
       formData.append('file', {
-        uri,
+        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
         name: filename,
         type: mimeType,
       });
 
-      const res = await api.post('/upload/portfolio', formData, { timeout: 60000 });
+      const res = await api.post('/upload/portfolio', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 90000,
+        transformRequest: (data) => data,
+      });
+
       const serverUrl = res.data?.url || res.data?.data?.url;
       if (!serverUrl) {
         throw new Error('Server did not return a valid media URL.');
@@ -201,32 +279,29 @@ const PostProjectScreen = ({ navigation, route }) => {
       return serverUrl;
     } catch (err) {
       console.log('[Media Upload Error]:', err?.response?.data || err.message);
-      throw new Error(`Failed to upload ${type}: ${err?.response?.data?.message || err.message}`);
+      const serverMsg = err?.response?.data?.message || err?.response?.data?.publicMessage || err.message;
+      throw new Error(`Failed to upload ${type}: ${serverMsg}`);
     }
   };
 
   // Pick Images from device
   const handlePickImages = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t('common.error'), t('permissions.mediaLibraryRequired', 'Media library permission is required to select photos.'));
-        return;
-      }
-
       setPickingMedia(true);
+      const mediaTypeOptions = ImagePicker.MediaTypeOptions?.Images || ['images'];
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: mediaTypeOptions,
         allowsMultipleSelection: true,
         quality: 0.8,
         allowsEditing: false,
       });
 
       if (!result.canceled && result.assets) {
-        const picked = result.assets.map(a => a.uri);
+        const picked = result.assets.map(a => a.uri).filter(Boolean);
         setImageUris(prev => [...prev, ...picked]);
       }
     } catch (err) {
+      console.error('[Pick Images Error]:', err);
       Alert.alert(t('common.error'), err.message || t('common.tryAgain'));
     } finally {
       setPickingMedia(false);
@@ -237,18 +312,13 @@ const PostProjectScreen = ({ navigation, route }) => {
     setImageUris(prev => prev.filter((_, idx) => idx !== index));
   };
 
-  // Pick Multiple Videos from device (Max 1 min duration per video, NO file size limit)
+  // Pick Multiple Videos from device (Max 1 min duration per video)
   const handlePickVideo = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t('common.error'), t('permissions.mediaLibraryRequired', 'Media library permission is required to select video.'));
-        return;
-      }
-
       setPickingMedia(true);
+      const mediaTypeOptions = ImagePicker.MediaTypeOptions?.Videos || ['videos'];
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['videos'],
+        mediaTypes: mediaTypeOptions,
         allowsMultipleSelection: true,
         videoMaxDuration: 60,
         quality: 0.8,
@@ -266,11 +336,14 @@ const PostProjectScreen = ({ navigation, route }) => {
             setPickingMedia(false);
             return;
           }
-          validVideos.push(asset.uri);
+          if (asset.uri) {
+            validVideos.push(asset.uri);
+          }
         }
         setVideoUris(prev => [...prev, ...validVideos]);
       }
     } catch (err) {
+      console.error('[Pick Video Error]:', err);
       Alert.alert(t('common.error'), err.message || t('common.tryAgain'));
     } finally {
       setPickingMedia(false);
@@ -408,6 +481,8 @@ const PostProjectScreen = ({ navigation, route }) => {
       };
 
       await publishProject(projectPayload);
+      await AsyncStorage.removeItem(DRAFT_PROJECT_STORAGE_KEY).catch(() => {});
+      setHasRestoredDraft(false);
       const successMsg = editingId
         ? t('project.updatedSuccess', 'Your project has been successfully updated!')
         : t('project.publishedSuccess', 'Your project has been successfully published!');
@@ -562,6 +637,54 @@ const PostProjectScreen = ({ navigation, route }) => {
           contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
         >
+          {/* In-Progress Draft Banner */}
+          {hasRestoredDraft && !editingId && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: isDarkMode ? '#134E4A' : '#CCFBF1',
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                marginBottom: 14,
+                borderWidth: 1,
+                borderColor: isDarkMode ? '#0D9488' : '#99F6E4',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                <MaterialCommunityIcons name="content-save-check-outline" size={18} color="#0D9488" />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: isDarkMode ? '#5EEAD4' : '#0F766E' }}>
+                  {t('project.draftAutoSaved', 'In-progress draft auto-saved')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert(
+                    t('project.clearDraftTitle', 'Discard Draft?'),
+                    t('project.clearDraftBody', 'Are you sure you want to discard this project draft?'),
+                    [
+                      { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+                      {
+                        text: t('common.discard', 'Discard'),
+                        style: 'destructive',
+                        onPress: async () => {
+                          await resetForm();
+                        }
+                      }
+                    ]
+                  );
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444' }}>
+                  {t('common.clear', 'Clear')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Project Title */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.title', 'Project Title')} *</Text>

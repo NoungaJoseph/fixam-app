@@ -62,12 +62,10 @@ const SupportChatButton = () => {
   };
 
   const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== 'granted') return;
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
-    if (result.canceled) return;
-    setUploading(true);
     try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+      if (result.canceled || !result.assets?.[0]) return;
+      setUploading(true);
       const asset = result.assets[0];
       const formData = new FormData();
       formData.append('file', {
@@ -77,6 +75,8 @@ const SupportChatButton = () => {
       });
       const upload = await uploadFile(formData);
       await send(upload.url || upload.data?.url, 'IMAGE');
+    } catch (err) {
+      console.log('Support pickImage error:', err);
     } finally {
       setUploading(false);
     }

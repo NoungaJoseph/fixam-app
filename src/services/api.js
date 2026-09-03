@@ -5,6 +5,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.usefixam.com/api';
 export const API_ORIGIN = BASE_URL.replace(/\/api\/?$/, '');
 
+let lowDataModeEnabled = false;
+AsyncStorage.getItem('data_saver_enabled')
+  .then((value) => {
+    lowDataModeEnabled = value === 'true';
+  })
+  .catch(() => {});
+
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 35000, // 35s timeout to support slow 2G/3G/4G connections
@@ -100,13 +107,27 @@ export const getMediaUrl = (value) => {
     return `${API_ORIGIN}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
   }
 
+  const maybeLowDataUrl = (url) => {
+    if (!lowDataModeEnabled) return url;
+    if (!/\/storage\/v1\/object\/public\//i.test(url)) return url;
+    if (!/\.(jpe?g|png|webp|gif)(\?|#|$)/i.test(url)) return url;
+
+    const separator = url.includes('?') ? '&' : '?';
+    if (/[?&](width|quality)=/i.test(url)) return url;
+    return `${url}${separator}width=720&quality=55`;
+  };
+
   // Handle standard http/https/data URLs
   if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('data:')) {
-    if (trimmed.startsWith('//')) return `https:${trimmed}`;
-    return trimmed;
+    if (trimmed.startsWith('//')) return maybeLowDataUrl(`https:${trimmed}`);
+    return maybeLowDataUrl(trimmed);
   }
 
   return `${API_ORIGIN}/${trimmed.startsWith('/') ? trimmed.substring(1) : trimmed}`;
+};
+
+export const setLowDataModePreference = (enabled) => {
+  lowDataModeEnabled = Boolean(enabled);
 };
 
 export const setAuthToken = (token) => {

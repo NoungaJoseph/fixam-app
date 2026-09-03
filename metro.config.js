@@ -18,9 +18,6 @@ config.resolver.blockList = [
   new RegExp(path.resolve(__dirname, 'dist').replace(/\\/g, '\\\\') + '[\\/\\\\]?'),
 ].concat(config.resolver.blockList || []);
 
-config.resolver.assetExts = config.resolver.assetExts
-  .filter(ext => ext !== 'svg')  // use react-native-svg instead
-  
 // Add source extensions
 config.resolver.sourceExts = [
   ...config.resolver.sourceExts,

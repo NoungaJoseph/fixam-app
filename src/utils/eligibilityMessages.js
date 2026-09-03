@@ -38,6 +38,12 @@ export const translateApiError = (error, t, fallbackKey = 'common.tryAgain') => 
   if (code === 'ACCOUNT_BLOCKED' || raw.includes('blocked')) {
     return t('eligibility.accountBlocked');
   }
+  if (code === 'MEDIA_UPLOAD_TEMPORARILY_UNAVAILABLE') {
+    return t('errors.MEDIA_UPLOAD_TEMPORARILY_UNAVAILABLE');
+  }
+  if (raw.includes('upload') || raw.includes('storage')) {
+    return t('errors.MEDIA_UPLOAD_TEMPORARILY_UNAVAILABLE');
+  }
   if (raw.includes('not available')) {
     return t('eligibility.notAvailable');
   }

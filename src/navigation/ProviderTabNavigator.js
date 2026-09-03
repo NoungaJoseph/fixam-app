@@ -61,6 +61,7 @@ import CoinPaymentSuccessScreen from '../screens/Wallet/CoinPaymentSuccessScreen
 import CoinPaymentFailedScreen from '../screens/Wallet/CoinPaymentFailedScreen';
 import BookingFormScreen from '../screens/Bookings/BookingFormScreen';
 import ProviderProfileScreen from '../screens/Providers/ProviderProfileScreen';
+import JobProposalScreen from '../screens/Provider/JobProposalScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -121,6 +122,7 @@ const HIDE_TAB_ROUTES = [
   'Selfie',
   'VerificationSuccess',
   'TaskDetails',
+  'JobProposal',
   'LiveTaskMap',
   'BookingForm',
   'FindJobs',
@@ -343,6 +345,7 @@ const ProviderTabNavigator = () => {
       <Drawer.Screen name="ProjectDetail" component={ProjectDetailScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProjectList" component={ProjectListScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProjectProposal" component={ProjectProposalScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="JobProposal" component={JobProposalScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfile" component={ProviderProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
 
       <Drawer.Screen

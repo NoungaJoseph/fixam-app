@@ -120,7 +120,7 @@ const RegisterScreen = ({ navigation, route }) => {
         role: role.toUpperCase(),
         providerProfile: role === 'provider' ? {
           skills: [], bio: '', rate: 0,
-          serviceArea: finalLocation,
+          serviceArea: '',
           experienceLevel: '', availability: {}
         } : undefined
       });

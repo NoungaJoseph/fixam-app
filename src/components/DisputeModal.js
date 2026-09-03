@@ -39,14 +39,8 @@ export default function DisputeModal({ visible, onClose, bookingId, onSuccess })
 
   const handlePickImage = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Permission Denied', 'Permission to access media library is required.');
-        return;
-      }
-
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ['images', 'videos'],
         quality: 0.7,
       });
 

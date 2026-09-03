@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import api, { getMediaUrl, setAuthToken, registerUnauthorizedListener } from '../services/api';
 import { requestStartupPermissions } from '../services/permissions';
+import { translate } from '../i18n/translate';
 
 const AuthContext = createContext();
 
@@ -206,6 +207,13 @@ export const AuthProvider = ({ children }) => {
       return res.data;
     } catch (error) {
       console.error('[uploadFile Error]:', error?.response?.data || error?.message);
+      const code = error?.response?.data?.code || error?.response?.data?.errorCode;
+      if (code) {
+        const translatedMessage = translate(`errors.${code}`);
+        if (translatedMessage && translatedMessage !== code) {
+          error.userMessage = translatedMessage;
+        }
+      }
       throw error;
     }
   };

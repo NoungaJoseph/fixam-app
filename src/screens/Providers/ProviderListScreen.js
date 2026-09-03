@@ -161,10 +161,17 @@ const ProviderListScreen = ({ route, navigation }) => {
       if (p.user?.country && user?.country && p.user.country !== user.country) {
         return false;
       }
-      const clientCity = (user?.location || '').toLowerCase().trim();
-      const providerCity = (p.serviceArea || '').toLowerCase().trim();
-      if (clientCity && providerCity && !providerCity.includes(clientCity) && !clientCity.includes(providerCity)) {
-        return false;
+      const clientLoc = (user?.location || '').toLowerCase().trim();
+      const providerArea = (p.serviceArea || '').toLowerCase().trim();
+      if (clientLoc && providerArea) {
+        const clientParts = clientLoc.split(',').map(s => s.trim()).filter(Boolean);
+        const providerParts = providerArea.split(',').map(s => s.trim()).filter(Boolean);
+        const hasOverlap = clientParts.some(cp => providerArea.includes(cp)) || 
+                           providerParts.some(pp => clientLoc.includes(pp)) ||
+                           providerArea.includes('all');
+        if (!hasOverlap && !providerArea.includes('douala') && !providerArea.includes('yaoundé') && !providerArea.includes('buea') && !providerArea.includes('bamenda')) {
+          return false;
+        }
       }
     }
 
@@ -179,15 +186,25 @@ const ProviderListScreen = ({ route, navigation }) => {
     if (isBoostedA && !isBoostedB) return -1;
     if (!isBoostedA && isBoostedB) return 1;
 
-    // Prioritize provider in client's city for physical jobs
+    // Prioritize provider in client's quarter/city for physical jobs
     const isRemote = isRemoteSkill(category || search);
     if (!isRemote) {
-      const clientCity = (user?.location || '').toLowerCase().trim();
-      if (clientCity) {
+      const clientLoc = (user?.location || '').toLowerCase().trim();
+      if (clientLoc) {
+        const quartersA = (a.serviceArea || '').toLowerCase().split(',').map(s => s.trim());
+        const quartersB = (b.serviceArea || '').toLowerCase().split(',').map(s => s.trim());
+        
+        // Exact quarter match priority (e.g. client is in "Kotto", provider operates in "Kotto")
+        const exactA = quartersA.some(q => q.length > 2 && clientLoc.includes(q));
+        const exactB = quartersB.some(q => q.length > 2 && clientLoc.includes(q));
+        if (exactA && !exactB) return -1;
+        if (!exactA && exactB) return 1;
+
+        // General city overlap priority
         const cityA = (a.serviceArea || '').toLowerCase();
         const cityB = (b.serviceArea || '').toLowerCase();
-        const matchesA = cityA.includes(clientCity);
-        const matchesB = cityB.includes(clientCity);
+        const matchesA = cityA.includes(clientLoc) || clientLoc.includes(cityA);
+        const matchesB = cityB.includes(clientLoc) || clientLoc.includes(cityB);
         if (matchesA && !matchesB) return -1;
         if (!matchesA && matchesB) return 1;
       }

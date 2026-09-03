@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator, TextInput, Modal, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator, TextInput, Modal, TouchableWithoutFeedback, Keyboard, Linking, Image } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -46,6 +46,27 @@ const JobStatusScreen = ({ route, navigation }) => {
   const [selectingAssignmentId, setSelectingAssignmentId] = useState(null);
   const [activeDispute, setActiveDispute] = useState(incomingJob.disputes?.[0] || null);
   const [disputeModalVisible, setDisputeModalVisible] = useState(false);
+  const [previewImageUri, setPreviewImageUri] = useState(null);
+
+  const handleOpenAttachment = async (mediaUrl, isPdf) => {
+    try {
+      if (isPdf) {
+        const canOpen = await Linking.canOpenURL(mediaUrl).catch(() => true);
+        if (canOpen) {
+          await Linking.openURL(mediaUrl);
+        } else {
+          Alert.alert(t('common.error'), t('jobs.cannotOpenFile', 'Unable to open file link.'));
+        }
+      } else {
+        setPreviewImageUri(mediaUrl);
+      }
+    } catch (err) {
+      console.error('Error opening attachment:', err);
+      Linking.openURL(mediaUrl).catch(() => {
+        Alert.alert(t('common.error'), t('jobs.cannotOpenFile', 'Unable to open file link.'));
+      });
+    }
+  };
 
   // Sync state whenever the active job ID or incoming job changes
   useEffect(() => {
@@ -383,6 +404,20 @@ const JobStatusScreen = ({ route, navigation }) => {
                       </View>
                     </TouchableOpacity>
 
+                    {/* Proposed Price / Budget */}
+                    {Boolean(assignment.proposedBudget) && (
+                      <View style={[styles.proposedBudgetBadge, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.15)' : '#E6FDF3', borderColor: colors.accent }]}>
+                        <MaterialCommunityIcons name="cash" size={16} color={colors.accent} />
+                        <Text style={[styles.proposedBudgetLabel, { color: colors.textSecondary }]}>
+                          {t('jobs.proposedPrice', 'Proposed Price')}:
+                        </Text>
+                        <Text style={[styles.proposedBudgetValue, { color: colors.accent }]}>
+                          {Number(assignment.proposedBudget).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Cover Letter */}
                     {assignment.coverLetter ? (
                       <View style={[styles.coverLetterContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: colors.border }]}>
                         <Text style={[styles.coverLetterTitle, { color: colors.textSecondary }]}>
@@ -393,6 +428,60 @@ const JobStatusScreen = ({ route, navigation }) => {
                         </Text>
                       </View>
                     ) : null}
+
+                    {/* Attached CV / Documents / Photos */}
+                    {(() => {
+                      let mediaList = [];
+                      if (Array.isArray(assignment.proposalMedia)) {
+                        mediaList = assignment.proposalMedia;
+                      } else if (typeof assignment.proposalMedia === 'string') {
+                        try {
+                          mediaList = JSON.parse(assignment.proposalMedia);
+                        } catch (_) {}
+                      }
+
+                      if (!mediaList || mediaList.length === 0) return null;
+
+                      return (
+                        <View style={[styles.proposalMediaContainer, { borderColor: colors.border, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.02)' : '#FAFAFA' }]}>
+                          <Text style={[styles.coverLetterTitle, { color: colors.textSecondary, marginBottom: 8 }]}>
+                            {t('jobs.attachedDocuments', 'Attached CV / Portfolio / Documents')}
+                          </Text>
+                          <View style={{ gap: 8 }}>
+                            {mediaList.map((media, idx) => {
+                              const rawUrl = media?.url || (typeof media === 'string' ? media : '');
+                              const mediaUrl = getMediaUrl(rawUrl);
+                              const isPdf = (media?.type && media.type.includes('pdf')) || (media?.name && media.name.toLowerCase().endsWith('.pdf')) || rawUrl.toLowerCase().endsWith('.pdf');
+                              const fileName = media?.name || (isPdf ? 'PDF Resume / CV' : `Photo Attachment ${idx + 1}`);
+
+                              return (
+                                <TouchableOpacity
+                                  key={idx}
+                                  style={[styles.mediaAttachmentItem, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: colors.border }]}
+                                  onPress={() => handleOpenAttachment(mediaUrl, isPdf)}
+                                  activeOpacity={0.7}
+                                >
+                                  <MaterialCommunityIcons
+                                    name={isPdf ? 'file-pdf-box' : 'file-image'}
+                                    size={26}
+                                    color={isPdf ? '#EF4444' : '#0D9488'}
+                                  />
+                                  <View style={{ flex: 1, marginLeft: 10 }}>
+                                    <Text style={[styles.mediaItemName, { color: colors.text }]} numberOfLines={1}>
+                                      {fileName}
+                                    </Text>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                                      {isPdf ? t('jobs.tapToOpenPdf', 'Tap to open & view PDF document') : t('jobs.tapToViewPhoto', 'Tap to view full image')}
+                                    </Text>
+                                  </View>
+                                  <MaterialCommunityIcons name="open-in-new" size={18} color={colors.accent} />
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      );
+                    })()}
                     
                     <View style={styles.applicationActionRow}>
                       <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.border, flex: 1 }]} onPress={() => navigation.navigate('ProviderProfile', { provider })}>
@@ -815,6 +904,24 @@ const JobStatusScreen = ({ route, navigation }) => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Fullscreen Photo Preview Modal */}
+      <Modal visible={Boolean(previewImageUri)} transparent animationType="fade" onRequestClose={() => setPreviewImageUri(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}
+            onPress={() => setPreviewImageUri(null)}
+          >
+            <MaterialCommunityIcons name="close" size={26} color="#FFF" />
+          </TouchableOpacity>
+          {previewImageUri && (
+            <Image
+              source={{ uri: previewImageUri }}
+              style={{ width: '100%', height: '80%', resizeMode: 'contain' }}
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -931,6 +1038,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
+  },
+  proposedBudgetBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 6,
+  },
+  proposedBudgetLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  proposedBudgetValue: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  proposalMediaContainer: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 15,
+    width: '100%',
+  },
+  mediaAttachmentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  mediaItemName: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

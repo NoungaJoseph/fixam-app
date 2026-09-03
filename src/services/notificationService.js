@@ -1,7 +1,10 @@
 import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
+
+const FCM_TOKEN_SYNC_PENDING_KEY = 'fixam:fcm-token-sync-pending:v1';
 
 class NotificationService {
   constructor() {
@@ -154,9 +157,20 @@ class NotificationService {
   async syncTokenWithBackend(fcmToken) {
     try {
       await api.put('/users/fcm-token', { fcmToken });
+      await AsyncStorage.removeItem(FCM_TOKEN_SYNC_PENDING_KEY).catch(() => {});
       console.log('[FCM] Token synced to backend successfully');
+      return true;
     } catch (error) {
+      await AsyncStorage.setItem(FCM_TOKEN_SYNC_PENDING_KEY, fcmToken).catch(() => {});
       console.log('[FCM] Token sync deferred (offline/network):', error?.response?.data || error.message);
+      return false;
+    }
+  }
+
+  async retryPendingTokenSync() {
+    const pendingToken = await AsyncStorage.getItem(FCM_TOKEN_SYNC_PENDING_KEY).catch(() => null);
+    if (pendingToken) {
+      await this.syncTokenWithBackend(pendingToken);
     }
   }
 
@@ -276,8 +290,11 @@ class NotificationService {
   }
 
   async initialize() {
-    if (this._initialized) return;
-    this._initialized = true;
+    if (this._initialized) {
+      await this.retryPendingTokenSync();
+      await this.getFCMToken();
+      return;
+    }
 
     await this.clearBadge().catch(console.error);
 
@@ -285,6 +302,7 @@ class NotificationService {
     if (hasPermission) {
       await this.getFCMToken();
       this.setupListeners();
+      this._initialized = true;
     }
   }
 }

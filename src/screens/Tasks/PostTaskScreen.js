@@ -1,9 +1,10 @@
 // Post Task Screen with multi-step form and admin approval flow
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   ScrollView, StatusBar, Modal, Alert, Image
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,8 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { translateService, translateStatus } from '../../i18n/translate';
 import MaterialsListEditor from '../../components/MaterialsListEditor';
+
+const DRAFT_STORAGE_KEY = '@fixam_post_task_draft';
 
 const tasksHeroImage = require('../../../assets/tasks_hero.png');
 
@@ -121,12 +124,20 @@ const formatCardDate = (job) => {
 
 const calculateJobCoinCost = (providersCount) => {
   const count = parseInt(providersCount) || 1;
-  if (count >= 1 && count <= 5) return 1;
-  if (count >= 6 && count <= 10) return 2;
-  if (count >= 11 && count <= 20) return 3;
-  if (count >= 21 && count <= 30) return 4;
-  return 5;
+  if (count === 1) return 1;
+  if (count === 2) return 2;
+  if (count >= 3 && count <= 6) return 3;
+  if (count >= 7 && count <= 9) return 4;
+  return 5; // 10 and above
 };
+
+const PROVIDER_TIERS = [
+  { id: '1', value: 1, label: '1', fullLabel: '1 Provider', coins: 1 },
+  { id: '2', value: 2, label: '2', fullLabel: '2 Providers', coins: 2 },
+  { id: '3', value: 3, label: '3+', fullLabel: '3+ Providers (3–6)', coins: 3 },
+  { id: '7', value: 7, label: '7+', fullLabel: '7+ Providers (7–9)', coins: 4 },
+  { id: '10', value: 10, label: '10+', fullLabel: '10+ Providers', coins: 5 },
+];
 
 const PostTaskScreen = ({ route, navigation }) => {
   const { isDarkMode, colors } = useTheme();
@@ -138,10 +149,16 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [step, setStep] = useState('details'); // 'details', 'review', 'success'
   const [taskMode, setTaskMode] = useState(route?.params?.startOnPost ? 'post' : 'tasks');
   const [editingJob, setEditingJob] = useState(null);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const isDraftLoadedRef = useRef(false);
+
   const [selectedCat, setSelectedCat] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
   const [budget, setBudget] = useState('50000');
   const [budgetMin, setBudgetMin] = useState('5000');
   const [budgetMax, setBudgetMax] = useState('15000');
@@ -152,7 +169,8 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [categorySearch, setCategorySearch] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [whatNeedsDone, setWhatNeedsDone] = useState('');
-  const [providersNeeded, setProvidersNeeded] = useState('');
+  const [providersNeeded, setProvidersNeeded] = useState('1');
+  const [showProvidersPicker, setShowProvidersPicker] = useState(false);
   const [importantDetails, setImportantDetails] = useState('');
   const [taskScope, setTaskScope] = useState('');
   const [selectedPreferences, setSelectedPreferences] = useState(['verified', 'fast', 'rated', 'today']);
@@ -168,16 +186,126 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [materialsList, setMaterialsList] = useState([]);
   const [requiresDiagnosis, setRequiresDiagnosis] = useState(false);
 
+  // Load draft from AsyncStorage on mount
+  useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        if (route?.params?.resetKey) {
+          await AsyncStorage.removeItem(DRAFT_STORAGE_KEY);
+          resetForm();
+          isDraftLoadedRef.current = true;
+          return;
+        }
+
+        const savedDraftJson = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
+        if (savedDraftJson && !editingJob) {
+          const draft = JSON.parse(savedDraftJson);
+          if (draft && draft.hasDraftContent) {
+            if (draft.selectedCat) setSelectedCat(draft.selectedCat);
+            if (draft.title) setTitle(draft.title);
+            if (draft.description) setDescription(draft.description);
+            if (draft.location) setLocation(draft.location);
+            if (draft.latitude) setLatitude(draft.latitude);
+            if (draft.longitude) setLongitude(draft.longitude);
+            if (draft.budget) setBudget(draft.budget);
+            if (draft.budgetMin) setBudgetMin(draft.budgetMin);
+            if (draft.budgetMax) setBudgetMax(draft.budgetMax);
+            if (draft.budgetMode) setBudgetMode(draft.budgetMode);
+            if (draft.categorySearch) setCategorySearch(draft.categorySearch);
+            if (draft.whatNeedsDone) setWhatNeedsDone(draft.whatNeedsDone);
+            if (draft.providersNeeded) setProvidersNeeded(draft.providersNeeded);
+            if (draft.importantDetails) setImportantDetails(draft.importantDetails);
+            if (draft.taskScope) setTaskScope(draft.taskScope);
+            if (Array.isArray(draft.selectedPreferences)) setSelectedPreferences(draft.selectedPreferences);
+            if (draft.priority) setPriority(draft.priority);
+            if (draft.isRemote !== undefined) setIsRemote(draft.isRemote);
+            if (Array.isArray(draft.materialsList)) setMaterialsList(draft.materialsList);
+            if (draft.requiresDiagnosis !== undefined) setRequiresDiagnosis(draft.requiresDiagnosis);
+            if (draft.scheduledDate) {
+              const d = new Date(draft.scheduledDate);
+              if (!Number.isNaN(d.getTime())) setScheduledDate(d);
+            }
+            if (draft.scheduledTime) {
+              const tDate = new Date(draft.scheduledTime);
+              if (!Number.isNaN(tDate.getTime())) setScheduledTime(tDate);
+            }
+            setHasRestoredDraft(true);
+            if (route?.params?.startOnPost) {
+              setTaskMode('post');
+            }
+          }
+        }
+      } catch (err) {
+        console.log('[PostTaskScreen] Error loading draft:', err);
+      } finally {
+        isDraftLoadedRef.current = true;
+      }
+    };
+
+    loadDraft();
+  }, [route?.params?.resetKey]);
+
   useEffect(() => {
     if (route?.params?.startOnPost) {
-      startNewTask();
-    } else {
-      setTaskMode('tasks');
+      setTaskMode('post');
       setStep('details');
     }
-  }, [route?.params?.startOnPost, route?.params?.resetKey]);
+  }, [route?.params?.startOnPost]);
 
-  const resetForm = () => {
+  // Auto-save in-progress draft to AsyncStorage
+  useEffect(() => {
+    if (!isDraftLoadedRef.current || editingJob) return;
+
+    const hasContent = Boolean(
+      title.trim() ||
+      description.trim() ||
+      selectedCat ||
+      whatNeedsDone.trim() ||
+      importantDetails.trim() ||
+      taskScope.trim() ||
+      location.trim() ||
+      (materialsList && materialsList.length > 0)
+    );
+
+    if (hasContent) {
+      const draftPayload = {
+        selectedCat,
+        title,
+        description,
+        location,
+        latitude,
+        longitude,
+        budget,
+        budgetMin,
+        budgetMax,
+        budgetMode,
+        categorySearch,
+        whatNeedsDone,
+        providersNeeded,
+        importantDetails,
+        taskScope,
+        selectedPreferences,
+        priority,
+        isRemote,
+        materialsList,
+        requiresDiagnosis,
+        scheduledDate: scheduledDate?.toISOString ? scheduledDate.toISOString() : null,
+        scheduledTime: scheduledTime?.toISOString ? scheduledTime.toISOString() : null,
+        hasDraftContent: true,
+        savedAt: Date.now(),
+      };
+      AsyncStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftPayload)).catch(() => {});
+      setHasRestoredDraft(true);
+    }
+  }, [
+    selectedCat, title, description, location, latitude, longitude,
+    budget, budgetMin, budgetMax, budgetMode, categorySearch, whatNeedsDone,
+    providersNeeded, importantDetails, taskScope, selectedPreferences,
+    priority, isRemote, materialsList, requiresDiagnosis, scheduledDate,
+    scheduledTime, editingJob
+  ]);
+
+  const resetForm = async () => {
     setEditingJob(null);
     setSelectedCat('');
     setTitle('');
@@ -191,28 +319,46 @@ const PostTaskScreen = ({ route, navigation }) => {
     setCategorySearch('');
     setShowCategoryPicker(false);
     setWhatNeedsDone('');
-    setProvidersNeeded('');
+    setProvidersNeeded('1');
     setImportantDetails('');
     setTaskScope('');
     setSelectedPreferences(['verified', 'fast', 'rated', 'today']);
     setDetailEditor(null);
     setPriority('normal');
     setIsRemote(false);
+    setMaterialsList([]);
+    setRequiresDiagnosis(false);
     setScheduledDate(new Date());
     setScheduledTime(new Date());
+    setHasRestoredDraft(false);
+    await AsyncStorage.removeItem(DRAFT_STORAGE_KEY).catch(() => {});
   };
 
   const startNewTask = () => {
-    resetForm();
     setTaskMode('post');
     setStep('details');
   };
 
+  const handleClearDraft = async () => {
+    Alert.alert(
+      t('jobs.clearDraftTitle', 'Discard Draft?'),
+      t('jobs.clearDraftBody', 'Are you sure you want to clear your in-progress task draft?'),
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('common.discard', 'Discard'),
+          style: 'destructive',
+          onPress: async () => {
+            await resetForm();
+          }
+        }
+      ]
+    );
+  };
+
   const navigateToCreateTask = () => {
-    navigation.navigate('Create Task', {
-      screen: 'PostTask',
-      params: { startOnPost: true, resetKey: Date.now() },
-    });
+    setTaskMode('post');
+    setStep('details');
   };
 
   const startEditTask = (job) => {
@@ -236,6 +382,8 @@ const PostTaskScreen = ({ route, navigation }) => {
     setDetailEditor(null);
     setPriority(job.priority || 'normal');
     setIsRemote(job.isRemote ?? false);
+    setMaterialsList(Array.isArray(job.materialsList) ? job.materialsList : []);
+    setRequiresDiagnosis(Boolean(job.requiresDiagnosis));
     setScheduledDate(Number.isNaN(scheduled.getTime()) ? new Date() : scheduled);
     setScheduledTime(Number.isNaN(scheduled.getTime()) ? new Date() : scheduled);
     setTaskMode('post');
@@ -323,11 +471,6 @@ const PostTaskScreen = ({ route, navigation }) => {
   const pickTaskPhoto = async () => {
     if (selectedPhotos.length >= 5) return;
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (permission.status !== 'granted') {
-        Alert.alert(t('jobs.permissionDenied'), t('jobs.photoPermissionBody'));
-        return;
-      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
@@ -442,6 +585,8 @@ const PostTaskScreen = ({ route, navigation }) => {
         await api.put(`/jobs/${editingJob.id}`, payload);
       } else {
         await api.post('/jobs', payload);
+        await AsyncStorage.removeItem(DRAFT_STORAGE_KEY).catch(() => {});
+        setHasRestoredDraft(false);
       }
       await fetchAppData?.(true);
       setStep('success');
@@ -729,6 +874,35 @@ const PostTaskScreen = ({ route, navigation }) => {
               })}
             </View>
 
+            {hasRestoredDraft && !editingJob && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: isDarkMode ? '#134E4A' : '#CCFBF1',
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  marginBottom: 12,
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? '#0D9488' : '#99F6E4',
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <MaterialCommunityIcons name="content-save-check-outline" size={18} color="#0D9488" />
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: isDarkMode ? '#5EEAD4' : '#0F766E' }}>
+                    {t('jobs.draftAutoSaved', 'In-progress draft auto-saved')}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={handleClearDraft} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444' }}>
+                    {t('common.clear', 'Clear')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <LinearGradient
               colors={['#0D9488', '#2180F3']}
               start={{ x: 0, y: 0 }}
@@ -848,17 +1022,77 @@ const PostTaskScreen = ({ route, navigation }) => {
               )}
 
               <View style={styles.createFieldGroup}>
-                <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.providersNeeded', 'Number of Providers Needed')}</Text>
-                <TextInput
-                  style={[styles.createInput, { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#FFF' }]}
-                  placeholder={t('jobs.providersNeededPlaceholder', 'e.g. 2')}
-                  placeholderTextColor="#94A3B8"
-                  value={providersNeeded}
-                  onChangeText={setProvidersNeeded}
-                  keyboardType="numeric"
-                />
-                <Text style={styles.fieldHint}>{t('jobs.providersNeededHint', 'How many professionals do you need for this task?')}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={[styles.createSectionLabel, { color: colors.text, marginBottom: 0 }]}>{t('jobs.providersNeeded', 'Number of Providers Needed')}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent }}>
+                    {calculateJobCoinCost(providersNeeded)} {calculateJobCoinCost(providersNeeded) === 1 ? 'Coin' : 'Coins'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.createInput, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#FFF' }]}
+                  onPress={() => setShowProvidersPicker(true)}
+                >
+                  <Text style={{ color: colors.text, fontSize: 15, fontWeight: '700' }}>
+                    {PROVIDER_TIERS.find(t => String(t.value) === String(providersNeeded) || String(t.id) === String(providersNeeded))?.fullLabel || `${providersNeeded} Providers`}
+                  </Text>
+                  <MaterialCommunityIcons name="chevron-down" size={22} color={colors.textSecondary} />
+                </TouchableOpacity>
+                <Text style={styles.fieldHint}>{t('jobs.providersNeededTierHint', 'Cost: 1 = 1 coin, 2 = 2 coins, 3+ = 3 coins, 7+ = 4 coins, 10+ = 5 coins')}</Text>
               </View>
+
+              <Modal visible={showProvidersPicker} transparent animationType="fade" onRequestClose={() => setShowProvidersPicker(false)}>
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 24 }} 
+                  activeOpacity={1} 
+                  onPress={() => setShowProvidersPicker(false)}
+                >
+                  <TouchableOpacity 
+                    activeOpacity={1} 
+                    style={{ width: '100%', maxWidth: 400, borderRadius: 20, padding: 20, backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderWidth: 1, borderColor: colors.border }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#E2E8F0' }}>
+                      <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>{t('jobs.selectProvidersNeeded', 'Select Number of Providers')}</Text>
+                      <TouchableOpacity onPress={() => setShowProvidersPicker(false)}>
+                        <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={{ paddingVertical: 4 }}>
+                      {PROVIDER_TIERS.map(tier => {
+                        const isSelected = String(providersNeeded) === String(tier.value) || String(providersNeeded) === String(tier.id);
+                        return (
+                          <TouchableOpacity
+                            key={tier.id}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              paddingVertical: 14,
+                              paddingHorizontal: 16,
+                              borderRadius: 12,
+                              backgroundColor: isSelected ? (isDarkMode ? 'rgba(13, 148, 136, 0.2)' : '#E6FDF3') : 'transparent',
+                              marginBottom: 6,
+                            }}
+                            onPress={() => {
+                              setProvidersNeeded(String(tier.value));
+                              setShowProvidersPicker(false);
+                            }}
+                          >
+                            <View>
+                              <Text style={{ fontSize: 15, fontWeight: '800', color: isSelected ? colors.accent : colors.text }}>
+                                {tier.fullLabel}
+                              </Text>
+                              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                                {tier.coins} {tier.coins === 1 ? 'Coin' : 'Coins'} deducted
+                              </Text>
+                            </View>
+                            {isSelected && <MaterialCommunityIcons name="check-circle" size={22} color={colors.accent} />}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </Modal>
 
               <View style={styles.createFieldGroup}>
                 <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.budget')}</Text>

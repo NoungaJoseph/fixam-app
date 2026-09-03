@@ -15,10 +15,11 @@ import {
   Share 
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api';
+import api, { setLowDataModePreference } from '../../services/api';
 
 const DataUsageScreen = ({ navigation }) => {
   const { colors } = useTheme();
@@ -52,6 +53,7 @@ const DataUsageScreen = ({ navigation }) => {
         ]);
 
         if (lowData !== null) setLowDataMode(lowData === 'true');
+        setLowDataModePreference(lowData === 'true');
         if (analytics !== null) setShareAnalytics(analytics === 'true');
         if (personal !== null) setPersonalization(personal === 'true');
       } catch (err) {
@@ -64,6 +66,7 @@ const DataUsageScreen = ({ navigation }) => {
   // Toggle Handlers
   const handleToggleLowData = async (val) => {
     setLowDataMode(val);
+    setLowDataModePreference(val);
     try {
       await AsyncStorage.setItem('data_saver_enabled', val ? 'true' : 'false');
     } catch (err) {
@@ -103,6 +106,10 @@ const DataUsageScreen = ({ navigation }) => {
             try {
               // Clear local search cache keys
               await AsyncStorage.removeItem('recent_searches');
+              await Promise.all([
+                Image.clearDiskCache?.(),
+                Image.clearMemoryCache?.(),
+              ]);
               // Show success message
               Alert.alert(
                 t('common.success', 'Success'), 

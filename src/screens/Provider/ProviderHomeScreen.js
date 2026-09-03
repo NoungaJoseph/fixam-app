@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  TextInput, Platform, Image, Dimensions, Switch, Modal, ActivityIndicator
+  TextInput, Platform, Image, Dimensions, Switch, Modal, ActivityIndicator, Alert
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 import { getCurrencyForUser } from '../../constants/countries';
 import { useLanguage } from '../../context/LanguageContext';
 import { getProviderProgress } from '../../utils/providerProgress';
@@ -18,6 +19,8 @@ import { translateService } from '../../i18n/translate';
 import WelcomeModal from '../../components/Common/WelcomeModal';
 import ProviderTour from '../../components/Common/ProviderTour';
 import NewsTicker from '../../components/NewsTicker';
+import * as ImagePicker from 'expo-image-picker';
+import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
 const { width } = Dimensions.get('window');
 
@@ -70,7 +73,7 @@ const ProviderHomeScreen = ({ navigation }) => {
     walletBalance, visibleJobs, notificationCount, unreadCount, isInitialLoad, myBookingsList,
     favoriteJobIds, toggleFavoriteJob, hideJob
   } = useAppContext();
-  const { user, isNewUser, clearNewUser } = useAuth();
+  const { user, isNewUser, clearNewUser, refreshUser, uploadFile, updateProfile } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
 
@@ -261,6 +264,114 @@ const ProviderHomeScreen = ({ navigation }) => {
     }[card.id];
     return { ...card, step: copy[0], title: copy[1], desc: copy[2] };
   });
+
+  const [claimingBonus, setClaimingBonus] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handlePickAvatar = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets || result.assets.length === 0) return;
+
+      setUploadingAvatar(true);
+      const rawUri = result.assets[0].uri;
+      const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 800, quality: 0.7 });
+      const uri = optimized.uri;
+      const filename = uri.split('/').pop() || `avatar-${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const ext = match ? match[1].toLowerCase() : 'jpg';
+      const type = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : (ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : `image/${ext}`));
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        name: filename,
+        type,
+      });
+      formData.append('type', 'avatar');
+
+      const res = await uploadFile(formData, '/upload/profile', { timeout: 60000 });
+      const avatarUrl = res?.url || res?.data?.url;
+      if (avatarUrl) {
+        await updateProfile({ avatar: avatarUrl });
+        if (refreshUser) await refreshUser();
+        Alert.alert(t('common.success', 'Success'), t('profileDetail.pictureUpdated', 'Profile picture updated!'));
+      }
+    } catch (err) {
+      console.log('Avatar upload error:', err);
+      Alert.alert(t('common.error', 'Error'), err?.response?.data?.message || err.message || t('profileDetail.imageUploadFailed', 'Could not upload profile picture.'));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const setupSteps = useMemo(() => [
+    {
+      key: 'avatar',
+      completed: Boolean(user?.avatar && user.avatar.trim().length > 0),
+      label: t('profileDetail.addProfilePicture', 'Add Profile Picture'),
+      action: handlePickAvatar
+    },
+    {
+      key: 'bio',
+      completed: Boolean(user?.providerProfile?.bio && user.providerProfile.bio.trim().length > 0),
+      label: t('profileDetail.addBio', 'Add Bio'),
+      action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' })
+    },
+    {
+      key: 'skills',
+      completed: Boolean(user?.providerProfile?.skills && user.providerProfile.skills.length > 0),
+      label: t('profileDetail.addSkills', 'Add Skills'),
+      action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'skills' })
+    },
+    {
+      key: 'serviceArea',
+      completed: Boolean(
+        user?.providerProfile?.serviceArea &&
+        user.providerProfile.serviceArea.trim().length > 0 &&
+        user.providerProfile.serviceArea.toLowerCase().trim() !== (user?.location || '').toLowerCase().trim()
+      ),
+      label: t('profileDetail.addServiceArea', 'Set Service Areas (Quarters)'),
+      action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'serviceArea' })
+    },
+    {
+      key: 'portfolio',
+      completed: Boolean((user?.providerProfile?.portfolio || []).length > 0),
+      label: t('profileDetail.addProject', 'Add Portfolio Project'),
+      action: () => navigation.navigate('ProviderProfileEditItem', { type: 'project' })
+    },
+    {
+      key: 'verification',
+      completed: user?.providerProfile?.verification === 'VERIFIED',
+      label: t('profileDetail.verifyId', 'Verify ID'),
+      action: () => navigation.navigate('Verification')
+    },
+  ], [user?.avatar, user?.providerProfile, navigation, t]);
+
+  const completedStepsCount = setupSteps.filter(s => s.completed).length;
+  const setupProgress = Math.round((completedStepsCount / setupSteps.length) * 100);
+  const showSetupWidget = !user?.providerProfile?.setupBonusClaimed || setupProgress < 100;
+
+  const handleClaimSetupBonus = async () => {
+    if (claimingBonus) return;
+    try {
+      setClaimingBonus(true);
+      const res = await api.post('/providers/claim-setup-bonus');
+      if (res.data?.success) {
+        Alert.alert(t('profile.success', 'Success'), res.data.message || t('profile.bonusClaimed', 'Bonus claimed successfully!'));
+        if (refreshUser) await refreshUser();
+      }
+    } catch (err) {
+      Alert.alert(t('common.error', 'Error'), err.response?.data?.message || t('profile.bonusError', 'Could not claim bonus.'));
+    } finally {
+      setClaimingBonus(false);
+    }
+  };
 
   const handleScroll = (event) => {
     const slide = Math.round(event.nativeEvent.contentOffset.x / (width - 60));
@@ -477,6 +588,69 @@ const ProviderHomeScreen = ({ navigation }) => {
             </View>
           </View>
         </LinearGradient>
+
+        {/* ── COMPLETE PROFILE / SETUP PROGRESS WIDGET ── */}
+        {showSetupWidget && (
+          <View style={[styles.setupWidget, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
+            <View style={styles.setupHeaderRow}>
+              <MaterialCommunityIcons name="shield-account-outline" size={22} color="#0D9488" />
+              <Text style={[styles.setupTitle, { color: colors.text }]}>
+                {t('profile.completeSetup', 'Complete Profile (Bonus 1 Coin)')}
+              </Text>
+            </View>
+
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBarFill, { backgroundColor: '#0D9488', width: `${setupProgress}%` }]} />
+            </View>
+            <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+              {setupProgress}% {t('common.completed', 'Completed')}
+            </Text>
+
+            <View style={styles.setupStepsContainer}>
+              {setupSteps.map((step, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.setupStepRow}
+                  onPress={step.action}
+                  disabled={step.completed}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons
+                    name={step.completed ? "check-circle" : "checkbox-blank-circle-outline"}
+                    size={20}
+                    color={step.completed ? "#10B981" : colors.textSecondary}
+                  />
+                  <Text style={[
+                    styles.setupStepLabel,
+                    {
+                      color: step.completed ? colors.textSecondary : colors.text,
+                      textDecorationLine: step.completed ? 'line-through' : 'none'
+                    }
+                  ]}>
+                    {step.label}
+                  </Text>
+                  {!step.completed && (
+                    <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {setupProgress === 100 && !user?.providerProfile?.setupBonusClaimed && (
+              <TouchableOpacity
+                style={[styles.claimBonusBtn, { backgroundColor: '#0D9488' }]}
+                onPress={handleClaimSetupBonus}
+                disabled={claimingBonus}
+              >
+                {claimingBonus ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.claimBonusText}>{t('profile.claimBonus', 'Claim 1 Coin Bonus')}</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* ÔöÇÔöÇ 4. UNIFIED AVAILABILITY & QUICK NAV CARD ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
         <View style={[styles.levelProgressCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -1412,6 +1586,70 @@ const styles = StyleSheet.create({
   },
   emptySub: {
     fontSize: 13,
+  },
+
+  // Setup / Complete Profile Widget
+  setupWidget: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 18,
+  },
+  setupHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  setupTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    flex: 1,
+    marginLeft: 8,
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 14,
+    textAlign: 'right',
+  },
+  setupStepsContainer: {
+    marginBottom: 4,
+    gap: 8,
+  },
+  setupStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  setupStepLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 10,
+    flex: 1,
+  },
+  claimBonusBtn: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  claimBonusText: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 14,
   },
 });
 

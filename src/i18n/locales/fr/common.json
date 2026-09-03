@@ -259,7 +259,8 @@
     "bookingFailed": "Impossible de créer la réservation.",
     "requestFailed": "La demande a échoué",
     "generic": "Une erreur est survenue. Veuillez réessayer.",
-    "apiFallback": "Veuillez réessayer."
+    "apiFallback": "Veuillez réessayer.",
+    "MEDIA_UPLOAD_TEMPORARILY_UNAVAILABLE": "Nous n'avons pas pu téléverser votre fichier pour le moment. Vérifiez votre connexion, puis réessayez."
   },
   "statuses": {
     "PENDING": "En attente",

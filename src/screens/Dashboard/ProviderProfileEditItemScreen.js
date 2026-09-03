@@ -130,36 +130,43 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleSelectMultipleImage = async () => {
+  const handleSelectMultipleMedia = async () => {
     try {
+      const mediaTypeOptions = ImagePicker.MediaTypeOptions?.All || ['images', 'videos'];
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: mediaTypeOptions,
         allowsEditing: false,
-        quality: 0.7,
+        videoMaxDuration: 60,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets?.[0]?.uri) {
-        const uri = result.assets[0].uri;
+        const asset = result.assets[0];
+        const uri = asset.uri;
+        const isVideo = asset.type === 'video' || (asset.mimeType && asset.mimeType.startsWith('video/'));
         setUploadingField('imageUrl');
         
-        const filename = uri.split('/').pop();
+        const filename = uri.split('/').pop() || (isVideo ? 'project_video.mp4' : 'project_image.jpg');
         const match = /\.(\w+)$/.exec(filename);
-        const ext = match ? match[1].toLowerCase() : 'jpg';
-        const type = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+        const ext = match ? match[1].toLowerCase() : (isVideo ? 'mp4' : 'jpg');
+        const mimeType = isVideo
+          ? `video/${ext === 'mov' ? 'quicktime' : (ext === '3gp' ? '3gpp' : ext)}`
+          : (ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg'));
 
         const formData = new FormData();
         formData.append('file', {
-          uri,
+          uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
           name: filename,
-          type,
+          type: mimeType,
         });
 
-        const res = await uploadFile(formData);
-        if (res?.url) {
+        const res = await uploadFile(formData, '/upload/portfolio');
+        const uploadedUrl = res?.url || res?.data?.url;
+        if (uploadedUrl) {
           setImages(prev => {
-            const next = [...prev, res.url];
+            const next = [...prev, uploadedUrl];
             if (!form.imageUrl) {
-              setField('imageUrl', res.url);
+              setField('imageUrl', uploadedUrl);
             }
             return next;
           });
@@ -168,8 +175,9 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
         }
       }
     } catch (err) {
-      console.log('Multiple image upload error:', err);
-      Alert.alert(t('profileDetail.permissionError', 'Upload Failed'), t('profileDetail.imageUploadFailed', 'Could not upload image. Please try again.'));
+      console.log('Media upload error:', err);
+      const msg = err?.response?.data?.message || err?.response?.data?.publicMessage || err.message;
+      Alert.alert(t('profileDetail.permissionError', 'Upload Failed'), msg || t('profileDetail.imageUploadFailed', 'Could not upload media. Please try again.'));
     } finally {
       setUploadingField(null);
     }
@@ -179,7 +187,7 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
     if (type === 'certificate') {
       handleSelectCertificateFile();
     } else {
-      handleSelectMultipleImage();
+      handleSelectMultipleMedia();
     }
   };
 
@@ -210,8 +218,20 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
       const cleaned = Object.fromEntries(
         Object.entries(form).map(([key, value]) => [key, String(value || '').trim()])
       );
-      cleaned.images = images;
-      cleaned.imageUrl = images[0] || '';
+      cleaned.images = images.filter(url => {
+        const lower = (url || '').toLowerCase();
+        return !lower.endsWith('.mp4') && !lower.endsWith('.mov') && !lower.endsWith('.3gp') && !lower.endsWith('.webm');
+      });
+      const videoItems = images.filter(url => {
+        const lower = (url || '').toLowerCase();
+        return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.3gp') || lower.endsWith('.webm');
+      });
+      cleaned.videos = videoItems;
+      if (videoItems.length > 0) {
+        cleaned.video = videoItems[0];
+        cleaned.videoUrl = videoItems[0];
+      }
+      cleaned.imageUrl = cleaned.images[0] || images[0] || '';
 
       if (type === 'employment') {
         const periodStr = currentlyWorkHere
@@ -276,7 +296,9 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
                     {images.length > 0 && (
                       <View style={styles.imagesGrid}>
                         {images.map((imgUrl, idx) => {
-                          const isPdf = imgUrl.toLowerCase().endsWith('.pdf');
+                          const lowerUrl = (imgUrl || '').toLowerCase();
+                          const isPdf = lowerUrl.endsWith('.pdf');
+                          const isVideo = lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.mov') || lowerUrl.endsWith('.3gp') || lowerUrl.endsWith('.webm');
                           return (
                             <View key={`${imgUrl}-${idx}`} style={styles.gridImageItem}>
                               {isPdf ? (
@@ -284,6 +306,13 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
                                   <MaterialCommunityIcons name="file-pdf-box" size={44} color="#EF4444" />
                                   <Text style={{ fontSize: 9, color: colors.textSecondary, fontWeight: '700', marginTop: 4 }} numberOfLines={1}>
                                     PDF Doc
+                                  </Text>
+                                </View>
+                              ) : isVideo ? (
+                                <View style={[styles.gridImage, { backgroundColor: '#0B1B3D', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border }]}>
+                                  <MaterialCommunityIcons name="video" size={38} color="#14B8A6" />
+                                  <Text style={{ fontSize: 9, color: '#FFF', fontWeight: '700', marginTop: 4 }} numberOfLines={1}>
+                                    Video
                                   </Text>
                                 </View>
                               ) : (

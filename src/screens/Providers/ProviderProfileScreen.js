@@ -47,6 +47,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [selectedProject, setSelectedProject] = React.useState(null);
   const [projectModalVisible, setProjectModalVisible] = React.useState(false);
   const [showAllSkills, setShowAllSkills] = React.useState(false);
+  const [showAllQuarters, setShowAllQuarters] = React.useState(false);
 
   const handleOpenProjectDetail = (project) => {
     navigation.navigate('ProjectDetail', { project, provider: profileData || provider });
@@ -210,7 +211,11 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const experienceLevel = provider.experienceLevel || t('profile.standardLevel');
   const skillRank = provider.skillRank || 'Newcomer';
   const bio = provider.bio || t('profile.noBiography');
-  const serviceArea = provider.serviceArea || 'Douala, Cameroon';
+  const rawServiceArea = profileData?.serviceArea || provider.serviceArea || '';
+  const quarterChips = rawServiceArea
+    ? rawServiceArea.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+  const serviceArea = quarterChips.length > 0 ? quarterChips.slice(0, 3).join(', ') : (provider.serviceArea || 'Douala, Cameroon');
   const isOnline = provider.user?.isOnline || false;
   const isFavorite = favoriteProviderIds?.includes(provider.id);
 
@@ -566,6 +571,68 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {/* Service Area (Quarters) Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
+            {t('profileDetail.serviceArea', 'Service Area (Quarters)')}
+          </Text>
+          {quarterChips.length > 0 ? (
+            <>
+              <View style={styles.skillsList}>
+                {quarterChips.slice(0, showAllQuarters ? quarterChips.length : 8).map((quarter, idx) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.skillTag,
+                      {
+                        backgroundColor: isDarkMode ? '#0D948820' : '#F0FDFA',
+                        borderColor: isDarkMode ? '#0D948850' : '#99F6E4',
+                      }
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="map-marker-radius" size={15} color="#0D9488" style={{ marginRight: 5 }} />
+                    <Text style={[styles.skillTagText, { color: isDarkMode ? '#2DD4BF' : '#0D9488', fontWeight: '700' }]}>
+                      {quarter}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              {quarterChips.length > 8 && (
+                <TouchableOpacity
+                  onPress={() => setShowAllQuarters(!showAllQuarters)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: 12,
+                    paddingVertical: 8,
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    borderColor: colors.border,
+                    backgroundColor: isDarkMode ? '#1E293B' : '#FFF'
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent, marginRight: 4 }}>
+                    {showAllQuarters ? t('common.showLess', 'Show Less') : `${t('common.viewAll', 'View All')} (${quarterChips.length})`}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name={showAllQuarters ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color={colors.accent}
+                  />
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            <View style={[styles.emptyProfileCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
+              <MaterialCommunityIcons name="map-marker-outline" size={24} color="#94A3B8" />
+              <Text style={[styles.emptyProfileText, { color: isDarkMode ? '#CBD5E1' : '#64748B' }]}>
+                {t('profile.operatesCityWide', 'Operates across the broader city area.')}
+              </Text>
+            </View>
+          )}
+        </View>
+
         {/* Highlights Section */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('profile.highlights')}</Text>
@@ -786,6 +853,10 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                 >
                   {item.imageUrl || item.images?.[0] || item.image || item.url ? (
                     <Image source={{ uri: getMediaUrl(item.imageUrl || item.images?.[0] || item.image || item.url) }} style={styles.projectImageFull} />
+                  ) : (item.video || item.videoUrl || item.videos?.[0]) ? (
+                    <View style={[styles.projectImageFull, { backgroundColor: '#0B1B3D', justifyContent: 'center', alignItems: 'center' }]}>
+                      <MaterialCommunityIcons name="video" size={48} color="#14B8A6" />
+                    </View>
                   ) : (
                     <View style={[styles.projectImageFull, styles.projectImageFallback]}>
                       <MaterialCommunityIcons name="image-outline" size={36} color="#94A3B8" />
@@ -852,24 +923,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                 setShowVerificationModal(true);
                 return;
               }
-              Alert.alert(
-                t('booking.confirmBookingTitle', 'Confirm Booking Details'),
-                `${t('booking.providerRate', 'Provider Rate')}: ${provider.rate ? `${provider.rate.toLocaleString()} ${getCurrencyForUser(provider.user?.country || user?.country || 'Cameroon')}` : t('profile.contactForPrice')}\n\n` +
-                `${t('booking.coinCostDesc', 'Booking Service Fee')}:\n` +
-                `• Normal Urgency: 1 Credit\n` +
-                `• Urgent: 2 Credits\n` +
-                `• Emergency: 3 Credits\n\n` +
-                `${t('booking.heldCoinsNotice', 'Credits will be securely held in escrow until the job is marked complete.')}`,
-                [
-                  { text: t('common.cancel'), style: 'cancel' },
-                  { 
-                    text: t('common.continue', 'Continue'), 
-                    onPress: () => {
-                      handleSafeNavigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
-                    }
-                  }
-                ]
-              );
+              navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
             }}
           >
             <MaterialCommunityIcons name="calendar-check" size={22} color="#FFF" style={{ marginRight: 6 }} />

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,6 +8,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { translateService } from '../../i18n/translate';
 
 import { LOCAL_SKILLS, normalizeSkill } from '../../constants/skills';
+import { CAMEROON_CITIES, searchCameroonQuarters, getAllQuarterNames } from '../../constants/cameroonQuarters';
 
 const SOCIALS = [
   ['linkedin', 'LinkedIn'],
@@ -24,7 +25,6 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
   const profile = user?.providerProfile || {};
   const [loading, setLoading] = useState(false);
   const [bio, setBio] = useState(profile.bio || '');
-  const [serviceArea, setServiceArea] = useState(profile.serviceArea || '');
   const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel || '');
   const [rate, setRate] = useState(profile.rate ? String(profile.rate) : '');
   const [skills, setSkills] = useState(profile.skills || []);
@@ -32,6 +32,39 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
   const [customSkill, setCustomSkill] = useState('');
   const [socialLinks, setSocialLinks] = useState(profile.socialLinks || {});
   const [profileMode, setProfileMode] = useState(profile.profileMode || (user?.role === 'PROVIDER' ? 'WORK' : 'PERSONAL'));
+
+  // Service Area / Cameroon Quarters state
+  const initialQuarters = useMemo(() => {
+    return (profile.serviceArea || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  }, [profile.serviceArea]);
+  const [selectedQuarters, setSelectedQuarters] = useState(initialQuarters);
+  const [selectedCity, setSelectedCity] = useState('Douala');
+  const [quarterSearch, setQuarterSearch] = useState('');
+
+  const quarterResults = useMemo(() => {
+    return searchCameroonQuarters(quarterSearch, selectedCity);
+  }, [quarterSearch, selectedCity]);
+
+  const toggleQuarter = (quarterName) => {
+    if (!quarterName) return;
+    const trimmed = quarterName.trim();
+    setSelectedQuarters(prev => 
+      prev.includes(trimmed) 
+        ? prev.filter(q => q !== trimmed) 
+        : [...prev, trimmed]
+    );
+  };
+
+  const selectAllCityQuarters = (city) => {
+    const allInCity = getAllQuarterNames(city);
+    setSelectedQuarters(prev => {
+      const set = new Set([...prev, ...allInCity]);
+      return Array.from(set);
+    });
+  };
 
   const needle = skillSearch.trim().toLowerCase();
   const filteredSkills = useMemo(() => {
@@ -63,7 +96,8 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
 
   const save = async () => {
     const updates = {};
-    if (section === 'about') Object.assign(updates, { bio, serviceArea, experienceLevel, rate: Number(rate) || 0 });
+    if (section === 'about') Object.assign(updates, { bio, experienceLevel, rate: Number(rate) || 0 });
+    if (section === 'serviceArea') updates.serviceArea = serviceAreaString;
     if (section === 'skills') updates.skills = skills;
     if (section === 'links') updates.socialLinks = socialLinks;
     if (section === 'mode') {
@@ -71,7 +105,7 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
       if (profileMode === 'WORK') {
         updates.skills = skills.length ? skills : profile.skills || [];
         updates.bio = bio || profile.bio || '';
-        updates.serviceArea = serviceArea || profile.serviceArea || '';
+        updates.serviceArea = serviceAreaString || profile.serviceArea || '';
         updates.experienceLevel = experienceLevel || profile.experienceLevel || '';
         updates.rate = Number(rate || profile.rate) || 0;
       }
@@ -80,20 +114,28 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
       await updateProfile(updates);
-      Alert.alert(t('workProfile.saved'), t('workProfile.savedBody'), [{ text: t('common.done'), onPress: () => navigation.goBack() }]);
+      Alert.alert(t('workProfile.saved', 'Saved'), t('workProfile.savedBody', 'Your profile updates have been saved.'), [{ text: t('common.done', 'Done'), onPress: () => navigation.goBack() }]);
     } catch (error) {
-      Alert.alert(t('workProfile.couldNotSave'), error.response?.data?.message || t('errors.apiFallback'));
+      Alert.alert(t('workProfile.couldNotSave', 'Error'), error.response?.data?.message || t('errors.apiFallback', 'Could not save profile changes.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const title = section === 'skills' ? t('workProfile.editSkills') : section === 'links' ? t('workProfile.linkedAccounts') : section === 'mode' ? t('workProfile.profileType') : t('workProfile.editWorkProfile');
+  const title = section === 'serviceArea'
+    ? t('workProfile.serviceAreaTitle', 'Service Areas (Quarters)')
+    : section === 'skills'
+      ? t('workProfile.editSkills', 'Edit Skills')
+      : section === 'links'
+        ? t('workProfile.linkedAccounts', 'Linked Accounts')
+        : section === 'mode'
+          ? t('workProfile.profileType', 'Profile Type')
+          : t('workProfile.editWorkProfile', 'Edit Work Profile');
 
   const outlineBtn = {
     borderWidth: 1,
-    borderColor: isDarkMode ? '#444' : '#111',
-    backgroundColor: isDarkMode ? colors.card : '#FFF',
+    borderColor: isDarkMode ? '#334155' : '#0D9488',
+    backgroundColor: isDarkMode ? colors.card : '#0D9488',
   };
 
   return (
@@ -126,10 +168,10 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
             </>
           )}
 
+          {/* ── ABOUT / GENERAL PROFILE SECTION ── */}
           {section === 'about' || (section === 'mode' && profileMode === 'WORK') ? (
             <>
               <Field label={t('workProfile.bio', 'Bio')} value={bio} onChangeText={setBio} colors={colors} multiline />
-              <Field label={t('workProfile.serviceArea', 'Area of Work')} value={serviceArea} onChangeText={setServiceArea} colors={colors} />
               
               <View style={styles.field}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>{t('workProfile.experienceLevel', 'Experience Level')}</Text>
@@ -160,6 +202,169 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
             </>
           ) : null}
 
+          {/* ── DEDICATED SERVICE AREA (QUARTERS) SECTION ── */}
+          {section === 'serviceArea' && (
+            <>
+              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                {t('workProfile.serviceAreaDesc', 'Select the quarters you operate in. When a client in Kotto or another quarter posts a task, nearby handymen are prioritized first.')}
+              </Text>
+
+              {/* City Selection Tabs */}
+              <View style={styles.cityTabsRow}>
+                {CAMEROON_CITIES.map(c => {
+                  const isActive = selectedCity === c.id;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={[
+                        styles.cityTab,
+                        {
+                          backgroundColor: isActive ? '#0D9488' : (isDarkMode ? '#1E293B' : '#F1F5F9'),
+                          borderColor: isActive ? '#0D9488' : colors.border
+                        }
+                      ]}
+                      onPress={() => {
+                        setSelectedCity(c.id);
+                        setQuarterSearch('');
+                      }}
+                    >
+                      <Text style={[styles.cityTabText, { color: isActive ? '#FFF' : colors.text }]}>
+                        {c.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Quick Action Buttons */}
+              <View style={styles.quickActionsRow}>
+                <TouchableOpacity
+                  style={[styles.quickActionBtn, { backgroundColor: '#0D948815', borderColor: '#0D9488' }]}
+                  onPress={() => selectAllCityQuarters(selectedCity)}
+                >
+                  <MaterialCommunityIcons name="check-all" size={16} color="#0D9488" />
+                  <Text style={[styles.quickActionText, { color: '#0D9488' }]}>
+                    {t('workProfile.selectAllIn', 'Select All in')} {selectedCity}
+                  </Text>
+                </TouchableOpacity>
+
+                {selectedQuarters.length > 0 && (
+                  <TouchableOpacity
+                    style={[styles.quickActionBtn, { backgroundColor: '#EF444415', borderColor: '#EF4444' }]}
+                    onPress={() => setSelectedQuarters([])}
+                  >
+                    <MaterialCommunityIcons name="trash-can-outline" size={16} color="#EF4444" />
+                    <Text style={[styles.quickActionText, { color: '#EF4444' }]}>
+                      {t('workProfile.clearAll', 'Clear All')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Search Box for Quarters */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  {t('workProfile.searchQuarter', 'Search Quarters in')} {selectedCity}
+                </Text>
+                <View style={[styles.quarterSearchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+                  <TextInput
+                    style={[styles.quarterSearchInput, { color: colors.text }]}
+                    value={quarterSearch}
+                    onChangeText={setQuarterSearch}
+                    placeholder={`Type quarter (e.g. Kotto, Akwa, Bastos, Molyko)...`}
+                    placeholderTextColor={colors.placeholder}
+                  />
+                  {quarterSearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setQuarterSearch('')}>
+                      <MaterialCommunityIcons name="close-circle" size={18} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Auto-suggest dropdown results */}
+                {quarterSearch.trim().length > 0 && (
+                  <View style={[styles.resultsBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                    {quarterResults.map(q => {
+                      const isSelected = selectedQuarters.includes(q.name);
+                      return (
+                        <TouchableOpacity
+                          key={`${q.city}-${q.name}`}
+                          style={[styles.resultRow, { borderBottomColor: colors.border }]}
+                          onPress={() => toggleQuarter(q.name)}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.skillText, { color: colors.text, fontWeight: '700' }]}>{q.name}</Text>
+                            <Text style={{ fontSize: 11, color: colors.textSecondary }}>{q.city} • {q.zone}</Text>
+                          </View>
+                          <MaterialCommunityIcons
+                            name={isSelected ? "check-circle" : "plus-circle-outline"}
+                            size={22}
+                            color={isSelected ? "#10B981" : "#0D9488"}
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                    {quarterResults.length === 0 && (
+                      <View style={{ padding: 14 }}>
+                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                          No known quarter matching "{quarterSearch}".
+                        </Text>
+                        <TouchableOpacity
+                          style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 6 }}
+                          onPress={() => {
+                            toggleQuarter(quarterSearch.trim());
+                            setQuarterSearch('');
+                          }}
+                        >
+                          <MaterialCommunityIcons name="plus" size={18} color="#0D9488" />
+                          <Text style={{ color: '#0D9488', fontWeight: '800', fontSize: 13 }}>
+                            Add "{quarterSearch.trim()}" as custom quarter
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {/* Selected Quarters Chips */}
+              <View style={styles.selectedBlock}>
+                <View style={styles.selectedHeaderRow}>
+                  <Text style={[styles.selectedLabel, { color: colors.textSecondary }]}>
+                    {t('workProfile.selectedQuarters', 'Selected Quarters')}
+                  </Text>
+                  <View style={[styles.countBadge, { backgroundColor: '#0D9488' }]}>
+                    <Text style={styles.countBadgeText}>{selectedQuarters.length}</Text>
+                  </View>
+                </View>
+
+                {selectedQuarters.length > 0 ? (
+                  <View style={styles.skillWrap}>
+                    {selectedQuarters.map(q => (
+                      <TouchableOpacity
+                        key={q}
+                        style={[
+                          styles.quarterSelectedChip,
+                          { backgroundColor: isDarkMode ? '#0F4C4A' : '#ECFDF5', borderColor: '#0D9488' }
+                        ]}
+                        onPress={() => toggleQuarter(q)}
+                      >
+                        <Text style={[styles.quarterChipText, { color: isDarkMode ? '#5EEAD4' : '#0D9488' }]}>{q}</Text>
+                        <MaterialCommunityIcons name="close-circle" size={16} color={isDarkMode ? '#5EEAD4' : '#0D9488'} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
+                    {t('workProfile.noQuartersSelected', 'No quarters selected yet. Search above or click "Select All" to set your areas.')}
+                  </Text>
+                )}
+              </View>
+            </>
+          )}
+
+          {/* ── SKILLS SECTION ── */}
           {section === 'skills' || (section === 'mode' && profileMode === 'WORK') ? (
             <>
               <Field label={t('workProfile.searchSkills')} value={skillSearch} onChangeText={setSkillSearch} colors={colors} placeholder={t('workProfile.searchSkillsPlaceholder')} />
@@ -170,7 +375,7 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
                     <TouchableOpacity key={skill} style={[styles.resultRow, { borderBottomColor: colors.border }]} onPress={() => toggleSkill(skill)}>
                       <Text style={[styles.skillText, { color: colors.text }]}>{translateService(skill)}</Text>
                       <View style={[styles.miniPlus, outlineBtn]}>
-                        <MaterialCommunityIcons name="plus" size={18} color={colors.text} />
+                        <MaterialCommunityIcons name="plus" size={18} color="#FFF" />
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -216,18 +421,20 @@ const ProviderProfileSectionEditScreen = ({ navigation, route }) => {
                   onSubmitEditing={addCustomSkill}
                 />
                 <TouchableOpacity style={[styles.addBtn, outlineBtn]} onPress={addCustomSkill}>
-                  <MaterialCommunityIcons name="plus" size={20} color={colors.text} />
+                  <MaterialCommunityIcons name="plus" size={20} color="#FFF" />
                 </TouchableOpacity>
               </View>
             </>
           ) : null}
 
+          {/* ── SOCIAL LINKS ── */}
           {section === 'links' && SOCIALS.map(([key, label]) => (
             <Field key={key} label={label} value={socialLinks[key] || ''} onChangeText={(value) => setSocialLinks(prev => ({ ...prev, [key]: value }))} colors={colors} placeholder={`https://${key}.com/your-profile`} />
           ))}
 
+          {/* Save Button */}
           <TouchableOpacity style={[styles.saveBtn, outlineBtn]} onPress={save} disabled={loading}>
-            <Text style={[styles.saveText, { color: colors.text }]}>{loading ? t('workProfile.saving') : t('workProfile.saveChanges')}</Text>
+            <Text style={styles.saveText}>{loading ? t('workProfile.saving', 'Saving...') : t('workProfile.saveChanges', 'Save Changes')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -255,28 +462,59 @@ const styles = StyleSheet.create({
   headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '900' },
   content: { padding: 22, paddingBottom: 70 },
+  sectionSubtitle: { fontSize: 13, lineHeight: 18, marginBottom: 16, fontWeight: '500' },
   field: { marginBottom: 20 },
   label: { fontSize: 12, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 },
-  input: { minHeight: 48, borderWidth: 1, borderRadius: 4, paddingHorizontal: 12, fontSize: 15, fontWeight: '600' },
+  input: { minHeight: 48, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, fontSize: 15, fontWeight: '600' },
   textarea: { minHeight: 130, paddingTop: 12 },
+  
+  // City Tabs
+  cityTabsRow: { flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
+  cityTab: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  cityTabText: { fontSize: 13, fontWeight: '800' },
+
+  // Quick Actions
+  quickActionsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  quickActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
+  quickActionText: { fontSize: 12, fontWeight: '800' },
+
+  // Quarter Search
+  quarterSearchBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, height: 48, gap: 8 },
+  quarterSearchInput: { flex: 1, fontSize: 14, fontWeight: '600' },
+
+  // Quarter Preview in About
+  quartersSummaryBox: { borderWidth: 1, borderRadius: 10, padding: 12 },
+  quarterChipMini: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, borderWidth: 1 },
+  quarterChipMiniText: { fontSize: 12, fontWeight: '700' },
+  editQuartersActionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 8, paddingVertical: 9, marginTop: 10 },
+  editQuartersActionText: { fontSize: 13, fontWeight: '800', color: '#0D9488' },
+
+  // Selected Quarters
+  selectedBlock: { marginBottom: 20 },
+  selectedHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  selectedLabel: { fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  countBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '900' },
+  quarterSelectedChip: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  quarterChipText: { fontSize: 13, fontWeight: '700' },
+
+  // Skills
   skillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  skillChip: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 8 },
+  skillChip: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
   skillText: { fontSize: 13, fontWeight: '700' },
-  resultsBox: { borderWidth: 1, borderRadius: 4, marginBottom: 16, overflow: 'hidden' },
-  resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: 1 },
-  miniPlus: { width: 36, height: 36, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
-  emptyHint: { fontSize: 13, paddingHorizontal: 12, paddingVertical: 10, fontWeight: '600' },
-  selectedBlock: { marginBottom: 16 },
-  selectedLabel: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 },
+  resultsBox: { borderWidth: 1, borderRadius: 8, marginTop: 6, marginBottom: 16, overflow: 'hidden' },
+  resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1 },
+  miniPlus: { width: 32, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  emptyHint: { fontSize: 13, paddingHorizontal: 12, paddingVertical: 8, fontWeight: '500' },
   customRow: { flexDirection: 'row', gap: 8, marginBottom: 20, alignItems: 'center' },
-  customInput: { flex: 1, height: 44, borderWidth: 1, borderRadius: 4, paddingHorizontal: 12, fontSize: 15 },
-  addBtn: { width: 44, height: 44, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  customInput: { flex: 1, height: 48, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, fontSize: 14 },
+  addBtn: { width: 48, height: 48, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   row: { paddingVertical: 17, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 14 },
   rowTitle: { fontSize: 17, fontWeight: '900' },
   rowSub: { fontSize: 14, marginTop: 4 },
   help: { fontSize: 13, marginTop: 10, marginBottom: 20 },
-  saveBtn: { marginTop: 10, height: 50, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
-  saveText: { fontSize: 16, fontWeight: '900' },
+  saveBtn: { marginTop: 10, height: 50, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  saveText: { fontSize: 16, fontWeight: '900', color: '#FFF' },
   experienceContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   experienceChip: { 
     borderWidth: 1, 

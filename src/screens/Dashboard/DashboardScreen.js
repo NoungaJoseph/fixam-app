@@ -12,10 +12,13 @@ import { translateService } from '../../i18n/translate';
 import i18n from '../../i18n';
 import UserAvatar from '../../components/UserAvatar';
 import api, { getMediaUrl } from '../../services/api';
+import { useAppContext } from '../../context/AppContext';
 import { SUPPORTED_COUNTRIES, getCurrencyForUser } from '../../constants/countries';
+import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, updateProfile, uploadFile, refreshUser } = useAuth();
+  const { jobs, fetchAppData } = useAppContext();
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const [, forceUpdate] = useState(0);
@@ -339,15 +342,22 @@ const DashboardScreen = ({ navigation }) => {
     const skills = user.providerProfile?.skills || [];
     const rate = user.providerProfile?.rate ? `${Number(user.providerProfile.rate).toLocaleString()} ${getCurrencyForUser(user)}/hr` : t('profileDetail.rateNotSet');
     const employmentHistory = user.providerProfile?.employmentHistory || [];
+    const serviceAreaRaw = user.providerProfile?.serviceArea || '';
+    const serviceAreaQuarters = serviceAreaRaw
+      ? serviceAreaRaw.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
 
     const setupSteps = [
+      { key: 'avatar', completed: Boolean(user?.avatar && user.avatar.trim().length > 0), label: t('profileDetail.addProfilePicture', 'Add Profile Picture'), action: handleImagePick },
       { key: 'bio', completed: !!user.providerProfile?.bio, label: t('profileDetail.addBio', 'Add Bio'), action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' }) },
       { key: 'skills', completed: !!user.providerProfile?.skills && user.providerProfile.skills.length > 0, label: t('profileDetail.addSkills', 'Add Skills'), action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'skills' }) },
+      { key: 'serviceArea', completed: Boolean(user.providerProfile?.serviceArea && user.providerProfile.serviceArea.trim().length > 0 && user.providerProfile.serviceArea.toLowerCase().trim() !== (user?.location || '').toLowerCase().trim()), label: t('profileDetail.addServiceArea', 'Set Service Areas (Quarters)'), action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'serviceArea' }) },
+      { key: 'portfolio', completed: (user.providerProfile?.portfolio || []).length > 0, label: t('profileDetail.addProject', 'Add Portfolio Project'), action: () => navigation.navigate('ProviderProfileEditItem', { type: 'project' }) },
       { key: 'verification', completed: user.providerProfile?.verification === 'VERIFIED', label: t('profileDetail.verifyId', 'Verify ID'), action: () => navigation.navigate('Verification') },
     ];
     const completedStepsCount = setupSteps.filter(s => s.completed).length;
     const setupProgress = Math.round((completedStepsCount / setupSteps.length) * 100);
-    const showSetupWidget = !user.providerProfile?.setupBonusClaimed;
+    const showSetupWidget = !user.providerProfile?.setupBonusClaimed || setupProgress < 100;
 
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
@@ -497,12 +507,24 @@ const DashboardScreen = ({ navigation }) => {
               <EmptyProfileBlock icon="image-plus" title={t('profileDetail.showcaseWork')} action={t('profileDetail.addProject')} colors={colors} onActionPress={() => navigation.navigate('ProviderProfileEditItem', { type: 'project' })} />
             ) : (
               <View style={styles.portfolioGrid}>
-                {portfolio.map((item, index) => (
-                  <View key={`${item.title}-${index}`} style={styles.portfolioItem}>
-                    {item.imageUrl || item.images?.[0] ? <Image source={{ uri: getMediaUrl(item.imageUrl || item.images?.[0]) }} style={styles.portfolioPreview} /> : <View style={[styles.portfolioPreview, { backgroundColor: colors.border }]} />}
-                    <Text style={[styles.portfolioItemTitle, { color: colors.accent }]}>{item.title || t('profileDetail.project')}</Text>
-                  </View>
-                ))}
+                {portfolio.map((item, index) => {
+                  const mediaUri = item.imageUrl || item.images?.[0] || item.video || item.videoUrl || item.videos?.[0];
+                  const isVideo = !item.imageUrl && !item.images?.[0] && Boolean(item.video || item.videoUrl || item.videos?.[0]);
+                  return (
+                    <View key={`${item.title}-${index}`} style={styles.portfolioItem}>
+                      {isVideo ? (
+                        <View style={[styles.portfolioPreview, { backgroundColor: '#0B1B3D', justifyContent: 'center', alignItems: 'center' }]}>
+                          <MaterialCommunityIcons name="video" size={36} color="#14B8A6" />
+                        </View>
+                      ) : mediaUri ? (
+                        <Image source={{ uri: getMediaUrl(mediaUri) }} style={styles.portfolioPreview} />
+                      ) : (
+                        <View style={[styles.portfolioPreview, { backgroundColor: colors.border }]} />
+                      )}
+                      <Text style={[styles.portfolioItemTitle, { color: colors.accent }]}>{item.title || t('profileDetail.project')}</Text>
+                    </View>
+                  );
+                })}
               </View>
             )}
           </Section>
@@ -522,6 +544,27 @@ const DashboardScreen = ({ navigation }) => {
                 </View>
               ))}
             </View>
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.serviceArea', 'Service Area (Quarters)')} actionIcon="pencil-outline" onAction={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'serviceArea' })}>
+            <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{t('profileDetail.operatingQuartersHelp', 'Quarters where you can travel and execute tasks')}</Text>
+            {serviceAreaQuarters.length === 0 ? (
+              <EmptyProfileBlock
+                icon="map-marker-outline"
+                title={t('profileDetail.serviceAreaHelp', 'Set your operating quarters so clients nearby can discover and book you first.')}
+                action={t('profileDetail.addServiceArea', 'Add Service Area (Quarters)')}
+                colors={colors}
+                onActionPress={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'serviceArea' })}
+              />
+            ) : (
+              <View style={styles.profileChips}>
+                {serviceAreaQuarters.map(quarter => (
+                  <View key={quarter} style={[styles.profileChip, { backgroundColor: isDarkMode ? '#0F4C4A' : '#ECFDF5', borderColor: '#0D9488', borderWidth: 1 }]}>
+                    <Text style={[styles.profileChipText, { color: isDarkMode ? '#5EEAD4' : '#0D9488' }]}>{quarter}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </Section>
 
           <Section colors={colors} title={t('profileDetail.certifications')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('ProviderProfileEditItem', { type: 'certificate' })}>
@@ -661,11 +704,21 @@ const DashboardScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <View style={{ flex: 1 }}>
-              <View style={styles.nameLine}>
+              <View style={[styles.nameLine, { flexWrap: 'wrap', alignItems: 'center' }]}>
                 <Text style={[styles.freelancerName, { color: colors.text }]}>{user?.fullName || t('common.client')}</Text>
+                {(user?.providerProfile?.verification === 'VERIFIED' || user?.isVerified) && (
+                  <MaterialCommunityIcons name="check-decagram" size={18} color="#0D9488" style={{ marginLeft: 6 }} />
+                )}
               </View>
-              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.email || user?.phone || t('profileDetail.contactNotAdded')}</Text>
-              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{t('profileDetail.personalAccount')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                <MaterialCommunityIcons name="map-marker" size={14} color={colors.accent} />
+                <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.location || 'Douala, Cameroon'}</Text>
+              </View>
+              <View style={{ marginTop: 6, alignSelf: 'flex-start' }}>
+                <View style={{ backgroundColor: colors.accent + '15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: colors.accent }}>{t('profileDetail.personalAccount', 'Client Account')}</Text>
+                </View>
+              </View>
             </View>
           </View>
 
@@ -679,21 +732,210 @@ const DashboardScreen = ({ navigation }) => {
 
           <Section colors={colors} title={t('profileDetail.trustVerification')}>
             <View style={styles.profileLineItem}>
-              <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('profileDetail.phone')}</Text>
-              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.phone || t('profileDetail.notAdded')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="phone-check" size={18} color="#10B981" />
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('profileDetail.phone')}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.phone || t('profileDetail.notAdded')}</Text>
+                {user?.phone ? <MaterialCommunityIcons name="check-circle" size={16} color="#10B981" /> : null}
+              </View>
             </View>
             <View style={styles.profileLineItem}>
-              <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('profileDetail.email')}</Text>
-              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.email || t('profileDetail.notAdded')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="email-check" size={18} color="#10B981" />
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('profileDetail.email')}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.email || t('profileDetail.notAdded')}</Text>
+                {user?.email ? <MaterialCommunityIcons name="check-circle" size={16} color="#10B981" /> : null}
+              </View>
             </View>
             <View style={styles.profileLineItem}>
-              <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('register.country') || 'Country'}</Text>
-              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.country || 'Cameroon'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="shield-account" size={18} color={user?.providerProfile?.verification === 'VERIFIED' ? "#10B981" : colors.accent} />
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('verification.idVerification', 'ID Verification')}</Text>
+              </View>
+              {user?.providerProfile?.verification === 'VERIFIED' ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#10B981' }}>{t('common.verified', 'Verified')}</Text>
+                  <MaterialCommunityIcons name="check-circle" size={16} color="#10B981" />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Verification')}
+                  style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 6, backgroundColor: colors.accent + '15' }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.accent }}>{t('verification.getVerified', 'Get Verified')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.profileLineItem}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="map-marker-outline" size={18} color="#0D9488" />
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('register.location') || 'Location'}</Text>
+              </View>
+              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.location || user?.country || 'Cameroon'}</Text>
             </View>
           </Section>
 
-          <Section colors={colors} title={t('profileDetail.postedTasks')}>
-            <Text style={[styles.mutedLarge, { color: colors.textSecondary }]}>{t('profileDetail.postedTasksHelp')}</Text>
+          <Section
+            colors={colors}
+            title={t('profileDetail.postedTasks', 'Posted tasks')}
+            actionIcon="plus-circle-outline"
+            onAction={() => {
+              navigation.navigate('PostTaskTab', {
+                screen: 'PostTask',
+                params: { startOnPost: true }
+              });
+            }}
+          >
+            {(() => {
+              const clientTasks = (jobs || []).filter(
+                (j) => j.clientId === user?.id || j.client?.id === user?.id
+              );
+              const currency = getCurrencyForUser(user);
+
+              if (clientTasks.length === 0) {
+                return (
+                  <View>
+                    <Text style={[styles.mutedLarge, { color: colors.textSecondary, marginBottom: 14 }]}>
+                      {t('profileDetail.postedTasksHelp', 'Your active and completed tasks appear in My Tasks.')}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        navigation.navigate('PostTaskTab', {
+                          screen: 'PostTask',
+                          params: { startOnPost: true }
+                        });
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        paddingVertical: 12,
+                        borderRadius: 12,
+                        backgroundColor: colors.accent,
+                      }}
+                    >
+                      <MaterialCommunityIcons name="plus" size={20} color="#FFF" />
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFF' }}>
+                        {t('tasks.postNewTask', 'Post a New Task')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+
+              const getStatusStyle = (status) => {
+                const s = String(status || 'PENDING').toUpperCase();
+                if (s === 'COMPLETED') return { label: t('jobs.statusCompleted', 'Completed'), text: '#10B981', bg: isDarkMode ? '#064E3B' : '#E2F8F4' };
+                if (s === 'IN_PROGRESS' || s === 'ASSIGNED') return { label: t('jobs.statusInProgress', 'In Progress'), text: '#2563EB', bg: isDarkMode ? '#1E3A8A' : '#EAF2FF' };
+                if (s === 'CANCELLED' || s === 'REJECTED') return { label: t('jobs.statusCancelled', 'Cancelled'), text: '#EF4444', bg: isDarkMode ? '#7F1D1D' : '#FEE2E2' };
+                return { label: t('jobs.statusPending', 'Pending'), text: '#F59E0B', bg: isDarkMode ? '#78350F' : '#FEF3C7' };
+              };
+
+              return (
+                <View style={{ gap: 10 }}>
+                  {clientTasks.slice(0, 3).map((task) => {
+                    const statusInfo = getStatusStyle(task.status || task.approvalStatus);
+                    const taskBudget = task.budget || task.budgetMax || task.budgetMin;
+                    const dateText = task.scheduledTime || task.createdAt
+                      ? new Date(task.scheduledTime || task.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                      : '';
+
+                    return (
+                      <TouchableOpacity
+                        key={task.id}
+                        onPress={() => navigation.navigate('TaskDetails', { taskId: task.id, task })}
+                        style={{
+                          backgroundColor: colors.surface,
+                          borderRadius: 12,
+                          padding: 12,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          gap: 6,
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.accent, textTransform: 'uppercase' }}>
+                            {translateService(task.category, t)}
+                          </Text>
+                          <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: statusInfo.bg }}>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: statusInfo.text }}>
+                              {statusInfo.label}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }} numberOfLines={1}>
+                          {task.title || t('tasks.untitledTask', 'Untitled Task')}
+                        </Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+                          {taskBudget ? (
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                              {Number(taskBudget).toLocaleString()} {currency}
+                            </Text>
+                          ) : <View />}
+                          {dateText ? (
+                            <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                              {dateText}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        navigation.navigate('PostTaskTab', {
+                          screen: 'MyTasksMain'
+                        });
+                      }}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 10,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: colors.accent,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: colors.accent }}>
+                        {t('jobs.viewAllTasks', 'View All')} ({clientTasks.length})
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        navigation.navigate('PostTaskTab', {
+                          screen: 'PostTask',
+                          params: { startOnPost: true }
+                        });
+                      }}
+                      style={{
+                        flex: 1,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        paddingVertical: 10,
+                        borderRadius: 10,
+                        backgroundColor: colors.accent,
+                      }}
+                    >
+                      <MaterialCommunityIcons name="plus" size={16} color="#FFF" />
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFF' }}>
+                        {t('tasks.postNewTask', 'Post Task')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })()}
           </Section>
 
           <Section colors={colors} title={t('profileDetail.reviewsRatings')}>

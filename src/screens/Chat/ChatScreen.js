@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
-  FlatList, KeyboardAvoidingView, Platform, Image, StatusBar, ActivityIndicator, Alert, Keyboard, Modal
+  FlatList, KeyboardAvoidingView, Platform, Image, StatusBar, ActivityIndicator, Alert, Keyboard, Modal, Linking
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -159,6 +160,7 @@ const ChatScreen = ({ route, navigation }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [activeTask, setActiveTask] = useState(task || null);
   const [previewImage, setPreviewImage] = useState(null);
   const [recording, setRecording] = useState(null);
@@ -385,6 +387,14 @@ const ChatScreen = ({ route, navigation }) => {
       }
     });
 
+    // Listen for deleted messages in this conversation
+    const offDeleted = on('message:deleted', (data) => {
+      console.log('[ChatScreen] Received message:deleted event:', data);
+      if (!data?.conversationId || data.conversationId === activeConvId) {
+        setMessages(prev => prev.filter(m => m.id !== data.messageId && m.clientMessageId !== data.messageId));
+      }
+    });
+
     const offTyping = on('user:typing', ({ userId, isTyping: typingStatus }) => {
       if (userId === receiverId) setIsTyping(typingStatus);
     });
@@ -392,6 +402,7 @@ const ChatScreen = ({ route, navigation }) => {
     return () => {
       console.log('[ChatScreen] Cleaning up listeners for:', activeConvId);
       offMessage?.();
+      offDeleted?.();
       offTyping?.();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -724,27 +735,65 @@ const ChatScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleImagePick = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== 'granted') {
-      Alert.alert(t('common.required'), t('messages.permissionRequired'));
-      return;
+  const handlePickImages = async () => {
+    setShowAttachmentMenu(false);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        allowsEditing: false,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedImages(prev => [
+          ...prev,
+          ...result.assets.map(asset => ({
+            uri: asset.uri,
+            type: asset.mimeType || 'image/jpeg',
+            name: asset.fileName || `chat_image_${Date.now()}.jpg`
+          }))
+        ]);
+      }
+    } catch (err) {
+      console.log('[ChatScreen] handlePickImages error:', err);
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      allowsEditing: false,
-      quality: 0.7,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setSelectedImages(prev => [
-        ...prev,
-        ...result.assets.map(asset => ({
-          uri: asset.uri,
-          type: asset.mimeType || 'image/jpeg',
-          name: asset.fileName || `chat_image_${Date.now()}.jpg`
-        }))
-      ]);
+  };
+
+  const handlePickVideo = async () => {
+    setShowAttachmentMenu(false);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsMultipleSelection: false,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const fileName = asset.fileName || `chat_video_${Date.now()}.mp4`;
+        await uploadChatFile(asset.uri, asset.mimeType || 'video/mp4', fileName, 'FILE');
+      }
+    } catch (err) {
+      console.log('[ChatScreen] handlePickVideo error:', err);
+      Alert.alert(t('common.error'), t('messages.sendFailed'));
+    }
+  };
+
+  const handlePickDocument = async () => {
+    setShowAttachmentMenu(false);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const fileName = asset.name || `document_${Date.now()}`;
+        const mimeType = asset.mimeType || 'application/octet-stream';
+        await uploadChatFile(asset.uri, mimeType, fileName, 'FILE');
+      }
+    } catch (err) {
+      console.log('[ChatScreen] handlePickDocument error:', err);
+      Alert.alert(t('common.error'), t('messages.sendFailed'));
     }
   };
 
@@ -798,21 +847,62 @@ const ChatScreen = ({ route, navigation }) => {
       });
       formData.append('type', 'chat');
 
-      const res = await uploadFile(formData);
+      const res = await uploadFile(formData, '/upload', { timeout: 60000 });
       const url = res.url || res.data?.url;
       if (!url) throw new Error('Upload did not return a URL');
-      handleSend(url, msgType);
+      await handleSend(url, msgType);
     } catch (error) {
+      console.log('[ChatScreen] uploadChatFile error:', error);
       Alert.alert(t('common.error'), t('messages.sendFailed'));
     } finally {
       setIsUploading(false);
     }
   };
 
+  const handleOpenMedia = async (url) => {
+    try {
+      const fullUrl = getMediaUrl(url);
+      if (!fullUrl) return;
+      await Linking.openURL(fullUrl);
+    } catch (err) {
+      console.log('[ChatScreen] Error opening media URL:', err);
+      Alert.alert(t('common.error', 'Error'), t('chat.cannotOpenFile', 'Could not open file.'));
+    }
+  };
+
+  const handleLongPressMessage = (item) => {
+    const isMe = item.senderId === user?.id;
+    if (!isMe) return;
+
+    Alert.alert(
+      t('messages.deleteMessageTitle', 'Delete Message'),
+      t('messages.deleteMessageConfirm', 'Are you sure you want to delete this message for everyone?'),
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('common.delete', 'Delete for Everyone'),
+          style: 'destructive',
+          onPress: async () => {
+            setMessages(prev => prev.filter(m => m.id !== item.id && (item.clientMessageId ? m.clientMessageId !== item.clientMessageId : true)));
+            if (item.id && !item.id.startsWith('temp_')) {
+              try {
+                await api.delete(`/chat/messages/${item.id}`);
+              } catch (err) {
+                console.log('[ChatScreen] Error deleting message on server:', err.message);
+              }
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderMessage = ({ item }) => {
     const isMe = item.senderId === user?.id;
     const isImage = item.type === 'IMAGE';
     const isAudio = item.type === 'AUDIO';
+    const isVideo = item.type === 'VIDEO' || (typeof item.content === 'string' && /\.(mp4|mov|webm|3gp|m4v)(\?.*)?$/i.test(item.content));
+    const isDoc = item.type === 'FILE' || item.type === 'DOCUMENT' || (!isImage && !isAudio && !isVideo && typeof item.content === 'string' && /\.(pdf|doc|docx|xls|xlsx|txt|zip|csv)(\?.*)?$/i.test(item.content));
     
     return (
       <View style={[styles.msgRow, isMe && styles.msgRowRight]}>
@@ -824,18 +914,67 @@ const ChatScreen = ({ route, navigation }) => {
               ? 'transparent' 
               : (isMe ? colors.accent : (isDarkMode ? '#1E293B' : '#F3F4F6')) 
           },
-          (isImage || isAudio) && { padding: 0, borderRadius: 15 }
+          (isImage || isAudio || isVideo || isDoc) && { padding: 0, borderRadius: 15 }
         ]}>
           {isImage ? (
-            <TouchableOpacity onPress={() => setPreviewImage(item.content)} activeOpacity={0.9}>
-              <Image source={{ uri: item.content }} style={styles.chatImage} resizeMode="cover" />
+            <TouchableOpacity
+              onPress={() => setPreviewImage(getMediaUrl(item.content))}
+              onLongPress={() => handleLongPressMessage(item)}
+              delayLongPress={350}
+              activeOpacity={0.9}
+            >
+              <Image source={{ uri: getMediaUrl(item.content) }} style={styles.chatImage} resizeMode="cover" />
+            </TouchableOpacity>
+          ) : isVideo ? (
+            <TouchableOpacity
+              style={[styles.fileBubble, { backgroundColor: isMe ? colors.accent : (isDarkMode ? '#1E293B' : '#F3F4F6') }]}
+              onPress={() => handleOpenMedia(item.content)}
+              onLongPress={() => handleLongPressMessage(item)}
+              delayLongPress={350}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.fileIconBox, { backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : '#F5F3FF' }]}>
+                <MaterialCommunityIcons name="play-circle" size={26} color={isMe ? '#FFF' : '#8B5CF6'} />
+              </View>
+              <View style={styles.fileInfo}>
+                <Text style={[styles.fileName, { color: isMe ? '#FFF' : colors.text }]} numberOfLines={1}>
+                  {item.content.split('/').pop().replace(/^\d+-/, '') || 'Video'}
+                </Text>
+                <Text style={[styles.fileActionText, { color: isMe ? 'rgba(255,255,255,0.85)' : colors.placeholder }]}>
+                  {t('chat.tapToPlay', 'Tap to play video')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : isDoc ? (
+            <TouchableOpacity
+              style={[styles.fileBubble, { backgroundColor: isMe ? colors.accent : (isDarkMode ? '#1E293B' : '#F3F4F6') }]}
+              onPress={() => handleOpenMedia(item.content)}
+              onLongPress={() => handleLongPressMessage(item)}
+              delayLongPress={350}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.fileIconBox, { backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : '#EFF6FF' }]}>
+                <MaterialCommunityIcons name="file-document-outline" size={26} color={isMe ? '#FFF' : '#2563EB'} />
+              </View>
+              <View style={styles.fileInfo}>
+                <Text style={[styles.fileName, { color: isMe ? '#FFF' : colors.text }]} numberOfLines={1}>
+                  {item.content.split('/').pop().replace(/^\d+-/, '') || 'Document'}
+                </Text>
+                <Text style={[styles.fileActionText, { color: isMe ? 'rgba(255,255,255,0.85)' : colors.placeholder }]}>
+                  {t('chat.tapToView', 'Tap to open document')}
+                </Text>
+              </View>
             </TouchableOpacity>
           ) : isAudio ? (
-            <AudioPlayer uri={item.content} color={isMe ? '#FFF' : colors.text} />
+            <TouchableOpacity onLongPress={() => handleLongPressMessage(item)} delayLongPress={350} activeOpacity={0.9}>
+              <AudioPlayer uri={getMediaUrl(item.content)} color={isMe ? '#FFF' : colors.text} />
+            </TouchableOpacity>
           ) : (
-            <Text style={[styles.bubbleText, isMe && styles.bubbleTextRight, { color: isMe ? '#FFF' : colors.text }]}>
-              {item.content}
-            </Text>
+            <TouchableOpacity onLongPress={() => handleLongPressMessage(item)} delayLongPress={350} activeOpacity={0.85}>
+              <Text style={[styles.bubbleText, isMe && styles.bubbleTextRight, { color: isMe ? '#FFF' : colors.text }]}>
+                {item.content}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
         <View style={[styles.msgMeta, isMe && styles.msgMetaRight]}>
@@ -946,7 +1085,7 @@ const ChatScreen = ({ route, navigation }) => {
           </View>
         ) : (
           <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8), opacity: canMessage ? 1 : 0.6 }]}>
-            <TouchableOpacity style={styles.attachBtn} onPress={canMessage ? handleImagePick : showCannotMessageAlert} disabled={isUploading || !canMessage}>
+            <TouchableOpacity style={styles.attachBtn} onPress={canMessage ? () => { Keyboard.dismiss(); setShowAttachmentMenu(true); } : showCannotMessageAlert} disabled={isUploading || !canMessage}>
               {isUploading ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="plus" size={24} color={canMessage ? colors.accent : colors.placeholder} />}
             </TouchableOpacity>
             <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background }]} onPress={!canMessage ? showCannotMessageAlert : undefined} activeOpacity={canMessage ? 1 : 0.7} disabled={!canMessage}>
@@ -967,6 +1106,80 @@ const ChatScreen = ({ route, navigation }) => {
         )}
       </KeyboardAvoidingView>
     </View>
+
+    {/* ── Attachment Modal (3 Options: Photos, Video, Document) ─────────────── */}
+    <Modal
+      visible={showAttachmentMenu}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowAttachmentMenu(false)}
+    >
+      <TouchableOpacity
+        style={styles.attachmentModalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowAttachmentMenu(false)}
+      >
+        <View style={[styles.attachmentModalContent, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+          <View style={styles.attachmentModalHandle} />
+          <Text style={[styles.attachmentModalTitle, { color: colors.text }]}>
+            {t('chat.sendAttachment', 'Send Attachment')}
+          </Text>
+
+          <View style={styles.attachmentOptionsRow}>
+            {/* Option 1: Image */}
+            <TouchableOpacity
+              style={styles.attachmentOption}
+              onPress={handlePickImages}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.attachmentIconWrap, { backgroundColor: '#F0FDFA' }]}>
+                <MaterialCommunityIcons name="image-multiple" size={28} color="#0D9488" />
+              </View>
+              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]}>
+                {t('chat.uploadImage', 'Photos')}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Option 2: Video */}
+            <TouchableOpacity
+              style={styles.attachmentOption}
+              onPress={handlePickVideo}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.attachmentIconWrap, { backgroundColor: '#F5F3FF' }]}>
+                <MaterialCommunityIcons name="video" size={28} color="#8B5CF6" />
+              </View>
+              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]}>
+                {t('chat.uploadVideo', 'Video')}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Option 3: Document / File */}
+            <TouchableOpacity
+              style={styles.attachmentOption}
+              onPress={handlePickDocument}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.attachmentIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <MaterialCommunityIcons name="file-document-outline" size={28} color="#2563EB" />
+              </View>
+              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]}>
+                {t('chat.uploadDocument', 'Document')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.attachmentCancelBtn, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}
+            onPress={() => setShowAttachmentMenu(false)}
+          >
+            <Text style={[styles.attachmentCancelText, { color: colors.text }]}>
+              {t('common.cancel', 'Cancel')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
 
     <Modal visible={!!previewImage} transparent animationType="fade" onRequestClose={() => setPreviewImage(null)}>
       <View style={styles.previewContainer}>
@@ -1111,6 +1324,86 @@ const styles = StyleSheet.create({
     right: -6,
     backgroundColor: '#FFF',
     borderRadius: 10,
+  },
+  attachmentModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  attachmentModalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  attachmentModalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  attachmentModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  attachmentOptionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+  },
+  attachmentOption: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  attachmentIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  attachmentOptionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  attachmentCancelBtn: {
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  attachmentCancelText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  fileBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+    maxWidth: 240,
+  },
+  fileIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fileInfo: {
+    flex: 1,
+  },
+  fileName: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  fileActionText: {
+    fontSize: 11,
+    marginTop: 2,
   },
 });
 

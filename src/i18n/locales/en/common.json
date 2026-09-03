@@ -223,7 +223,8 @@
     "bookingFailed": "Could not create booking.",
     "requestFailed": "Request failed",
     "generic": "Something went wrong. Please try again.",
-    "apiFallback": "Please try again."
+    "apiFallback": "Please try again.",
+    "MEDIA_UPLOAD_TEMPORARILY_UNAVAILABLE": "We could not upload your file right now. Please check your connection and try again."
   },
   "statuses": {
     "PENDING": "Pending",

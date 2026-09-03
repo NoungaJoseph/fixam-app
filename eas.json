@@ -30,6 +30,7 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.usefixam.com/api",
         "EXPO_PUBLIC_SOCKET_URL": "https://api.usefixam.com",
+        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=-Xmx4096m",
         "SENTRY_ORG": "fixam",
         "SENTRY_PROJECT": "react-native",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"

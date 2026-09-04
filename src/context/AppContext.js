@@ -339,14 +339,24 @@ export const AppProvider = ({ children }) => {
               }
               const finalId = proj.id || `proj_fallback_${Math.abs(hash)}`;
 
+              const primaryImg = proj.imageUrl || (Array.isArray(proj.images) && proj.images[0]) || proj.url || proj.image || null;
+              const allImages = Array.isArray(proj.images) && proj.images.length > 0
+                ? proj.images.map(getMediaUrl)
+                : (primaryImg ? [getMediaUrl(primaryImg)] : []);
+
+              const primaryVid = proj.video || proj.videoUrl || (Array.isArray(proj.videos) && proj.videos[0]) || null;
+              const allVideos = Array.isArray(proj.videos) && proj.videos.length > 0
+                ? proj.videos.map(getMediaUrl)
+                : (primaryVid ? [getMediaUrl(primaryVid)] : []);
+
               dbProjects.push({
                 ...proj,
                 id: finalId,
-                video: proj.video ? getMediaUrl(proj.video) : null,
-                videoUrl: proj.videoUrl ? getMediaUrl(proj.videoUrl) : null,
-                videos: Array.isArray(proj.videos) ? proj.videos.map(getMediaUrl) : [],
-                imageUrl: proj.imageUrl ? getMediaUrl(proj.imageUrl) : null,
-                images: Array.isArray(proj.images) ? proj.images.map(getMediaUrl) : (proj.imageUrl ? [getMediaUrl(proj.imageUrl)] : []),
+                video: primaryVid ? getMediaUrl(primaryVid) : null,
+                videoUrl: primaryVid ? getMediaUrl(primaryVid) : null,
+                videos: allVideos,
+                imageUrl: primaryImg ? getMediaUrl(primaryImg) : null,
+                images: allImages,
                 providerId: p.id,
                 provider: {
                   id: p.id,

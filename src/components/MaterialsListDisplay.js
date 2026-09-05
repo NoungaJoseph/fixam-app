@@ -8,14 +8,15 @@ export default function MaterialsListDisplay({
   materialsList = [],
   requiresDiagnosis = false
 }) {
-  const { colors, isDark } = useTheme();
+  const { colors, isDarkMode, isDark: isDarkProp } = useTheme();
+  const isDark = Boolean(isDarkMode ?? isDarkProp);
   const { t } = useLanguage();
 
   if (requiresDiagnosis) {
     return (
       <View style={[styles.card, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#E2E8F0' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <MaterialCommunityIcons name="stethoscope" size={20} color="#2563EB" style={{ marginRight: 8 }} />
+          <MaterialCommunityIcons name="stethoscope" size={20} color={isDark ? '#60A5FA' : '#2563EB'} style={{ marginRight: 8 }} />
           <Text style={[styles.title, { color: colors.text }]}>
             {t('jobs.diagnosisRequiredFirst', 'Diagnosis required first')}
           </Text>

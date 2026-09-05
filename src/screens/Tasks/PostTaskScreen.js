@@ -81,6 +81,22 @@ const STATUS_STYLES = {
   REJECTED: { label: 'Cancelled', icon: 'close-circle-outline', text: '#EF4444', bg: '#FEE2E2' },
 };
 
+export const deriveCategoryFromTitle = (title) => {
+  if (!title || typeof title !== 'string') return 'OTHER';
+  const t = title.toLowerCase();
+  if (/plumb|leak|pipe|drain|water|faucet|toilet|sink|robinet|tuyau|fuite|chasse|évier|lavabo|chauffe-eau/i.test(t)) return 'PLUMBING';
+  if (/electr|wire|light|power|breaker|socket|prise|disjoncteur|lumière|câble|ampoule|fusible|compteur/i.test(t)) return 'ELECTRICAL';
+  if (/clean|wash|laundry|housekeeping|maid|nettoy|ménage|propreté|laver|décapage/i.test(t)) return 'CLEANING';
+  if (/paint|peint|wall|mur|plafond|couleur|vernis|enduit/i.test(t)) return 'PAINTING';
+  if (/carpent|wood|furniture|table|chair|door|menuiserie|bois|porte|meuble|placard|serrur/i.test(t)) return 'CARPENTRY';
+  if (/ac|air condition|clim|froid|ventilat/i.test(t)) return 'APPLIANCE';
+  if (/appliance|fridge|refrigerator|washer|oven|stove|réfrigérateur|four|micro-onde|machine à laver|télé/i.test(t)) return 'APPLIANCE';
+  if (/garden|lawn|grass|tree|plant|jardin|pelouse|haie|tonte/i.test(t)) return 'GARDENING';
+  if (/mov|relocat|pack|delivery|déménag|transport|colis|livrais/i.test(t)) return 'MOVING';
+  if (/repair|fix|dépan|répar/i.test(t)) return 'REPAIR';
+  return 'OTHER';
+};
+
 const pad2 = (value) => String(value).padStart(2, '0');
 
 const formatDateInput = (date) => {
@@ -437,7 +453,6 @@ const PostTaskScreen = ({ route, navigation }) => {
   };
 
   const validateForm = () => {
-    if (!selectedCat) return t('jobs.categoryRequired', 'Please select a category');
     if (!title.trim()) return t('jobs.taskTitleRequired');
     if (!isRemote && !location.trim()) return t('jobs.locationRequired');
     const min = budgetMode === 'range' ? parseInt(budgetMin) : parseInt(budget);
@@ -602,7 +617,7 @@ const PostTaskScreen = ({ route, navigation }) => {
         budgetMin: budgetMode === 'range' ? parsedMin : parsedBudget,
         budgetMax: budgetMode === 'range' ? parsedMax : parsedBudget,
         providersNeeded: numProviders,
-        category: selectedCat || 'OTHER',
+        category: selectedCat || deriveCategoryFromTitle(title) || 'OTHER',
         scheduledTime: scheduledDateTime.toISOString(),
         whatNeedsDone: whatNeedsDone || undefined,
         importantDetails: importantDetails || undefined,
@@ -947,39 +962,6 @@ const PostTaskScreen = ({ route, navigation }) => {
               </View>
               <Image source={tasksHeroImage} style={styles.createHeroImage} resizeMode="contain" />
             </LinearGradient>
-
-              <View style={styles.sectionTitleRow}>
-                <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.category')}</Text>
-                <TouchableOpacity onPress={() => setShowCategoryPicker((value) => !value)}>
-                  <Text style={styles.viewAllText}>{t('jobs.viewAll')}</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity 
-                style={[styles.categorySearchWrap, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}
-                onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-              >
-                <MaterialCommunityIcons name="shape-outline" size={21} color="#0D9488" />
-                <Text style={[styles.categorySearchInput, { color: colors.text }]}>
-                  {getCategoryLabel(selectedCat) || t('jobs.selectCategory')}
-                </Text>
-                <MaterialCommunityIcons name={showCategoryPicker ? 'chevron-up' : 'chevron-right'} size={24} color="#64748B" />
-              </TouchableOpacity>
-              {showCategoryPicker && (
-                <View style={[styles.categoryResults, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderColor: colors.border }]}>
-                  {TASK_CATS.map((cat) => {
-                    const active = selectedCat === cat.name;
-                    return (
-                      <TouchableOpacity key={cat.id} style={[styles.categoryResultItem, { backgroundColor: isDarkMode ? '#1F2937' : '#FFF', borderBottomColor: colors.border }]} onPress={() => selectCategory(cat)}>
-                        <View style={[styles.categoryResultIcon, active && styles.categoryResultIconActive]}>
-                          <MaterialCommunityIcons name={cat.icon} size={18} color={active ? '#FFF' : '#0D9488'} />
-                        </View>
-                        <Text style={[styles.categoryResultText, { color: colors.text }]}>{getCategoryLabel(cat.name)}</Text>
-                        {active && <MaterialCommunityIcons name="check-circle" size={20} color="#0D9488" />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
 
               <View style={styles.createFieldGroup}>
                 <Text style={[styles.createSectionLabel, { color: colors.text }]}>{t('jobs.taskType', 'Task Type')}</Text>
@@ -1433,7 +1415,7 @@ const PostTaskScreen = ({ route, navigation }) => {
 
             <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.catBadge, { backgroundColor: isDarkMode ? 'rgba(96, 165, 250, 0.1)' : colors.accentSoft }]}>
-                <Text style={[styles.catBadgeText, { color: colors.accent }]}>{getCategoryLabel(selectedCat)}</Text>
+                <Text style={[styles.catBadgeText, { color: colors.accent }]}>{getCategoryLabel(selectedCat || deriveCategoryFromTitle(title))}</Text>
               </View>
               <Text style={[styles.reviewTitle, { color: colors.text }]}>{title}</Text>
               <Text style={[styles.reviewDescription, { color: colors.textSecondary }]}>{description}</Text>

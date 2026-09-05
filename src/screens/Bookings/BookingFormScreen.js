@@ -215,6 +215,14 @@ const BookingFormScreen = ({ route, navigation }) => {
       const mappedDuration = durationMap[form.bookingDuration] || 'HOURLY';
       let bookingBudget = Number(String(form.budget || 0).replace(/[^\d.]/g, '')) || 0;
 
+      const cleanedMaterialsList = (Array.isArray(form.materialsList) ? form.materialsList : [])
+        .filter(item => item && typeof item.name === 'string' && item.name.trim().length > 0)
+        .map(item => ({
+          id: item.id || undefined,
+          name: item.name.trim(),
+          suppliedBy: (item.suppliedBy === 'PROVIDER' || item.suppliedBy === 'CLIENT') ? item.suppliedBy : 'CLIENT'
+        }));
+
       const res = await api.post('/bookings', {
         providerId,
         taskId: task?.id,
@@ -228,7 +236,7 @@ const BookingFormScreen = ({ route, navigation }) => {
         longitude: form.longitude,
         notes: form.notes || '',
         requiresDiagnosis: form.requiresDiagnosis,
-        materialsList: form.materialsList,
+        materialsList: cleanedMaterialsList,
       });
       Alert.alert(t('bookings.sent'), t('bookings.sentBody'));
       handleSafeGoBack();

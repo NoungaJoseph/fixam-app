@@ -15,16 +15,16 @@ export default function MaterialsListEditor({
   const { t } = useLanguage();
 
   // Ensure at least one empty field row exists when not requiring diagnosis
-  const rows = items.length === 0 ? [{ id: '1', name: '', quantity: '' }] : items;
+  const rows = items.length === 0 ? [{ id: '1', name: '', suppliedBy: 'CLIENT' }] : items;
 
-  const handleUpdateItem = (index, field, value) => {
+  const handleUpdateItem = (index, value) => {
     const updated = [...rows];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], name: value, suppliedBy: updated[index]?.suppliedBy || 'CLIENT' };
     onChangeItems(updated);
   };
 
   const handleAddRow = () => {
-    const newRow = { id: String(Date.now() + Math.random()), name: '', quantity: '' };
+    const newRow = { id: String(Date.now() + Math.random()), name: '', suppliedBy: 'CLIENT' };
     onChangeItems([...rows, newRow]);
   };
 
@@ -81,23 +81,12 @@ export default function MaterialsListEditor({
               <TextInput
                 style={[
                   styles.input,
-                  { flex: 2, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: colors.text, borderColor: isDark ? '#475569' : '#CBD5E1' }
-                ]}
-                placeholder={t('jobs.materialNamePlaceholder', 'Material / Tool name')}
-                placeholderTextColor={colors.textSecondary}
-                value={item.name}
-                onChangeText={(val) => handleUpdateItem(index, 'name', val)}
-                editable={!readOnly}
-              />
-              <TextInput
-                style={[
-                  styles.input,
                   { flex: 1, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: colors.text, borderColor: isDark ? '#475569' : '#CBD5E1' }
                 ]}
-                placeholder={t('jobs.quantityPlaceholder', 'Qty (e.g. 2)')}
+                placeholder={t('jobs.materialItemPlaceholder', 'e.g. 5 bags of cement, 2 pipes, 1 wrench...')}
                 placeholderTextColor={colors.textSecondary}
-                value={item.quantity}
-                onChangeText={(val) => handleUpdateItem(index, 'quantity', val)}
+                value={item.name}
+                onChangeText={(val) => handleUpdateItem(index, val)}
                 editable={!readOnly}
               />
 

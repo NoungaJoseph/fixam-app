@@ -562,14 +562,46 @@ const PostTaskScreen = ({ route, navigation }) => {
       const parsedMax = parseInt(budgetMax, 10) || parsedBudget;
       const finalBudget = budgetMode === 'range' ? parsedMax : parsedBudget;
 
+      const numProviders = parseInt(providersNeeded, 10) || 1;
+
+      // 1. Append workforce requirements note to description if 3+, 7+, 10+
+      let providerNote = '';
+      const isFr = locale === 'fr';
+      if (numProviders >= 10) {
+        providerNote = isFr 
+          ? `\n\n[Effectif requis : Cette tâche nécessite plus de 10 personnes (${numProviders} prestataires demandés).]` 
+          : `\n\n[Workforce Required: This job needs more than 10 people (${numProviders} providers requested).]`;
+      } else if (numProviders >= 7) {
+        providerNote = isFr 
+          ? `\n\n[Effectif requis : Cette tâche nécessite 7 à 9 prestataires (${numProviders} demandés).]` 
+          : `\n\n[Workforce Required: This job needs 7 to 9 providers (${numProviders} requested).]`;
+      } else if (numProviders >= 3) {
+        providerNote = isFr 
+          ? `\n\n[Effectif requis : Cette tâche nécessite au moins 3 à 6 prestataires (${numProviders} demandés).]` 
+          : `\n\n[Workforce Required: This job needs at least 3 to 6 providers (${numProviders} requested).]`;
+      }
+
+      const rawDesc = String(description || '').trim();
+      const finalDescription = rawDesc + (providerNote && !rawDesc.includes('Workforce Required') && !rawDesc.includes('Effectif requis') ? providerNote : '');
+
+      // 2. Clean materials list
+      const cleanedMaterialsList = (Array.isArray(materialsList) ? materialsList : [])
+        .filter(item => item && typeof item.name === 'string' && item.name.trim().length > 0)
+        .map(item => ({
+          id: item.id || undefined,
+          name: item.name.trim(),
+          quantity: item.quantity ? String(item.quantity).trim() : undefined,
+          suppliedBy: (item.suppliedBy === 'PROVIDER' || item.suppliedBy === 'CLIENT') ? item.suppliedBy : 'CLIENT'
+        }));
+
       const payload = {
         title: String(title || '').trim(),
-        description: String(description || '').trim(),
+        description: finalDescription,
         location: isRemote ? 'Remote / Online' : (String(location || '').trim() || 'Douala, Cameroon'),
         budget: finalBudget,
         budgetMin: budgetMode === 'range' ? parsedMin : parsedBudget,
         budgetMax: budgetMode === 'range' ? parsedMax : parsedBudget,
-        providersNeeded: parseInt(providersNeeded, 10) || 1,
+        providersNeeded: numProviders,
         category: selectedCat || 'OTHER',
         scheduledTime: scheduledDateTime.toISOString(),
         whatNeedsDone: whatNeedsDone || undefined,
@@ -578,7 +610,7 @@ const PostTaskScreen = ({ route, navigation }) => {
         preferences: Array.isArray(selectedPreferences) ? selectedPreferences : [],
         priority: priority || 'NORMAL',
         isRemote: Boolean(isRemote),
-        materialsList: Array.isArray(materialsList) ? materialsList : [],
+        materialsList: cleanedMaterialsList,
         requiresDiagnosis: Boolean(requiresDiagnosis),
       };
       if (editingJob) {
@@ -1037,6 +1069,33 @@ const PostTaskScreen = ({ route, navigation }) => {
                   </Text>
                   <MaterialCommunityIcons name="chevron-down" size={22} color={colors.textSecondary} />
                 </TouchableOpacity>
+
+                {parseInt(providersNeeded, 10) >= 3 && (
+                  <View style={{ marginTop: 8, padding: 10, borderRadius: 10, backgroundColor: isDarkMode ? '#0F172A' : '#F0FDFA', borderWidth: 1, borderColor: isDarkMode ? '#1E293B' : '#CCFBF1' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
+                      {t('jobs.exactHeadcountLabel', 'Exact number of workers needed:')}
+                    </Text>
+                    <TextInput
+                      style={[styles.createInput, { height: 42, borderColor: colors.border, backgroundColor: isDarkMode ? '#1F2937' : '#FFF', color: colors.text, paddingHorizontal: 10 }]}
+                      keyboardType="number-pad"
+                      value={String(providersNeeded)}
+                      onChangeText={(val) => {
+                        const num = val.replace(/[^0-9]/g, '');
+                        if (num) setProvidersNeeded(num);
+                      }}
+                      placeholder="e.g. 5 or 6"
+                      placeholderTextColor={colors.textSecondary}
+                    />
+                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4 }}>
+                      {parseInt(providersNeeded, 10) >= 10
+                        ? t('jobs.tier10Note', 'Tier 10+: Needs more than 10 people (5 coins)')
+                        : parseInt(providersNeeded, 10) >= 7
+                        ? t('jobs.tier7Note', 'Tier 7+: Needs 7 to 9 people (4 coins)')
+                        : t('jobs.tier3Note', 'Tier 3+: Needs at least 3 to 6 people (3 coins)')}
+                    </Text>
+                  </View>
+                )}
+
                 <Text style={styles.fieldHint}>{t('jobs.providersNeededTierHint', 'Cost: 1 = 1 coin, 2 = 2 coins, 3+ = 3 coins, 7+ = 4 coins, 10+ = 5 coins')}</Text>
               </View>
 

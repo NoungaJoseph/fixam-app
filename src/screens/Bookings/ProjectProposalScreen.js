@@ -64,7 +64,14 @@ const ProjectProposalScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       // 1. Create free proposal booking (0 coins for client)
-      const proposalBudget = Number(budget || project.price || 0) || 1000;
+      const cleanedMaterialsList = (Array.isArray(materialsList) ? materialsList : [])
+        .filter(item => item && typeof item.name === 'string' && item.name.trim().length > 0)
+        .map(item => ({
+          id: item.id || undefined,
+          name: item.name.trim(),
+          suppliedBy: (item.suppliedBy === 'PROVIDER' || item.suppliedBy === 'CLIENT') ? item.suppliedBy : 'CLIENT'
+        }));
+
       await api.post('/bookings', {
         providerId: providerUserId,
         isProposal: true,
@@ -74,7 +81,7 @@ const ProjectProposalScreen = ({ route, navigation }) => {
         bookingDuration: 'DAY',
         notes: `PROJECT PROPOSAL: ${project.title || 'Custom Service'}\nRequirements: ${description.trim()}`,
         location: `Project: ${project.title || 'Custom Service'} (${project.selectedTier?.name || 'Package'})`,
-        materialsList,
+        materialsList: cleanedMaterialsList,
         requiresDiagnosis,
       });
 

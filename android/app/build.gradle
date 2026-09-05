@@ -81,26 +81,7 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
-def sentryPath = ""
-try {
-    sentryPath = ["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim()
-} catch (Exception e) {
-    // Ignore error, will use fallback path
-}
-def sentryGradleFile = sentryPath ? new File(sentryPath, "sentry.gradle") : new File(rootProject.projectDir, "../node_modules/@sentry/react-native/sentry.gradle")
-if (sentryGradleFile.exists()) {
-    apply from: sentryGradleFile
-} else {
-    apply from: "../../node_modules/@sentry/react-native/sentry.gradle"
-}
-
-gradle.taskGraph.whenReady { taskGraph ->
-    taskGraph.allTasks.each { task ->
-        if (task.name.contains("SentryUpload") && (System.getenv('SENTRY_AUTH_TOKEN') == null || System.getenv('SENTRY_AUTH_TOKEN').isEmpty())) {
-            task.enabled = false
-        }
-    }
-}
+apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle")
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -113,7 +94,7 @@ android {
         applicationId 'com.fixam.app.android'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 19
+        versionCode 20
         versionName "1.1.1"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""

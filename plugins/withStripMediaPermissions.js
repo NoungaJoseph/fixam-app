@@ -49,6 +49,15 @@ function withStripMediaPermissions(config) {
           `[withStripMediaPermissions] No banned permissions found in AndroidManifest.xml (already clean)`
         );
       }
+      // Add explicit tools:node="remove" entries so Gradle Manifest Merger strips them from any AAR libraries
+      BANNED_PERMISSIONS.forEach((banned) => {
+        manifest.manifest['uses-permission'].push({
+          $: {
+            'android:name': banned,
+            'tools:node': 'remove',
+          },
+        });
+      });
     }
 
     // Also strip from 'uses-permission-sdk-23' if present (runtime-only permissions)

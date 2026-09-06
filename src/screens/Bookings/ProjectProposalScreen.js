@@ -69,7 +69,7 @@ const ProjectProposalScreen = ({ route, navigation }) => {
         .map(item => ({
           id: item.id || undefined,
           name: item.name.trim(),
-          suppliedBy: (item.suppliedBy === 'PROVIDER' || item.suppliedBy === 'CLIENT') ? item.suppliedBy : 'CLIENT'
+          suppliedBy: 'PROVIDER'
         }));
 
       await api.post('/bookings', {

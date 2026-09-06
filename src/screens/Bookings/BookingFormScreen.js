@@ -220,7 +220,7 @@ const BookingFormScreen = ({ route, navigation }) => {
         .map(item => ({
           id: item.id || undefined,
           name: item.name.trim(),
-          suppliedBy: (item.suppliedBy === 'PROVIDER' || item.suppliedBy === 'CLIENT') ? item.suppliedBy : 'CLIENT'
+          suppliedBy: 'PROVIDER'
         }));
 
       const res = await api.post('/bookings', {

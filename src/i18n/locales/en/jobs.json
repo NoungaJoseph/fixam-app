@@ -1,13 +1,14 @@
 {
   "jobs": {
-    "materialsAndEquipment": "Materials & Equipment",
+    "materialsAndEquipment": "Materials needed for this job",
+    "materialsNeededForJob": "Materials needed for this job",
     "requiresDiagnosisQuestion": "Does the provider need to diagnose first?",
     "diagnosisNoticeText": "Diagnosis required first. No materials list needed upfront.",
     "addNeededMaterial": "Add Needed Material / Equipment",
     "materialNamePlaceholder": "Material / Tool name",
     "quantityPlaceholder": "Qty (e.g. 2)",
     "addAnotherItem": "Add another item",
-    "requiredMaterialsAndEquipment": "Required Materials & Equipment",
+    "requiredMaterialsAndEquipment": "Materials needed for this job",
     "diagnosisRequiredFirst": "Diagnosis required first",
     "myTasks": "My Tasks",
     "myJobs": "My Jobs",

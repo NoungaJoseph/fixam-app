@@ -16,16 +16,16 @@ export default function MaterialsListEditor({
   const { t } = useLanguage();
 
   // Ensure at least one empty field row exists when not requiring diagnosis
-  const rows = items.length === 0 ? [{ id: '1', name: '', suppliedBy: 'CLIENT' }] : items;
+  const rows = items.length === 0 ? [{ id: '1', name: '', suppliedBy: 'PROVIDER' }] : items;
 
   const handleUpdateItem = (index, value) => {
     const updated = [...rows];
-    updated[index] = { ...updated[index], name: value, suppliedBy: updated[index]?.suppliedBy || 'CLIENT' };
+    updated[index] = { ...updated[index], name: value, suppliedBy: updated[index]?.suppliedBy || 'PROVIDER' };
     onChangeItems(updated);
   };
 
   const handleAddRow = () => {
-    const newRow = { id: String(Date.now() + Math.random()), name: '', suppliedBy: 'CLIENT' };
+    const newRow = { id: String(Date.now() + Math.random()), name: '', suppliedBy: 'PROVIDER' };
     onChangeItems([...rows, newRow]);
   };
 
@@ -40,7 +40,7 @@ export default function MaterialsListEditor({
       <View style={styles.headerRow}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={[styles.title, { color: colors.text }]}>
-            {t('jobs.materialsAndEquipment', 'Materials & Equipment')}
+            {t('jobs.materialsNeededForJob', 'Materials needed for this job')}
           </Text>
         </View>
       </View>

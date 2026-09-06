@@ -606,7 +606,7 @@ const PostTaskScreen = ({ route, navigation }) => {
           id: item.id || undefined,
           name: item.name.trim(),
           quantity: item.quantity ? String(item.quantity).trim() : undefined,
-          suppliedBy: (item.suppliedBy === 'PROVIDER' || item.suppliedBy === 'CLIENT') ? item.suppliedBy : 'CLIENT'
+          suppliedBy: 'PROVIDER'
         }));
 
       const payload = {

@@ -1,13 +1,14 @@
 {
   "jobs": {
-    "materialsAndEquipment": "Matériaux & Équipement",
+    "materialsAndEquipment": "Matériaux nécessaires pour cette mission",
+    "materialsNeededForJob": "Matériaux nécessaires pour cette mission",
     "requiresDiagnosisQuestion": "Le prestataire doit-il faire un diagnostic d'abord ?",
     "diagnosisNoticeText": "Diagnostic préalable requis. Aucun matériel nécessaire pour l'instant.",
     "addNeededMaterial": "Ajouter matériel / équipement nécessaire",
     "materialNamePlaceholder": "Nom du matériel / outil",
     "quantityPlaceholder": "Qté (ex. 2)",
     "addAnotherItem": "Ajouter un autre article",
-    "requiredMaterialsAndEquipment": "Matériaux & Équipement requis",
+    "requiredMaterialsAndEquipment": "Matériaux nécessaires pour cette mission",
     "diagnosisRequiredFirst": "Diagnostic préalable requis",
     "myTasks": "Mes missions",
     "myJobs": "Mes missions",

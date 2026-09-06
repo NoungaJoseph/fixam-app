@@ -33,7 +33,7 @@ export default function MaterialsListDisplay({
     <View style={[styles.card, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#E2E8F0' }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>
-          {t('jobs.requiredMaterialsAndEquipment', 'Required Materials & Equipment')}
+          {t('jobs.materialsNeededForJob', 'Materials needed for this job')}
         </Text>
       </View>
 

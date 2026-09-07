@@ -29,28 +29,23 @@ const SelfieScreen = ({ navigation, route }) => {
     }
   };
 
-  const captureCamera = async () => {
+  const captureLiveSelfie = async () => {
     try {
       const { status, canAskAgain } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         if (!canAskAgain) {
           Alert.alert(
             t('verification.permissionRequired', 'Camera Permission Required'),
-            t('verification.cameraAccessSelfieSettings', 'Camera access is currently disabled for Fixam. You can enable it in Settings, or upload a photo directly from your device.'),
+            t('verification.cameraAccessSelfieSettings', 'Camera permission is required to take a live selfie for identity verification. Please enable it in Settings.'),
             [
               { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-              { text: t('verification.uploadDevice', 'Upload from Device'), onPress: pickFromGallery },
               { text: t('settings.openSettings', 'Open Settings'), onPress: () => Linking.openSettings() }
             ]
           );
         } else {
           Alert.alert(
             t('verification.permissionRequired', 'Permission Required'),
-            t('verification.cameraAccessSelfie', 'Camera access is required to take a selfie. You can also upload a photo from your device.'),
-            [
-              { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-              { text: t('verification.uploadDevice', 'Upload from Device'), onPress: pickFromGallery }
-            ]
+            t('verification.cameraAccessSelfie', 'Camera access is required to take a live selfie.')
           );
         }
         return;
@@ -58,7 +53,7 @@ const SelfieScreen = ({ navigation, route }) => {
 
       let result;
       try {
-        // Try front camera first
+        // Try front camera first for live selfie
         result = await ImagePicker.launchCameraAsync({
           cameraType: 'front',
           quality: 0.65,
@@ -76,59 +71,27 @@ const SelfieScreen = ({ navigation, route }) => {
         await processSelfieUri(result.assets[0].uri);
       }
     } catch (error) {
-      if (__DEV__) console.log('[SelfieScreen] Camera capture error:', error?.message);
+      if (__DEV__) console.log('[SelfieScreen] Live camera capture error:', error?.message);
       if (error?.message?.includes('rejected permissions') || error?.message?.includes('User rejected')) {
         Alert.alert(
           t('verification.permissionRequired', 'Camera Permission Needed'),
-          t('verification.cameraAccessSelfieSettings', 'Camera permission was denied. You can enable it in your device Settings, or upload a photo directly from your gallery.'),
+          t('verification.cameraAccessSelfieSettings', 'Camera permission was denied. Please enable camera access in your device Settings to take a live selfie.'),
           [
             { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-            { text: t('verification.uploadDevice', 'Upload from Device'), onPress: pickFromGallery },
             { text: t('settings.openSettings', 'Open Settings'), onPress: () => Linking.openSettings() }
           ]
         );
       } else {
         Alert.alert(
           t('verification.error', 'Error'),
-          t('verification.camError', 'Could not access camera. You can also upload a photo from your device gallery.')
+          t('verification.camError', 'Could not access camera to take live selfie. Please verify camera permissions in Settings.')
         );
       }
     }
   };
 
-  const pickFromGallery = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        quality: 0.65,
-        allowsEditing: false,
-        mediaTypes: ['images'],
-      });
-
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        await processSelfieUri(result.assets[0].uri);
-      }
-    } catch (error) {
-      if (__DEV__) console.error('[SelfieScreen] Gallery pick error:', error);
-      Alert.alert(t('verification.error', 'Error'), error?.message || 'Failed to select image.');
-    }
-  };
-
   const takeSelfie = () => {
-    Alert.alert(
-      t('verification.takeSelfie', 'Take a Selfie'),
-      t('verification.howAdd', 'How would you like to add your selfie?'),
-      [
-        {
-          text: t('verification.takePhoto', 'Take Photo / Selfie'),
-          onPress: captureCamera,
-        },
-        {
-          text: t('verification.uploadDevice', 'Upload from Device'),
-          onPress: pickFromGallery,
-        },
-        { text: t('common.cancel', 'Cancel'), style: 'cancel' }
-      ]
-    );
+    captureLiveSelfie();
   };
 
   const uploadOne = async (uri, label, retries = 2) => {
@@ -265,29 +228,11 @@ const SelfieScreen = ({ navigation, route }) => {
               )}
             </TouchableOpacity>
 
-            {selfieImage ? (
+            {selfieImage && (
               <TouchableOpacity style={styles.retakeLink} onPress={takeSelfie}>
                 <MaterialCommunityIcons name="camera-retake" size={18} color={colors.accent} />
                 <Text style={[styles.retakeLinkText, { color: colors.accent }]}>{t('verification.retake')}</Text>
               </TouchableOpacity>
-            ) : (
-              <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
-                <TouchableOpacity
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                    paddingVertical: 10,
-                    paddingHorizontal: 16,
-                    borderRadius: 12,
-                    backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9'
-                  }}
-                  onPress={pickFromGallery}
-                >
-                  <MaterialCommunityIcons name="image-outline" size={18} color={colors.accent} />
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.accent }}>{t('verification.uploadDevice', 'Upload from Device')}</Text>
-                </TouchableOpacity>
-              </View>
             )}
 
             {/* Instructions */}

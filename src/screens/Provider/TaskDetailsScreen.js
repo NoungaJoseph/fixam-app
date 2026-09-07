@@ -103,7 +103,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const taskCategory = displayTask.category || task.category;
   const taskServiceType = displayTask.serviceType || task.serviceType;
   const taskMaterialsProvider = displayTask.materialsProvider || task.materialsProvider;
-  const taskDescription = displayTask.notes || displayTask.description || task.notes || task.description;
+  const rawDescription = displayTask.notes || displayTask.description || task.notes || task.description || '';
+  const taskDescription = rawDescription.replace(/\[(?:Workforce Required|Effectif requis)[^\]]*\]/gi, '').trim();
+  const providersNeeded = Number(displayTask.providersNeeded || task.providersNeeded || 1);
 
   const photos = displayTask.photos?.length ? displayTask.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : (task.photos?.length ? task.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : []);
   const fallbackIcon = CATEGORY_ICONS[String(taskCategory || '').toUpperCase()] || 'briefcase-outline';
@@ -347,6 +349,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             {task.id ? <Fact icon="clipboard-text-outline" label={isBooking ? t('jobs.bookingId', 'Booking ID') : t('jobs.jobId')} value={`#${isBooking ? 'BKG' : 'JOB'}-${String(task.id).slice(-7)}`} colors={colors} /> : null}
             {postedOn ? <Fact icon="calendar-month-outline" label={t('jobs.posted')} value={postedOn} colors={colors} /> : null}
             {preferredDate ? <Fact icon="clock-outline" label={isBooking ? t('jobs.scheduled', 'Scheduled') : t('jobs.preferred')} value={preferredDate} colors={colors} /> : null}
+            {providersNeeded > 1 ? (
+              <Fact icon="account-group-outline" label={t('jobs.providerNeed', 'Provider need')} value={String(providersNeeded)} colors={colors} />
+            ) : null}
             {!isBooking ? (
               <Fact icon="star-cog-outline" label={t('jobs.proposals')} value={t('jobs.receivedCount', { count: applicationCount })} colors={colors} />
             ) : null}
@@ -533,6 +538,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           <View style={styles.detailList}>
             {taskCategory ? <DetailLine label={t('jobs.category')} value={translateService(taskCategory)} colors={colors} /> : null}
             {taskServiceType ? <DetailLine label={t('jobs.serviceType')} value={translateService(taskServiceType)} colors={colors} /> : null}
+            <DetailLine label={t('jobs.providerNeed', 'Provider need')} value={String(providersNeeded)} colors={colors} />
             {taskBookingDate ? <DetailLine label={t('jobs.scheduledDate', 'Scheduled Date')} value={new Date(taskBookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} colors={colors} /> : null}
             {taskBookingTime ? <DetailLine label={t('jobs.scheduledTime', 'Time / Hours')} value={taskBookingTime} colors={colors} /> : null}
             {taskDuration ? <DetailLine label={t('jobs.duration', 'Duration')} value={taskDuration} colors={colors} /> : null}

@@ -578,26 +578,7 @@ const PostTaskScreen = ({ route, navigation }) => {
       const finalBudget = budgetMode === 'range' ? parsedMax : parsedBudget;
 
       const numProviders = parseInt(providersNeeded, 10) || 1;
-
-      // 1. Append workforce requirements note to description if 3+, 7+, 10+
-      let providerNote = '';
-      const isFr = locale === 'fr';
-      if (numProviders >= 10) {
-        providerNote = isFr 
-          ? `\n\n[Effectif requis : Cette tâche nécessite plus de 10 personnes (${numProviders} prestataires demandés).]` 
-          : `\n\n[Workforce Required: This job needs more than 10 people (${numProviders} providers requested).]`;
-      } else if (numProviders >= 7) {
-        providerNote = isFr 
-          ? `\n\n[Effectif requis : Cette tâche nécessite 7 à 9 prestataires (${numProviders} demandés).]` 
-          : `\n\n[Workforce Required: This job needs 7 to 9 providers (${numProviders} requested).]`;
-      } else if (numProviders >= 3) {
-        providerNote = isFr 
-          ? `\n\n[Effectif requis : Cette tâche nécessite au moins 3 à 6 prestataires (${numProviders} demandés).]` 
-          : `\n\n[Workforce Required: This job needs at least 3 to 6 providers (${numProviders} requested).]`;
-      }
-
-      const rawDesc = String(description || '').trim();
-      const finalDescription = rawDesc + (providerNote && !rawDesc.includes('Workforce Required') && !rawDesc.includes('Effectif requis') ? providerNote : '');
+      const finalDescription = String(description || '').trim();
 
       // 2. Clean materials list
       const cleanedMaterialsList = (Array.isArray(materialsList) ? materialsList : [])

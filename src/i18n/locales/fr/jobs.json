@@ -292,6 +292,8 @@
       "availableToday": "Disponibles aujourd'hui"
     },
     "providersNeeded": "Nombre de prestataires nécessaires",
+    "providerNeed": "Prestataires nécessaires",
+    "providerNeedCount": "Prestataires nécessaires : {{count}}",
     "providersNeededPlaceholder": "ex. 2",
     "providersNeededHint": "De combien de professionnels avez-vous besoin pour cette tâche ?",
     "providersNeededRequired": "Veuillez spécifier un nombre valide de prestataires nécessaires",

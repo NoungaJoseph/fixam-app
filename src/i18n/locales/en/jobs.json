@@ -292,6 +292,8 @@
       "availableToday": "Available Today"
     },
     "providersNeeded": "Number of Providers Needed",
+    "providerNeed": "Provider need",
+    "providerNeedCount": "Provider need: {{count}}",
     "providersNeededPlaceholder": "e.g. 2",
     "providersNeededHint": "How many professionals do you need for this task?",
     "providersNeededRequired": "Please specify a valid number of providers needed",

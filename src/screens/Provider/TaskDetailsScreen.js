@@ -312,9 +312,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             ) : null}
           </View>
           <Text style={[styles.jobTitle, { color: colors.text }]}>{task.title || t('jobs.taskDetails')}</Text>
-          {task.description ? (
-            <Text style={[styles.jobSummary, { color: colors.textSecondary }]}>{task.description}</Text>
-          ) : null}
           <View style={styles.heroBottom}>
             <View style={styles.locationLine}>
               <MaterialCommunityIcons name="map-marker-outline" size={22} color="#0D9488" />
@@ -342,12 +339,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             </View>
             <Text style={[styles.cardSub, { color: colors.textSecondary }]}>{t('jobs.taskOwner')}</Text>
           </View>
-          {canMessageClient && (
-            <TouchableOpacity style={styles.clientAction} onPress={openClientChat}>
-              <MaterialCommunityIcons name="message-text-outline" size={23} color={colors.text} />
-              <Text style={[styles.clientActionText, { color: colors.text }]}>{t('tabs.messages')}</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         <View style={styles.overviewCard}>
@@ -554,11 +545,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
       </ScrollView>
 
       <View style={[styles.footer, { bottom: Math.max(insets.bottom, 12) + 25 }]}>
-        {canMessageClient && (
-          <TouchableOpacity style={styles.footerIcon} onPress={openClientChat}>
-            <MaterialCommunityIcons name="message-text-outline" size={24} color={colors.text} />
-          </TouchableOpacity>
-        )}
         <TouchableOpacity style={[styles.proposalBtn, (hasApplied || submitting) && styles.proposalBtnDisabled]} onPress={handleAccept} disabled={hasApplied || submitting}>
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />

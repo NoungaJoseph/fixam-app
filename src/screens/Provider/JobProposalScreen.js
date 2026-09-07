@@ -24,11 +24,12 @@ import TealSafeAreaView from '../../components/Common/TealSafeAreaView';
 import api from '../../services/api';
 import { getCurrencyForUser } from '../../constants/countries';
 import { translateApiError } from '../../utils/eligibilityMessages';
+import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
 const JobProposalScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, uploadFile } = useAuth();
   const { walletBalance, markJobApplied } = useAppContext();
 
   const { task = {} } = route.params || {};
@@ -46,29 +47,63 @@ const JobProposalScreen = ({ route, navigation }) => {
   const currencyStr = getCurrencyForUser(task.country || user?.country || 'Cameroon');
   const boostAmount = Math.max(0, parseInt(boostCoins, 10) || 0);
 
-  // Upload file helper
+  // Upload file helper (both PDF and images)
   const handleUploadFile = async (fileUri, fileName, mimeType) => {
     try {
       setUploadingMedia(true);
+
+      let uriToUpload = fileUri;
+      const isImage = mimeType?.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(fileName || '');
+      if (isImage) {
+        try {
+          const opt = await optimizeImageForUpload(fileUri, { maxWidth: 1280, quality: 0.75 });
+          if (opt?.uri) uriToUpload = opt.uri;
+        } catch (optErr) {
+          if (__DEV__) console.warn('[JobProposal] Image optimization skipped:', optErr?.message);
+        }
+      }
+
+      const cleanFileName = fileName || (isImage ? `proposal_${Date.now()}.jpg` : `document_${Date.now()}.pdf`);
+      const cleanMimeType = mimeType || (cleanFileName.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+
       const formData = new FormData();
       formData.append('file', {
-        uri: Platform.OS === 'ios' ? fileUri.replace('file://', '') : fileUri,
-        name: fileName || `proposal_file_${Date.now()}`,
-        type: mimeType || 'application/octet-stream',
+        uri: Platform.OS === 'ios' ? uriToUpload.replace('file://', '') : uriToUpload,
+        name: cleanFileName,
+        type: cleanMimeType,
       });
 
-      const res = await api.post('/uploads/proposal', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      let resData;
+      if (uploadFile) {
+        try {
+          resData = await uploadFile(formData, '/upload/proposal', { timeout: 60000 });
+        } catch (upErr) {
+          resData = await uploadFile(formData, '/uploads/proposal', { timeout: 60000 });
+        }
+      } else {
+        try {
+          const res = await api.post('/upload/proposal', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
+          });
+          resData = res.data;
+        } catch (apiErr) {
+          const res = await api.post('/uploads/proposal', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
+          });
+          resData = res.data;
+        }
+      }
 
-      const uploadedUrl = res.data?.url || res.data?.data?.url;
+      const uploadedUrl = resData?.url || resData?.data?.url;
       if (uploadedUrl) {
         setAttachments(prev => [
           ...prev,
           {
             url: uploadedUrl,
-            name: fileName || 'Attachment',
-            type: mimeType || 'image/jpeg',
+            name: cleanFileName,
+            type: cleanMimeType,
           }
         ]);
       }
@@ -86,7 +121,7 @@ const JobProposalScreen = ({ route, navigation }) => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.8,
       });
 

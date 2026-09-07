@@ -129,8 +129,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     (displayTask.assignedProviderId && (displayTask.assignedProviderId === user?.providerProfile?.id || displayTask.assignedProviderId === user?.id)) ||
     (task.assignedProviderId && (task.assignedProviderId === user?.providerProfile?.id || task.assignedProviderId === user?.id)) ||
     (jobDetails?.assignedProviderId && (jobDetails.assignedProviderId === user?.providerProfile?.id || jobDetails.assignedProviderId === user?.id))
-  );
-  const canMessageClient = (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase()));
+  const isMultiProvider = (Number(displayTask.providersNeeded || task.providersNeeded) || 1) > 1;
+  const canMessageClient = isMultiProvider || (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase()));
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
 
   React.useEffect(() => {
@@ -237,6 +237,26 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         userName: clientName,
         avatar: clientAvatar,
         otherParticipant: conversation.participants?.[0] || { id: clientId, role: 'CLIENT' },
+        isSupportConversation: conversation.isSystem,
+        task,
+      });
+    } catch (error) {
+      Alert.alert(t('common.error'), translateApiError(error, t, 'messages.sendFailed'));
+    }
+  };
+
+  const openApplicantChat = async (targetUser) => {
+    const targetUserId = targetUser?.id || targetUser?.userId;
+    if (!targetUserId) return;
+    try {
+      const res = await api.post('/chat/conversations', { participantId: targetUserId });
+      const conversation = res.data.data;
+      navigation.navigate('Chat', {
+        conversationId: conversation.id,
+        receiverId: targetUserId,
+        userName: targetUser.fullName || targetUser.name || 'Co-Applicant',
+        avatar: targetUser.avatar ? getMediaUrl(targetUser.avatar) : null,
+        otherParticipant: conversation.participants?.[0] || { id: targetUserId, role: 'PROVIDER' },
         isSupportConversation: conversation.isSystem,
         task,
       });
@@ -408,10 +428,21 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                           )}
                         </View>
 
-                        {/* Bid Coins */}
-                        <View style={[styles.bidBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
-                          <MaterialCommunityIcons name="rocket-launch" size={14} color="#0D9488" style={{ marginRight: 4 }} />
-                          <Text style={[styles.bidText, { color: colors.text }]}>{bidAmount} {t('payments.coins', 'Coins')}</Text>
+                        {/* Bid Coins & Multi-Provider Message Action */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <View style={[styles.bidBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+                            <MaterialCommunityIcons name="rocket-launch" size={14} color="#0D9488" style={{ marginRight: 4 }} />
+                            <Text style={[styles.bidText, { color: colors.text }]}>{bidAmount} {t('payments.coins', 'Coins')}</Text>
+                          </View>
+
+                          {isMultiProvider && !isOwn && assignment.provider?.user && (
+                            <TouchableOpacity
+                              style={{ padding: 6, borderRadius: 8, backgroundColor: colors.accent + '20' }}
+                              onPress={() => openApplicantChat(assignment.provider.user)}
+                            >
+                              <MaterialCommunityIcons name="message-text-outline" size={16} color={colors.accent} />
+                            </TouchableOpacity>
+                          )}
                         </View>
                       </View>
                     );

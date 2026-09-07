@@ -59,6 +59,22 @@ set JAVA_EXE=%JAVA_HOME%/bin/java.exe
 
 if exist "%JAVA_EXE%" goto execute
 
+@rem Fallback: Auto-detect installed JDK 17 if current JAVA_HOME points to an invalid directory
+for /d %%D in ("C:\Program Files\Eclipse Adoptium\jdk-17*") do (
+    if exist "%%D\bin\java.exe" (
+        set "JAVA_HOME=%%D"
+        set "JAVA_EXE=%%D\bin\java.exe"
+        goto execute
+    )
+)
+for /d %%D in ("C:\Program Files\Microsoft\jdk-17*") do (
+    if exist "%%D\bin\java.exe" (
+        set "JAVA_HOME=%%D"
+        set "JAVA_EXE=%%D\bin\java.exe"
+        goto execute
+    )
+)
+
 echo. 1>&2
 echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
 echo. 1>&2

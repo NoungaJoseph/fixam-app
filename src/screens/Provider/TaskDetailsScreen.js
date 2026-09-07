@@ -129,6 +129,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     (displayTask.assignedProviderId && (displayTask.assignedProviderId === user?.providerProfile?.id || displayTask.assignedProviderId === user?.id)) ||
     (task.assignedProviderId && (task.assignedProviderId === user?.providerProfile?.id || task.assignedProviderId === user?.id)) ||
     (jobDetails?.assignedProviderId && (jobDetails.assignedProviderId === user?.providerProfile?.id || jobDetails.assignedProviderId === user?.id))
+  );
   const isMultiProvider = (Number(displayTask.providersNeeded || task.providersNeeded) || 1) > 1;
   const canMessageClient = isMultiProvider || (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase()));
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);

@@ -170,6 +170,11 @@ const JobProposalScreen = ({ route, navigation }) => {
       return;
     }
 
+    if (!taskId) {
+      Alert.alert(t('common.error'), t('jobs.notFound', 'Task not found. Please go back and try again.'));
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
@@ -197,6 +202,7 @@ const JobProposalScreen = ({ route, navigation }) => {
         }
       ]);
     } catch (error) {
+      if (__DEV__) console.error('[handleSubmitProposal Error]:', error?.response?.data || error?.message);
       const message = translateApiError(error, t, 'jobs.couldNotApply');
       Alert.alert(t('jobs.couldNotApply'), message);
     } finally {

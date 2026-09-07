@@ -823,7 +823,9 @@ const PostProjectScreen = ({ navigation, route }) => {
                 color={tierData[activeTierId].enabled ? colors.accent : colors.placeholder}
               />
               <Text style={[styles.enableToggleText, { color: colors.text }]}>
-                {t('project.enablePackage', 'Enable {{name}} Package', { name: activeTierId.toUpperCase() })}
+                {t('project.enablePackage', `Enable ${activeTierId === 'basic' ? 'Basic' : activeTierId === 'premium' ? 'Premium' : 'Standard'} Package`, {
+                  name: activeTierId === 'basic' ? t('project.basic', 'Basic') : activeTierId === 'premium' ? t('project.premium', 'Premium') : t('project.standard', 'Standard')
+                })}
               </Text>
             </TouchableOpacity>
 

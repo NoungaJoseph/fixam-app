@@ -47,12 +47,27 @@ export const LanguageProvider = ({ children }) => {
     setLocale(nextLanguage);
   }, []);
 
-  const t = useCallback((key, options) => {
+  const t = useCallback((key, defaultValueOrOptions, maybeOptions) => {
     const resolved = resolveI18nKey(key);
-    if (typeof options === 'string') {
-      return i18n.t(resolved.key, { ns: resolved.ns, defaultValue: options });
+    let options = {};
+    if (typeof defaultValueOrOptions === 'string') {
+      options = typeof maybeOptions === 'object' && maybeOptions !== null
+        ? { defaultValue: defaultValueOrOptions, ...maybeOptions }
+        : { defaultValue: defaultValueOrOptions };
+    } else if (typeof defaultValueOrOptions === 'object' && defaultValueOrOptions !== null) {
+      options = defaultValueOrOptions;
     }
-    return i18n.t(resolved.key, { ns: resolved.ns, ...options });
+    const result = i18n.t(resolved.key, { ns: resolved.ns, ...options });
+    // Safety fallback: if i18n didn't interpolate variables passed in options, replace them manually
+    if (typeof result === 'string') {
+      return Object.keys(options).reduce((acc, k) => {
+        if (k !== 'ns' && k !== 'defaultValue') {
+          return acc.replace(new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, 'g'), String(options[k] ?? ''));
+        }
+        return acc;
+      }, result);
+    }
+    return result;
   }, [locale]); // re-bind when locale changes
 
   const value = useMemo(() => ({

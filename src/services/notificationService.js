@@ -102,6 +102,14 @@ class NotificationService {
         nav.navigate('Wallet');
         break;
 
+      case 'WEEKLY_SKILL_SPOTLIGHT':
+      case 'MARKETING_SKILL_DISCOVERY':
+        nav.navigate('ProviderList', {
+          category: data.category || 'all',
+          search: data.search || data.category || ''
+        });
+        break;
+
       default:
         nav.navigate('Notifications');
         break;

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Alert, Image, ScrollView, Platform, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Alert, Image, ScrollView, Platform, ActivityIndicator, Linking } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import * as ImagePicker from 'expo-image-picker';
@@ -31,9 +31,28 @@ const SelfieScreen = ({ navigation, route }) => {
 
   const captureCamera = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status, canAskAgain } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(t('verification.permissionRequired', 'Permission Required'), t('verification.cameraAccessSelfie', 'Camera access is required to take a selfie.'));
+        if (!canAskAgain) {
+          Alert.alert(
+            t('verification.permissionRequired', 'Camera Permission Required'),
+            t('verification.cameraAccessSelfieSettings', 'Camera access is currently disabled for Fixam. You can enable it in Settings, or upload a photo directly from your device.'),
+            [
+              { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+              { text: t('verification.uploadDevice', 'Upload from Device'), onPress: pickFromGallery },
+              { text: t('settings.openSettings', 'Open Settings'), onPress: () => Linking.openSettings() }
+            ]
+          );
+        } else {
+          Alert.alert(
+            t('verification.permissionRequired', 'Permission Required'),
+            t('verification.cameraAccessSelfie', 'Camera access is required to take a selfie. You can also upload a photo from your device.'),
+            [
+              { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+              { text: t('verification.uploadDevice', 'Upload from Device'), onPress: pickFromGallery }
+            ]
+          );
+        }
         return;
       }
 
@@ -47,7 +66,6 @@ const SelfieScreen = ({ navigation, route }) => {
         });
       } catch (frontErr) {
         if (__DEV__) console.warn('[SelfieScreen] Front camera failed, falling back to default camera:', frontErr?.message);
-        // Fallback without cameraType constraint if front camera intent is not supported
         result = await ImagePicker.launchCameraAsync({
           quality: 0.65,
           allowsEditing: false,
@@ -58,11 +76,23 @@ const SelfieScreen = ({ navigation, route }) => {
         await processSelfieUri(result.assets[0].uri);
       }
     } catch (error) {
-      if (__DEV__) console.error('[SelfieScreen] Camera capture error:', error);
-      Alert.alert(
-        t('verification.error', 'Error'),
-        t('verification.camError', 'Could not access camera. You can also upload a photo from your gallery.')
-      );
+      if (__DEV__) console.log('[SelfieScreen] Camera capture error:', error?.message);
+      if (error?.message?.includes('rejected permissions') || error?.message?.includes('User rejected')) {
+        Alert.alert(
+          t('verification.permissionRequired', 'Camera Permission Needed'),
+          t('verification.cameraAccessSelfieSettings', 'Camera permission was denied. You can enable it in your device Settings, or upload a photo directly from your gallery.'),
+          [
+            { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+            { text: t('verification.uploadDevice', 'Upload from Device'), onPress: pickFromGallery },
+            { text: t('settings.openSettings', 'Open Settings'), onPress: () => Linking.openSettings() }
+          ]
+        );
+      } else {
+        Alert.alert(
+          t('verification.error', 'Error'),
+          t('verification.camError', 'Could not access camera. You can also upload a photo from your device gallery.')
+        );
+      }
     }
   };
 

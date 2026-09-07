@@ -19,38 +19,103 @@ const SelfieScreen = ({ navigation, route }) => {
   const [uploadStatusText, setUploadStatusText] = useState('');
   const params = route.params || {};
 
-  const takeSelfie = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t('verification.permissionRequired'), t('verification.cameraAccessSelfie'));
-      return;
-    }
-
+  const processSelfieUri = async (rawUri) => {
     try {
-      const result = await ImagePicker.launchCameraAsync({
-        cameraType: ImagePicker.CameraType.front,
+      const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 1080, quality: 0.65 });
+      setSelfieImage(optimized?.uri || rawUri);
+    } catch (optErr) {
+      if (__DEV__) console.warn('[SelfieScreen] Image optimization failed, using original:', optErr);
+      setSelfieImage(rawUri);
+    }
+  };
+
+  const captureCamera = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('verification.permissionRequired', 'Permission Required'), t('verification.cameraAccessSelfie', 'Camera access is required to take a selfie.'));
+        return;
+      }
+
+      let result;
+      try {
+        // Try front camera first
+        result = await ImagePicker.launchCameraAsync({
+          cameraType: 'front',
+          quality: 0.65,
+          allowsEditing: false,
+        });
+      } catch (frontErr) {
+        if (__DEV__) console.warn('[SelfieScreen] Front camera failed, falling back to default camera:', frontErr?.message);
+        // Fallback without cameraType constraint if front camera intent is not supported
+        result = await ImagePicker.launchCameraAsync({
+          quality: 0.65,
+          allowsEditing: false,
+        });
+      }
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        await processSelfieUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      if (__DEV__) console.error('[SelfieScreen] Camera capture error:', error);
+      Alert.alert(
+        t('verification.error', 'Error'),
+        t('verification.camError', 'Could not access camera. You can also upload a photo from your gallery.')
+      );
+    }
+  };
+
+  const pickFromGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
         quality: 0.65,
         allowsEditing: false,
+        mediaTypes: ['images'],
       });
 
       if (!result.canceled && result.assets?.[0]?.uri) {
-        const optimized = await optimizeImageForUpload(result.assets[0].uri, { maxWidth: 1080, quality: 0.65 });
-        setSelfieImage(optimized.uri);
+        await processSelfieUri(result.assets[0].uri);
       }
     } catch (error) {
-      Alert.alert(t('verification.error'), t('verification.camError'));
+      if (__DEV__) console.error('[SelfieScreen] Gallery pick error:', error);
+      Alert.alert(t('verification.error', 'Error'), error?.message || 'Failed to select image.');
     }
+  };
+
+  const takeSelfie = () => {
+    Alert.alert(
+      t('verification.takeSelfie', 'Take a Selfie'),
+      t('verification.howAdd', 'How would you like to add your selfie?'),
+      [
+        {
+          text: t('verification.takePhoto', 'Take Photo / Selfie'),
+          onPress: captureCamera,
+        },
+        {
+          text: t('verification.uploadDevice', 'Upload from Device'),
+          onPress: pickFromGallery,
+        },
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' }
+      ]
+    );
   };
 
   const uploadOne = async (uri, label, retries = 2) => {
     // Compress on-device before uploading over network
-    const optimized = await optimizeImageForUpload(uri, { maxWidth: 1200, quality: 0.65 });
-    const finalUri = optimized.uri;
+    let finalUri = uri;
+    try {
+      const optimized = await optimizeImageForUpload(uri, { maxWidth: 1200, quality: 0.65 });
+      if (optimized?.uri) finalUri = optimized.uri;
+    } catch (e) {
+      finalUri = uri;
+    }
+
     const filename = `${label}-${finalUri.split('/').pop() || Date.now()}.jpg`;
     
     const formData = new FormData();
     formData.append('file', {
-      uri: finalUri,
+      uri: Platform.OS === 'ios' ? finalUri.replace('file://', '') : finalUri,
       name: filename,
       type: 'image/jpeg',
     });
@@ -170,11 +235,29 @@ const SelfieScreen = ({ navigation, route }) => {
               )}
             </TouchableOpacity>
 
-            {selfieImage && (
+            {selfieImage ? (
               <TouchableOpacity style={styles.retakeLink} onPress={takeSelfie}>
                 <MaterialCommunityIcons name="camera-retake" size={18} color={colors.accent} />
                 <Text style={[styles.retakeLinkText, { color: colors.accent }]}>{t('verification.retake')}</Text>
               </TouchableOpacity>
+            ) : (
+              <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 12,
+                    backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9'
+                  }}
+                  onPress={pickFromGallery}
+                >
+                  <MaterialCommunityIcons name="image-outline" size={18} color={colors.accent} />
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.accent }}>{t('verification.uploadDevice', 'Upload from Device')}</Text>
+                </TouchableOpacity>
+              </View>
             )}
 
             {/* Instructions */}

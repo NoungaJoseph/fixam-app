@@ -181,7 +181,7 @@ const PostProjectScreen = ({ navigation, route }) => {
 
   // Auto-save project draft when fields change
   useEffect(() => {
-    if (!isProjectDraftLoadedRef.current || editingId) return;
+    if (!isDraftLoadedRef.current || editingId) return;
     const hasContent = Boolean(
       title.trim() ||
       description.trim() ||

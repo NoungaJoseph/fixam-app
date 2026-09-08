@@ -647,7 +647,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     const description = job.description || t('jobs.noDescription');
     const locationText = job.location || '4.1070, 9.7619';
     const titleText = job.title || t('jobs.untitledTask');
-    const applicantCount = job._count?.assignments ?? job.assignments?.length ?? 0;
+    const applicantCount = job.applicationCount ?? job._count?.assignments ?? job.assignments?.length ?? 0;
 
     // dynamic budget formatting
     const budgetMin = Number(job.budgetMin || job.budget || 0);

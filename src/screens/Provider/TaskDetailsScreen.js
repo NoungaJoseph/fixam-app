@@ -58,7 +58,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const [coverLetter, setCoverLetter] = useState('');
   const [jobDetails, setJobDetails] = useState(task);
   const [fetching, setFetching] = useState(true);
-  const [applicationCount, setApplicationCount] = useState(task.assignments?.length || task.proposals || 0);
+  const [applicationCount, setApplicationCount] = useState(task.applicationCount ?? task._count?.assignments ?? task.assignments?.length ?? task.proposals ?? 0);
   const [submitting, setSubmitting] = useState(false);
   const [applied, setApplied] = useState(false);
   const coinCost = 1;
@@ -72,7 +72,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     setShowConfirm(false);
     setBoostCoins('');
     setCoverLetter('');
-    setApplicationCount(task.assignments?.length || task.proposals || 0);
+    setApplicationCount(task.applicationCount ?? task._count?.assignments ?? task.assignments?.length ?? task.proposals ?? 0);
     setActiveDispute(task.disputes?.[0] || null);
   }, [currentTaskId]);
 
@@ -167,7 +167,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         if (res.data?.success && active) {
           setJobDetails(res.data.data);
           if (!isBooking) {
-            setApplicationCount(res.data.data.assignments?.length || 0);
+            setApplicationCount(res.data.data.applicationCount ?? res.data.data._count?.assignments ?? res.data.data.assignments?.length ?? 0);
           }
         }
       } catch (err) {

@@ -75,7 +75,20 @@ const JobStatusScreen = ({ route, navigation }) => {
       setHasReviewedLocally(false);
       setActiveDispute(incomingJob.disputes?.[0] || null);
     }
-  }, [currentJobId]);
+
+    if (currentJobId && !isBooking) {
+      api.get(`/jobs/${currentJobId}`)
+        .then((res) => {
+          if (res.data?.data) {
+            setJob(res.data.data);
+            if (res.data.data.disputes?.[0]) {
+              setActiveDispute(res.data.data.disputes[0]);
+            }
+          }
+        })
+        .catch((err) => console.log('[JobStatusScreen] Could not fetch fresh job details:', err?.message));
+    }
+  }, [currentJobId, isBooking]);
 
   const normalizedStatus = String(job.status || 'PENDING').toUpperCase();
   const displayStatus = translateStatus(normalizedStatus);
@@ -484,18 +497,36 @@ const JobStatusScreen = ({ route, navigation }) => {
                     })()}
                     
                     <View style={styles.applicationActionRow}>
-                      <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.border, flex: 1 }]} onPress={() => navigation.navigate('ProviderProfile', { provider })}>
-                        <Text style={[styles.outlineBtnText, { color: colors.text }]}>{t('profile.viewProfile')}</Text>
-                      </TouchableOpacity>
                       <TouchableOpacity 
-                        style={[styles.solidBtn, { backgroundColor: colors.accent, flex: 1.5 }]} 
+                        style={[styles.outlineBtn, { borderColor: colors.border, flex: 1.1 }]} 
+                        onPress={() => navigation.navigate('ProviderProfile', { provider, task: job, assignment })}
+                      >
+                        <MaterialCommunityIcons name="account-outline" size={15} color={colors.text} style={{ marginRight: 3 }} />
+                        <Text style={[styles.outlineBtnText, { color: colors.text }]} numberOfLines={1}>{t('profile.viewProfile')}</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[styles.outlineBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.1)' : '#F0FDFA', flex: 1 }]} 
+                        onPress={() => navigation.navigate('Chat', {
+                          receiverId: providerUser.id,
+                          userName: providerUser.fullName || t('common.provider'),
+                          avatar: providerUser.avatar,
+                          task: job
+                        })}
+                      >
+                        <MaterialCommunityIcons name="chat-outline" size={15} color={colors.accent} style={{ marginRight: 3 }} />
+                        <Text style={[styles.outlineBtnText, { color: colors.accent, fontWeight: '700' }]} numberOfLines={1}>{t('chat.message', 'Message')}</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[styles.solidBtn, { backgroundColor: colors.accent, flex: 1.1 }]} 
                         onPress={() => chooseProvider(assignment)}
                         disabled={selectingAssignmentId !== null}
                       >
                         {selectingAssignmentId === assignment.id ? (
                           <ActivityIndicator size="small" color="#FFF" />
                         ) : (
-                          <Text style={styles.solidBtnText}>{t('jobs.hireNow')}</Text>
+                          <Text style={styles.solidBtnText} numberOfLines={1}>{t('jobs.hireNow')}</Text>
                         )}
                       </TouchableOpacity>
                     </View>
@@ -982,11 +1013,11 @@ const styles = StyleSheet.create({
   },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
   applicationMeta: { fontSize: 13, fontWeight: '700' },
-  applicationActionRow: { flexDirection: 'row', gap: 12 },
-  outlineBtn: { height: 48, borderRadius: 8, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
-  outlineBtnText: { fontSize: 14, fontWeight: '800' },
-  solidBtn: { height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  solidBtnText: { color: '#FFF', fontSize: 14, fontWeight: '800' },
+  applicationActionRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  outlineBtn: { height: 44, borderRadius: 8, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', paddingHorizontal: 4 },
+  outlineBtnText: { fontSize: 12, fontWeight: '800' },
+  solidBtn: { height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', paddingHorizontal: 4 },
+  solidBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
   detailItem: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 8, marginBottom: 15, gap: 18, borderWidth: 1, borderColor: 'rgba(0,0,0,0)' },
   detailIconWrap: { width: 50, height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   detailLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },

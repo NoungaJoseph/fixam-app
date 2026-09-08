@@ -134,7 +134,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
           </Text>
         </View>
 
-        {task.assignments?.length > 0 && (
+        {Boolean(task.applicationCount || task._count?.assignments || task.assignments?.length) && (
           <View style={styles.metaItem}>
             <MaterialCommunityIcons
               name="account"
@@ -142,7 +142,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
               color={colors.accent}
             />
             <Text style={[styles.metaText, { color: colors.accent }]}>
-              {task.assignments.length} bid(s)
+              {task.applicationCount || task._count?.assignments || task.assignments?.length} bid(s)
             </Text>
           </View>
         )}

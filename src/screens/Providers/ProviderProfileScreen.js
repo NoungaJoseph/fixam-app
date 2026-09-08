@@ -44,6 +44,36 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [callingAction, setCallingAction] = React.useState(null); // 'call' | 'whatsapp' | null
   const { refreshUser } = useAuth();
   
+  const taskFromRoute = route.params?.task || null;
+  const assignmentFromRoute = route.params?.assignment || null;
+  const [hiringForTask, setHiringForTask] = React.useState(false);
+
+  const handleHireForTask = async () => {
+    if (!taskFromRoute || !assignmentFromRoute) return;
+    Alert.alert(
+      t('jobs.hireNow', 'Hire Now'),
+      t('jobs.hireConfirmBody', `Hire ${fullName} for this task?`),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('jobs.hireNow', 'Hire Now'),
+          onPress: async () => {
+            setHiringForTask(true);
+            try {
+              await api.post(`/jobs/${taskFromRoute.id}/choose-provider`, { assignmentId: assignmentFromRoute.id });
+              Alert.alert(t('common.success'), t('jobs.hireSuccess', 'Provider hired successfully!'));
+              navigation.goBack();
+            } catch (err) {
+              Alert.alert(t('common.error'), err.response?.data?.message || 'Failed to hire provider');
+            } finally {
+              setHiringForTask(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+  
   const [selectedProject, setSelectedProject] = React.useState(null);
   const [projectModalVisible, setProjectModalVisible] = React.useState(false);
   const [showAllSkills, setShowAllSkills] = React.useState(false);
@@ -908,28 +938,60 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Booking CTA */}
-        <View style={styles.staticBookingContainer}>
-          <TouchableOpacity
+        {/* Booking CTA or Task Applicant Actions */}
+        {taskFromRoute && assignmentFromRoute ? (
+          <View style={[styles.staticBookingContainer, { flexDirection: 'row', gap: 10 }]}>
+            <TouchableOpacity
+              style={[styles.staticBookButton, { flex: 1, backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9', borderWidth: 1, borderColor: colors.border }]}
+              onPress={() => navigation.navigate('Chat', {
+                receiverId: providerUserId,
+                userName: fullName,
+                avatar: avatarUri,
+                task: taskFromRoute
+              })}
+            >
+              <MaterialCommunityIcons name="chat-outline" size={20} color={colors.accent} style={{ marginRight: 6 }} />
+              <Text style={[styles.staticBookButtonText, { color: colors.accent }]}>{t('chat.message', 'Message')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.staticBookButton, { flex: 1.4, backgroundColor: colors.accent }]}
+              disabled={hiringForTask}
+              onPress={handleHireForTask}
+            >
+              {hiringForTask ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.staticBookButtonText}>{t('jobs.hireNow', 'Hire Now')}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.staticBookingContainer}>
+            <TouchableOpacity
               style={[styles.staticBookButton, { backgroundColor: colors.accent, opacity: providerUserId ? 1 : 0.55 }]}
               disabled={!providerUserId}
               onPress={() => {
-              if (user?.isBlocked) {
-                Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
-                return;
-              }
-              if (!isIdentityVerified(user)) {
-                setVerificationMessage(t(getVerificationMessageKey(user, 'booking')));
-                setShowVerificationModal(true);
-                return;
-              }
-              navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
-            }}
-          >
-            <MaterialCommunityIcons name="calendar-check" size={22} color="#FFF" style={{ marginRight: 6 }} />
-            <Text style={styles.staticBookButtonText}>{t('profile.bookNow')}</Text>
-          </TouchableOpacity>
-        </View>
+                if (user?.isBlocked) {
+                  Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
+                  return;
+                }
+                if (!isIdentityVerified(user)) {
+                  setVerificationMessage(t(getVerificationMessageKey(user, 'booking')));
+                  setShowVerificationModal(true);
+                  return;
+                }
+                navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
+              }}
+            >
+              <MaterialCommunityIcons name="calendar-check" size={22} color="#FFF" style={{ marginRight: 6 }} />
+              <Text style={styles.staticBookButtonText}>{t('profile.bookNow')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       </ScrollView>
 

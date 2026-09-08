@@ -556,19 +556,19 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
       {/* If already applied, show informative banner */}
       {hasApplied && !isBooking && (
-        <View style={{ marginHorizontal: 20, padding: 10, backgroundColor: '#F0FDFA', borderRadius: 12, borderWidth: 1, borderColor: '#99F6E4', flexDirection: 'row', alignItems: 'center', gap: 8, bottom: Math.max(insets.bottom, 12) + 88, position: 'absolute', left: 0, right: 0 }}>
-          <MaterialCommunityIcons name="rocket-launch" size={18} color="#0D9488" />
-          <Text style={{ flex: 1, fontSize: 11, color: '#0F766E', fontWeight: '600', lineHeight: 15 }}>
-            {t('jobs.appliedBoostNotice', 'You have already applied for this job. You can boost your proposal with Fixam Coins to jump to the top and help the client hire you!')}
+        <View style={{ marginHorizontal: 20, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 12, borderWidth: 1, borderColor: '#BBF7D0', flexDirection: 'row', alignItems: 'center', gap: 8, bottom: Math.max(insets.bottom, 12) + 88, position: 'absolute', left: 0, right: 0 }}>
+          <MaterialCommunityIcons name="check-circle" size={18} color="#16A34A" />
+          <Text style={{ flex: 1, fontSize: 12, color: '#15803D', fontWeight: '700', lineHeight: 16 }}>
+            {t('jobs.appliedStatusNotice', 'You have already applied for this job.')}
           </Text>
         </View>
       )}
 
       <View style={[styles.footer, { bottom: Math.max(insets.bottom, 12) + 25 }]}>
         <TouchableOpacity 
-          style={[styles.proposalBtn, (submitting || (hasApplied && isBooking)) && styles.proposalBtnDisabled]} 
+          style={[styles.proposalBtn, (submitting || hasApplied) && styles.proposalBtnDisabled]} 
           onPress={handleAccept} 
-          disabled={submitting || (hasApplied && isBooking)}
+          disabled={submitting || hasApplied}
         >
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
@@ -576,7 +576,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             <Text style={styles.proposalTitle}>
               {isBooking 
                 ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')) 
-                : (hasApplied ? t('jobs.boostProposalBtn', '🚀 Boost Proposal') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
+                : (hasApplied ? t('jobs.applied', 'Applied') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
             </Text>
           )}
         </TouchableOpacity>

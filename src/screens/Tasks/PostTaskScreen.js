@@ -138,21 +138,16 @@ const formatCardDate = (job) => {
   return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
 };
 
-const calculateJobCoinCost = (providersCount) => {
-  const count = parseInt(providersCount) || 1;
-  if (count === 1) return 1;
-  if (count === 2) return 2;
-  if (count >= 3 && count <= 6) return 3;
-  if (count >= 7 && count <= 9) return 4;
-  return 5; // 10 and above
+const calculateJobCoinCost = (_providersCount) => {
+  return 0; // Job creation is currently free
 };
 
 const PROVIDER_TIERS = [
-  { id: '1', value: 1, label: '1', fullLabel: '1 Provider', coins: 1 },
-  { id: '2', value: 2, label: '2', fullLabel: '2 Providers', coins: 2 },
-  { id: '3', value: 3, label: '3+', fullLabel: '3+ Providers (3–6)', coins: 3 },
-  { id: '7', value: 7, label: '7+', fullLabel: '7+ Providers (7–9)', coins: 4 },
-  { id: '10', value: 10, label: '10+', fullLabel: '10+ Providers', coins: 5 },
+  { id: '1', value: 1, label: '1', fullLabel: '1 Provider', coins: 0 },
+  { id: '2', value: 2, label: '2', fullLabel: '2 Providers', coins: 0 },
+  { id: '3', value: 3, label: '3+', fullLabel: '3+ Providers (3–6)', coins: 0 },
+  { id: '7', value: 7, label: '7+', fullLabel: '7+ Providers (7–9)', coins: 0 },
+  { id: '10', value: 10, label: '10+', fullLabel: '10+ Providers', coins: 0 },
 ];
 
 const PostTaskScreen = ({ route, navigation }) => {
@@ -547,20 +542,7 @@ const PostTaskScreen = ({ route, navigation }) => {
         return;
       }
 
-      // 2. Insufficient Coins Check
-      const coinCost = calculateJobCoinCost(providersNeeded);
-      const balance = walletBalance || 0;
-
-      if (balance < coinCost) {
-        Alert.alert(
-          t('common.error', 'Error'),
-          t('eligibility.insufficientCredits', 'You do not have enough coins to post this task. Please top up your wallet and try again.') + 
-          `\n\n` + 
-          t('jobs.costLabel', 'Cost') + `: ${coinCost} ` + t('payments.coins', 'coins') + `\n` + 
-          t('home.walletBalance', 'Balance') + `: ${balance} ` + t('payments.coins', 'coins')
-        );
-        return;
-      }
+      // 2. Job creation is currently free for clients
     }
 
     setLoading(true);
@@ -1020,7 +1002,7 @@ const PostTaskScreen = ({ route, navigation }) => {
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <Text style={[styles.createSectionLabel, { color: colors.text, marginBottom: 0 }]}>{t('jobs.providersNeeded', 'Number of Providers Needed')}</Text>
                   <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent }}>
-                    {calculateJobCoinCost(providersNeeded)} {calculateJobCoinCost(providersNeeded) === 1 ? 'Coin' : 'Coins'}
+                    {t('common.free', 'Free')}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -1049,17 +1031,8 @@ const PostTaskScreen = ({ route, navigation }) => {
                       placeholder="e.g. 5 or 6"
                       placeholderTextColor={colors.textSecondary}
                     />
-                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4 }}>
-                      {parseInt(providersNeeded, 10) >= 10
-                        ? t('jobs.tier10Note', 'Tier 10+: Needs more than 10 people (5 coins)')
-                        : parseInt(providersNeeded, 10) >= 7
-                        ? t('jobs.tier7Note', 'Tier 7+: Needs 7 to 9 people (4 coins)')
-                        : t('jobs.tier3Note', 'Tier 3+: Needs at least 3 to 6 people (3 coins)')}
-                    </Text>
                   </View>
                 )}
-
-                <Text style={styles.fieldHint}>{t('jobs.providersNeededTierHint', 'Cost: 1 = 1 coin, 2 = 2 coins, 3+ = 3 coins, 7+ = 4 coins, 10+ = 5 coins')}</Text>
               </View>
 
               <Modal visible={showProvidersPicker} transparent animationType="fade" onRequestClose={() => setShowProvidersPicker(false)}>
@@ -1102,9 +1075,6 @@ const PostTaskScreen = ({ route, navigation }) => {
                             <View>
                               <Text style={{ fontSize: 15, fontWeight: '800', color: isSelected ? colors.accent : colors.text }}>
                                 {tier.fullLabel}
-                              </Text>
-                              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
-                                {tier.coins} {tier.coins === 1 ? 'Coin' : 'Coins'} deducted
                               </Text>
                             </View>
                             {isSelected && <MaterialCommunityIcons name="check-circle" size={22} color={colors.accent} />}

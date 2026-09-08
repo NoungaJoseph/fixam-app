@@ -34,11 +34,12 @@ const JobProposalScreen = ({ route, navigation }) => {
 
   const { task = {} } = route.params || {};
   const taskId = task.id || route.params?.taskId || route.params?.jobId;
+  const isBoostOnly = Boolean(route.params?.isBoostOnly);
 
   const defaultBudget = String(task.budgetMax || task.budget || task.budgetMin || '');
   const [proposedBudget, setProposedBudget] = useState(defaultBudget);
   const [coverLetter, setCoverLetter] = useState('');
-  const [boostCoins, setBoostCoins] = useState('');
+  const [boostCoins, setBoostCoins] = useState(isBoostOnly ? '1' : '');
   const [attachments, setAttachments] = useState([]); // [{ url, name, type, size }]
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -162,6 +163,11 @@ const JobProposalScreen = ({ route, navigation }) => {
       return;
     }
 
+    if (isBoostOnly && boostAmount < 1) {
+      Alert.alert(t('jobs.boostRequired', 'Boost Coins Required'), t('jobs.boostRequiredBody', 'Please enter at least 1 coin to boost your proposal.'));
+      return;
+    }
+
     if (boostAmount > 0 && (walletBalance || 0) < boostAmount) {
       Alert.alert(
         t('jobs.insufficientCoins'),
@@ -219,14 +225,14 @@ const JobProposalScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-            {t('jobs.submitProposal', 'Submit Proposal')}
+            {isBoostOnly ? t('jobs.boostProposal', 'Boost Proposal 🚀') : t('jobs.submitProposal', 'Submit Proposal')}
           </Text>
           <Text style={{ fontSize: 12, color: colors.textSecondary }} numberOfLines={1}>
             {task.title || 'Task Proposal'}
           </Text>
         </View>
-        <View style={styles.freeBadge}>
-          <Text style={styles.freeBadgeText}>FREE</Text>
+        <View style={[styles.freeBadge, isBoostOnly && { backgroundColor: '#F59E0B' }]}>
+          <Text style={styles.freeBadgeText}>{isBoostOnly ? 'BOOST' : 'FREE'}</Text>
         </View>
       </View>
 
@@ -383,9 +389,11 @@ const JobProposalScreen = ({ route, navigation }) => {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <MaterialCommunityIcons name="send" size={20} color="#FFF" />
               <Text style={styles.submitBtnText}>
-                {boostAmount > 0 
-                  ? t('jobs.submitBoostedProposal', `Submit Boosted Proposal (${boostAmount} Coins)`)
-                  : t('jobs.submitFreeProposal', 'Submit Proposal (FREE)')}
+                {isBoostOnly
+                  ? t('jobs.boostProposalAction', `Boost Proposal (${boostAmount || 1} Coins) 🚀`)
+                  : boostAmount > 0 
+                    ? t('jobs.submitBoostedProposal', `Submit Boosted Proposal (${boostAmount} Coins)`)
+                    : t('jobs.submitFreeProposal', 'Submit Proposal (FREE)')}
               </Text>
             </View>
           )}

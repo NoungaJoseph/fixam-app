@@ -52,6 +52,13 @@ const FindJobsScreen = ({ navigation }) => {
     return allAvailableJobs.filter(j => hiddenJobIds.includes(j.id)).length;
   }, [allAvailableJobs, hiddenJobIds]);
 
+  const appliedCount = useMemo(() => {
+    return allAvailableJobs.filter(j => 
+      j.hasApplied ||
+      j.assignments?.some(a => a.provider?.userId === user?.id || a.providerId === user?.providerProfile?.id || a.provider?.id === user?.providerProfile?.id)
+    ).length;
+  }, [allAvailableJobs, user]);
+
   const sourceJobs = useMemo(() => {
     if (activeTab === 'rejected') {
       return allAvailableJobs.filter(j => (hiddenJobIds || []).includes(j.id));
@@ -64,6 +71,10 @@ const FindJobsScreen = ({ navigation }) => {
     let list = sourceJobs.filter(j => {
       // Filter by tab
       if (activeTab === 'favorites' && !favoriteJobIds.includes(j.id)) return false;
+      if (activeTab === 'applied') {
+        const isApplied = j.hasApplied || j.assignments?.some(a => a.provider?.userId === user?.id || a.providerId === user?.providerProfile?.id || a.provider?.id === user?.providerProfile?.id);
+        if (!isApplied) return false;
+      }
       if (activeTab === 'remote_only') {
         const loc = String(j.location || '').toLowerCase();
         const type = String(j.serviceCategory || j.category || j.serviceType || '').toLowerCase();
@@ -254,6 +265,15 @@ const FindJobsScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'applied' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('applied')}
+          >
+            <Text style={[styles.tabText, activeTab === 'applied' && styles.tabTextActive, { color: activeTab === 'applied' ? '#0D9488' : colors.textSecondary }]}>
+              {t('jobs.appliedJobs', 'Applied')} ({appliedCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'favorites' && styles.tabBtnActive]}
             onPress={() => setActiveTab('favorites')}
           >
@@ -282,11 +302,13 @@ const FindJobsScreen = ({ navigation }) => {
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {activeTab === 'favorites' 
                 ? t('jobs.noFavoriteJobs', 'No saved/favorite jobs yet') 
-                : activeTab === 'rejected' 
-                  ? t('jobs.noRejectedJobs', 'No rejected jobs') 
-                  : activeTab === 'remote_only'
-                    ? t('jobs.noRemoteJobs', 'No remote jobs available')
-                    : t('jobs.noJobsFound', 'No jobs found')}
+                : activeTab === 'applied'
+                  ? t('jobs.noAppliedJobs', 'You have not applied to any jobs yet')
+                  : activeTab === 'rejected' 
+                    ? t('jobs.noRejectedJobs', 'No rejected jobs') 
+                    : activeTab === 'remote_only'
+                      ? t('jobs.noRemoteJobs', 'No remote jobs available')
+                      : t('jobs.noJobsFound', 'No jobs found')}
             </Text>
           </View>
         ) : (

@@ -13,8 +13,8 @@
     "myTasks": "Mes missions",
     "myJobs": "Mes missions",
     "findJobs": "Trouver des missions",
-    "createTask": "Créer",
-    "taskType": "Type de tâche",
+    "createTask": "Publier une mission",
+    "taskType": "Type de mission",
     "physical": "Sur site / Physique",
     "physicalDesc": "Nécessite une présence locale",
     "remote": "En ligne / À distance",
@@ -325,6 +325,13 @@
     "attachedDocuments": "CV / Portfolio / Documents joints",
     "tapToOpenPdf": "Appuyez pour ouvrir et consulter le PDF",
     "tapToViewPhoto": "Appuyez pour afficher la photo",
-    "cannotOpenFile": "Impossible d'ouvrir le lien du fichier."
+    "cannotOpenFile": "Impossible d'ouvrir le lien du fichier.",
+    "appliedJobs": "Postulé",
+    "noAppliedJobs": "Vous n'avez encore postulé à aucune mission",
+    "appliedBoostNotice": "Vous avez déjà postulé pour cette mission. Boostez votre proposition avec des pièces Fixam pour passer en tête et être embauché !",
+    "boostProposalBtn": "🚀 Booster la proposition",
+    "boostProposalAction": "Booster la proposition ({{coins}} Pièces) 🚀",
+    "boostRequired": "Pièces de boost requises",
+    "boostRequiredBody": "Veuillez entrer au moins 1 pièce pour booster votre proposition."
   }
 }

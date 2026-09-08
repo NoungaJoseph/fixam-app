@@ -76,8 +76,8 @@
   },
   "tabs": {
     "home": "Accueil",
-    "tasks": "Missions",
-    "createTask": "Créer",
+    "tasks": "Mes missions",
+    "createTask": "Publier",
     "messages": "Messages",
     "settings": "Réglages",
     "myJobs": "Mes missions",

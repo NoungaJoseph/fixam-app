@@ -10,11 +10,11 @@
     "addAnotherItem": "Add another item",
     "requiredMaterialsAndEquipment": "Materials needed for this job",
     "diagnosisRequiredFirst": "Diagnosis required first",
-    "myTasks": "My Tasks",
+    "myTasks": "My Jobs",
     "myJobs": "My Jobs",
     "findJobs": "Find Jobs",
-    "createTask": "Create Task",
-    "taskType": "Task Type",
+    "createTask": "Post a Job",
+    "taskType": "Job Type",
     "physical": "On-Site / Physical",
     "physicalDesc": "Requires local presence",
     "remote": "Online / Remote",
@@ -325,6 +325,13 @@
     "attachedDocuments": "Attached CV / Portfolio / Documents",
     "tapToOpenPdf": "Tap to open & view PDF document",
     "tapToViewPhoto": "Tap to view full image",
-    "cannotOpenFile": "Unable to open file link."
+    "cannotOpenFile": "Unable to open file link.",
+    "appliedJobs": "Applied",
+    "noAppliedJobs": "You have not applied to any jobs yet",
+    "appliedBoostNotice": "You have already applied for this job. Boost your proposal with Fixam Coins to jump to the top and help the client hire you!",
+    "boostProposalBtn": "🚀 Boost Proposal",
+    "boostProposalAction": "Boost Proposal ({{coins}} Coins) 🚀",
+    "boostRequired": "Boost Coins Required",
+    "boostRequiredBody": "Please enter at least 1 coin to boost your proposal."
   }
 }

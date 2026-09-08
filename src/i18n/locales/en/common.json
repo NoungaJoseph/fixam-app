@@ -40,8 +40,8 @@
   },
   "tabs": {
     "home": "Home",
-    "tasks": "Tasks",
-    "createTask": "Create Task",
+    "tasks": "My Jobs",
+    "createTask": "Post a Job",
     "messages": "Messages",
     "settings": "Settings",
     "myJobs": "My Jobs",

@@ -16,6 +16,9 @@ const BANNED_PERMISSIONS = [
   'android.permission.READ_MEDIA_AUDIO',
   'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
   'android.permission.READ_EXTERNAL_STORAGE',
+  'android.permission.WRITE_EXTERNAL_STORAGE',
+  'android.permission.MANAGE_EXTERNAL_STORAGE',
+  'android.permission.ACCESS_MEDIA_LOCATION',
 ];
 
 function withStripMediaPermissions(config) {
@@ -32,7 +35,7 @@ function withStripMediaPermissions(config) {
             perm?.$?.['android:name'] ||
             perm?.['$']?.['android:name'] ||
             '';
-          return !BANNED_PERMISSIONS.includes(permName) && permName !== 'android.permission.WRITE_EXTERNAL_STORAGE';
+          return !BANNED_PERMISSIONS.includes(permName);
         }
       );
 
@@ -56,16 +59,6 @@ function withStripMediaPermissions(config) {
             'tools:node': 'remove',
           },
         });
-      });
-
-      // Allow WRITE_EXTERNAL_STORAGE ONLY up to Android 9 (API 28) for camera cache on older devices
-      // Google Play Policy explicitly allows WRITE_EXTERNAL_STORAGE when restricted with maxSdkVersion="28"
-      manifest.manifest['uses-permission'].push({
-        $: {
-          'android:name': 'android.permission.WRITE_EXTERNAL_STORAGE',
-          'android:maxSdkVersion': '28',
-          'tools:replace': 'android:maxSdkVersion',
-        },
       });
     }
 

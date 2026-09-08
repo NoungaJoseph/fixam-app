@@ -21,7 +21,7 @@ import UserAvatar from '../../components/UserAvatar';
 import AudioPlayer from '../../components/AudioPlayer';
 import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
-const SUPPORTED_MESSAGE_TYPES = new Set(['TEXT', 'IMAGE', 'FILE', 'AUDIO']);
+const SUPPORTED_MESSAGE_TYPES = new Set(['TEXT', 'IMAGE', 'VIDEO', 'FILE', 'AUDIO']);
 
 // ─── External Contact Detection ─────────────────────────────────────────────
 // Matches phone numbers (Cameroon +237 and local formats), WhatsApp/Telegram
@@ -770,7 +770,7 @@ const ChatScreen = ({ route, navigation }) => {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         const fileName = asset.fileName || `chat_video_${Date.now()}.mp4`;
-        await uploadChatFile(asset.uri, asset.mimeType || 'video/mp4', fileName, 'FILE');
+        await uploadChatFile(asset.uri, asset.mimeType || 'video/mp4', fileName, 'VIDEO');
       }
     } catch (err) {
       console.log('[ChatScreen] handlePickVideo error:', err);
@@ -1126,7 +1126,7 @@ const ChatScreen = ({ route, navigation }) => {
           </Text>
 
           <View style={styles.attachmentOptionsRow}>
-            {/* Option 1: Image */}
+            {/* Option 1: Photos */}
             <TouchableOpacity
               style={styles.attachmentOption}
               onPress={handlePickImages}
@@ -1135,7 +1135,7 @@ const ChatScreen = ({ route, navigation }) => {
               <View style={[styles.attachmentIconWrap, { backgroundColor: '#F0FDFA' }]}>
                 <MaterialCommunityIcons name="image-multiple" size={28} color="#0D9488" />
               </View>
-              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]}>
+              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]} numberOfLines={1}>
                 {t('chat.uploadImage', 'Photos')}
               </Text>
             </TouchableOpacity>
@@ -1149,7 +1149,7 @@ const ChatScreen = ({ route, navigation }) => {
               <View style={[styles.attachmentIconWrap, { backgroundColor: '#F5F3FF' }]}>
                 <MaterialCommunityIcons name="video" size={28} color="#8B5CF6" />
               </View>
-              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]}>
+              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]} numberOfLines={1}>
                 {t('chat.uploadVideo', 'Video')}
               </Text>
             </TouchableOpacity>
@@ -1163,7 +1163,7 @@ const ChatScreen = ({ route, navigation }) => {
               <View style={[styles.attachmentIconWrap, { backgroundColor: '#EFF6FF' }]}>
                 <MaterialCommunityIcons name="file-document-outline" size={28} color="#2563EB" />
               </View>
-              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]}>
+              <Text style={[styles.attachmentOptionLabel, { color: colors.text }]} numberOfLines={1}>
                 {t('chat.uploadDocument', 'Document')}
               </Text>
             </TouchableOpacity>
@@ -1353,11 +1353,16 @@ const styles = StyleSheet.create({
   },
   attachmentOptionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: 24,
+    paddingHorizontal: 8,
   },
   attachmentOption: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
     gap: 8,
   },
   attachmentIconWrap: {
@@ -1370,6 +1375,7 @@ const styles = StyleSheet.create({
   attachmentOptionLabel: {
     fontSize: 13,
     fontWeight: '600',
+    textAlign: 'center',
   },
   attachmentCancelBtn: {
     paddingVertical: 14,

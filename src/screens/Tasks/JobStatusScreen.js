@@ -376,174 +376,57 @@ const JobStatusScreen = ({ route, navigation }) => {
                 const provider = getProviderFromAssignment(assignment);
                 const providerUser = provider?.user || {};
                 return (
-                  <View key={assignment.id} style={[styles.applicationCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                    <TouchableOpacity 
-                      style={styles.applicationInfoRow}
-                      onPress={() => navigation.navigate('ProviderProfile', { provider })}
-                    >
-                      <UserAvatar uri={providerUser.avatar} name={providerUser.fullName || t('common.provider')} size={56} radius={8} style={styles.applicationAvatar} />
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <Text style={[styles.applicationName, { color: colors.text }]}>{providerUser.fullName || 'Provider'}</Text>
-                          {assignment.boostCoins > 0 && (
-                            <View style={styles.boostBadge}>
-                              <MaterialCommunityIcons name="rocket-launch" size={10} color="#0D9488" />
-                              <Text style={styles.boostBadgeText}>
-                                {t('profile.boostedBadge', { coins: assignment.boostCoins })}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        <View style={styles.ratingRow}>
-                          <MaterialCommunityIcons name="star" size={14} color="#FBBF24" />
-                          <Text style={[styles.applicationMeta, { color: colors.textSecondary }]}>
-                            {t('jobs.ratingValue', { rating: Number(provider?.rating || 0).toFixed(1) })}
-                          </Text>
-                          {provider?.jobsCompleted !== undefined && (
-                            <>
-                              <Text style={{ color: colors.textSecondary, marginHorizontal: 4 }}>•</Text>
-                              <MaterialCommunityIcons name="briefcase-outline" size={14} color={colors.textSecondary} style={{ marginRight: 2 }} />
-                              <Text style={[styles.applicationMeta, { color: colors.textSecondary }]}>
-                                {provider.jobsCompleted}
-                              </Text>
-                            </>
-                          )}
-                        </View>
-                        {provider?.rate ? (
-                          <Text style={[styles.applicationMeta, { color: colors.accent, marginTop: 4, fontWeight: '800' }]}>
-                            {Number(provider.rate).toLocaleString()} {getCurrencyForUser(provider.user?.country || user?.country || 'Cameroon')}
-                          </Text>
-                        ) : null}
+                  <TouchableOpacity
+                    key={assignment.id}
+                    style={[styles.proposalSummaryRow, { borderBottomColor: colors.border }]}
+                    activeOpacity={0.6}
+                    onPress={() => navigation.navigate('ProposalDetail', { assignment, provider, providerUser, job, chooseProvider })}
+                  >
+                    <UserAvatar uri={providerUser.avatar} name={providerUser.fullName || t('common.provider')} size={48} radius={24} />
+                    <View style={{ flex: 1, marginLeft: 14 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Text style={[styles.applicationName, { color: colors.text, fontSize: 15 }]}>{providerUser.fullName || 'Provider'}</Text>
+                        {assignment.boostCoins > 0 && (
+                          <View style={styles.boostBadge}>
+                            <MaterialCommunityIcons name="rocket-launch" size={10} color="#0D9488" />
+                          </View>
+                        )}
                       </View>
-                    </TouchableOpacity>
-
-                    {/* Proposed Price / Budget */}
-                    {Boolean(assignment.proposedBudget) && (
-                      <View style={[styles.proposedBudgetBadge, { backgroundColor: isDarkMode ? 'rgba(13, 148, 136, 0.15)' : '#E6FDF3', borderColor: colors.accent }]}>
-                        <MaterialCommunityIcons name="cash" size={16} color={colors.accent} />
-                        <Text style={[styles.proposedBudgetLabel, { color: colors.textSecondary }]}>
-                          {t('jobs.proposedPrice', 'Proposed Price')}:
+                      <View style={[styles.ratingRow, { marginTop: 3 }]}>
+                        <MaterialCommunityIcons name="star" size={13} color="#FBBF24" />
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary }}>
+                          {Number(provider?.rating || 0).toFixed(1)}
                         </Text>
-                        <Text style={[styles.proposedBudgetValue, { color: colors.accent }]}>
+                        {provider?.jobsCompleted !== undefined && (
+                          <>
+                            <Text style={{ color: colors.textSecondary, marginHorizontal: 3, fontSize: 10 }}>•</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary }}>
+                              {provider.jobsCompleted} {t('jobs.jobsDone', 'jobs')}
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                      {Boolean(assignment.proposedBudget) && (
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent, marginTop: 4 }}>
                           {Number(assignment.proposedBudget).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
                         </Text>
-                      </View>
-                    )}
-
-                    {/* Cover Letter */}
-                    {assignment.coverLetter ? (
-                      <View style={[styles.coverLetterContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: colors.border }]}>
-                        <Text style={[styles.coverLetterTitle, { color: colors.textSecondary }]}>
-                          {t('jobs.proposalPitchLabel', 'Proposal Pitch / Cover Note')}
-                        </Text>
-                        <Text style={[styles.coverLetterText, { color: colors.text }]}>
-                          {assignment.coverLetter}
-                        </Text>
-                      </View>
-                    ) : null}
-
-                    {/* Attached CV / Documents / Photos */}
-                    {(() => {
-                      let mediaList = [];
-                      if (Array.isArray(assignment.proposalMedia)) {
-                        mediaList = assignment.proposalMedia;
-                      } else if (typeof assignment.proposalMedia === 'string') {
-                        try {
-                          mediaList = JSON.parse(assignment.proposalMedia);
-                        } catch (_) {}
-                      }
-
-                      if (!mediaList || mediaList.length === 0) return null;
-
-                      return (
-                        <View style={[styles.proposalMediaContainer, { borderColor: colors.border, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.02)' : '#FAFAFA' }]}>
-                          <Text style={[styles.coverLetterTitle, { color: colors.textSecondary, marginBottom: 8 }]}>
-                            {t('jobs.attachedDocuments', 'Attached CV / Portfolio / Documents')}
-                          </Text>
-                          <View style={{ gap: 8 }}>
-                            {mediaList.map((media, idx) => {
-                              const rawUrl = media?.url || (typeof media === 'string' ? media : '');
-                              const mediaUrl = getMediaUrl(rawUrl);
-                              const isPdf = (media?.type && media.type.includes('pdf')) || (media?.name && media.name.toLowerCase().endsWith('.pdf')) || rawUrl.toLowerCase().endsWith('.pdf');
-                              const fileName = media?.name || (isPdf ? 'PDF Resume / CV' : `Photo Attachment ${idx + 1}`);
-
-                              return (
-                                <TouchableOpacity
-                                  key={idx}
-                                  style={[styles.mediaAttachmentItem, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: colors.border }]}
-                                  onPress={() => handleOpenAttachment(mediaUrl, isPdf)}
-                                  activeOpacity={0.7}
-                                >
-                                  <MaterialCommunityIcons
-                                    name={isPdf ? 'file-pdf-box' : 'file-image'}
-                                    size={26}
-                                    color={isPdf ? '#EF4444' : '#0D9488'}
-                                  />
-                                  <View style={{ flex: 1, marginLeft: 10 }}>
-                                    <Text style={[styles.mediaItemName, { color: colors.text }]} numberOfLines={1}>
-                                      {fileName}
-                                    </Text>
-                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
-                                      {isPdf ? t('jobs.tapToOpenPdf', 'Tap to open & view PDF document') : t('jobs.tapToViewPhoto', 'Tap to view full image')}
-                                    </Text>
-                                  </View>
-                                  <MaterialCommunityIcons name="open-in-new" size={18} color={colors.accent} />
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        </View>
-                      );
-                    })()}
-                    
-                    <View style={styles.applicationActionRow}>
-                      <TouchableOpacity 
-                        style={[styles.outlineBtn, { borderColor: colors.border, flex: 1.1 }]} 
-                        onPress={() => navigation.navigate('ProviderProfile', { provider, task: job, assignment })}
-                      >
-                        <MaterialCommunityIcons name="account-outline" size={15} color={colors.text} style={{ marginRight: 3 }} />
-                        <Text style={[styles.outlineBtnText, { color: colors.text }]} numberOfLines={1}>{t('profile.viewProfile')}</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity 
-                        style={[styles.outlineBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.1)' : '#F0FDFA', flex: 1 }]} 
-                        onPress={() => navigation.navigate('Chat', {
-                          receiverId: providerUser.id,
-                          userName: providerUser.fullName || t('common.provider'),
-                          avatar: providerUser.avatar,
-                          task: job
-                        })}
-                      >
-                        <MaterialCommunityIcons name="chat-outline" size={15} color={colors.accent} style={{ marginRight: 3 }} />
-                        <Text style={[styles.outlineBtnText, { color: colors.accent, fontWeight: '700' }]} numberOfLines={1}>{t('chat.message', 'Message')}</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity 
-                        style={[styles.solidBtn, { backgroundColor: colors.accent, flex: 1.1 }]} 
-                        onPress={() => chooseProvider(assignment)}
-                        disabled={selectingAssignmentId !== null}
-                      >
-                        {selectingAssignmentId === assignment.id ? (
-                          <ActivityIndicator size="small" color="#FFF" />
-                        ) : (
-                          <Text style={styles.solidBtnText} numberOfLines={1}>{t('jobs.hireNow')}</Text>
-                        )}
-                      </TouchableOpacity>
+                      )}
                     </View>
-                  </View>
+                    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                      <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textSecondary} />
+                    </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
           )}
 
           <View style={styles.detailsList}>
-            <View style={[styles.detailItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={[styles.detailIconWrap, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.accentSoft }]}>
-                <MaterialCommunityIcons name="account-hard-hat" size={24} color={colors.accent} />
-              </View>
+            <View style={[styles.flatDetailRow, { borderBottomColor: colors.border }]}>
+              <MaterialCommunityIcons name="account-hard-hat" size={22} color={colors.accent} style={{ marginRight: 14, marginTop: 2 }} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('jobs.assignedProfessional')}</Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>{assignedProvider?.name || t('jobs.searchingProviders')}</Text>
+                <Text style={[styles.flatDetailLabel, { color: colors.textSecondary }]}>{t('jobs.assignedProfessional')}</Text>
+                <Text style={[styles.flatDetailValue, { color: colors.text }]}>{assignedProvider?.name || t('jobs.searchingProviders')}</Text>
               </View>
               {assignedProvider && (
                 <TouchableOpacity
@@ -958,13 +841,11 @@ const JobStatusScreen = ({ route, navigation }) => {
 };
 
 const Detail = ({ icon, label, value, colors, isDarkMode }) => (
-  <View style={[styles.detailItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <View style={[styles.detailIconWrap, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.accentSoft }]}>
-      <MaterialCommunityIcons name={icon} size={24} color={colors.accent} />
-    </View>
+  <View style={[styles.flatDetailRow, { borderBottomColor: colors.border }]}>
+    <MaterialCommunityIcons name={icon} size={22} color={colors.accent} style={{ marginRight: 14, marginTop: 2 }} />
     <View style={{ flex: 1 }}>
-      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.flatDetailLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.flatDetailValue, { color: colors.text }]}>{value}</Text>
     </View>
   </View>
 );
@@ -992,9 +873,7 @@ const styles = StyleSheet.create({
   stepText: { fontSize: 11, marginTop: 10, textAlign: 'center' },
   detailsList: { paddingHorizontal: 25, marginBottom: 35 },
   applicationsSection: { paddingHorizontal: 25, marginBottom: 35 },
-  applicationCard: { padding: 20, borderRadius: 8, borderWidth: 1.5, marginBottom: 15 },
-  applicationInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 20 },
-  applicationAvatar: { width: 56, height: 56, borderRadius: 8 },
+  proposalSummaryRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1 },
   applicationName: { fontSize: 17, fontWeight: '900' },
   boostBadge: {
     flexDirection: 'row',
@@ -1005,23 +884,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     gap: 3,
   },
-  boostBadgeText: {
-    color: '#0D9488',
-    fontSize: 9,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
-  applicationMeta: { fontSize: 13, fontWeight: '700' },
-  applicationActionRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  outlineBtn: { height: 44, borderRadius: 8, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', paddingHorizontal: 4 },
-  outlineBtnText: { fontSize: 12, fontWeight: '800' },
-  solidBtn: { height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', paddingHorizontal: 4 },
-  solidBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
-  detailItem: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 8, marginBottom: 15, gap: 18, borderWidth: 1, borderColor: 'rgba(0,0,0,0)' },
-  detailIconWrap: { width: 50, height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  detailLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
-  detailValue: { fontSize: 15, fontWeight: '700', marginTop: 4, lineHeight: 22 },
+  flatDetailRow: { flexDirection: 'row', paddingVertical: 16, borderBottomWidth: 1 },
+  flatDetailLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  flatDetailValue: { fontSize: 15, fontWeight: '700', marginTop: 5, lineHeight: 23 },
   chatBtn: { width: 50, height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center', elevation: 4 },
   costCard: { marginHorizontal: 25, padding: 30, borderRadius: 8, alignItems: 'center', marginBottom: 40, elevation: 8, shadowOpacity: 0.3, shadowRadius: 15 },
   costLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '700', marginBottom: 10, textTransform: 'uppercase' },
@@ -1051,62 +917,7 @@ const styles = StyleSheet.create({
   counterActionRow: { flexDirection: 'row', gap: 10, width: '100%', marginTop: 12, alignItems: 'center' },
   counterDeclineBtn: { flex: 1, height: 44, borderRadius: 8, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
   counterAcceptBtn: { flex: 1.5, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  coverLetterContainer: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 15,
-    width: '100%',
-  },
-  coverLetterTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-    letterSpacing: 0.5,
-  },
-  coverLetterText: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '600',
-  },
-  proposedBudgetBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-    gap: 6,
-  },
-  proposedBudgetLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  proposedBudgetValue: {
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  proposalMediaContainer: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 15,
-    width: '100%',
-  },
-  mediaAttachmentItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  mediaItemName: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
+
 });
 
 export default JobStatusScreen;

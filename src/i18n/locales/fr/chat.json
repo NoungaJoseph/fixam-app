@@ -56,5 +56,12 @@
     "message": "Écrire à l'assistance",
     "unavailable": "Assistance indisponible",
     "tryLater": "Veuillez réessayer dans un instant."
-  }
+  },
+  "sendAttachment": "Envoyer un fichier",
+  "uploadImage": "Photos",
+  "uploadVideo": "Vidéo",
+  "uploadDocument": "Document",
+  "tapToPlay": "Appuyer pour lire la vidéo",
+  "tapToView": "Appuyer pour ouvrir le document",
+  "cannotOpenFile": "Impossible d'ouvrir le fichier."
 }

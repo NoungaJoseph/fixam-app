@@ -274,6 +274,11 @@ export const AppProvider = ({ children }) => {
         fetchNotifications();
       });
 
+      const offJobDeleted = on('job:deleted', ({ id }) => {
+        setJobs(prev => prev.filter(j => j.id !== id));
+        setMyTasksList(prev => prev.filter(j => j.id !== id));
+      });
+
       return () => {
         offNewMessage?.();
         offNewNotification?.();
@@ -281,6 +286,7 @@ export const AppProvider = ({ children }) => {
         offChatNotification?.();
         offJobApproved?.();
         offJobUpdated?.();
+        offJobDeleted?.();
         offApplicationCount?.();
         offBookingUpdate?.();
       };

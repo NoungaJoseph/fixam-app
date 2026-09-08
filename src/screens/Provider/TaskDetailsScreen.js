@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   overviewCard: { paddingHorizontal: 2, paddingTop: 8, marginBottom: 16 },
   sectionTitle: { color: '#071936', fontSize: 18, fontWeight: '900', marginTop: 10, marginBottom: 16 },
   inlineFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  factItem: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  factItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10 },
   factLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   factValue: { fontSize: 13, fontWeight: '800', marginTop: 2 },
   longText: { color: '#334155', fontSize: 16, lineHeight: 25, fontWeight: '600' },

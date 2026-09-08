@@ -56,5 +56,12 @@
     "message": "Message support",
     "unavailable": "Support unavailable",
     "tryLater": "Please try again in a moment."
-  }
+  },
+  "sendAttachment": "Send Attachment",
+  "uploadImage": "Photos",
+  "uploadVideo": "Video",
+  "uploadDocument": "Document",
+  "tapToPlay": "Tap to play video",
+  "tapToView": "Tap to open document",
+  "cannotOpenFile": "Could not open file."
 }

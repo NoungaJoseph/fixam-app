@@ -64,8 +64,8 @@ const MyTasksListScreen = ({ navigation }) => {
     setRefreshing(false);
   }, [fetchAppData]);
 
-  // Use tasks specific to this user/role directly from AppContext
-  const jobs = myTasksList || [];
+  // Use tasks specific to this user/role directly from AppContext (filtering out any rejected/cancelled tasks)
+  const jobs = (myTasksList || []).filter(job => job.approvalStatus !== 'REJECTED' && job.status !== 'CANCELLED');
   const bookings = myBookingsList || [];
 
   const mappedJobs = jobs.map(job => {

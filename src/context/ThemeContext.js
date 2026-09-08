@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useColorScheme, Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ThemeContext = createContext();
@@ -6,14 +7,28 @@ const ThemeContext = createContext();
 const THEME_STORAGE_KEY = 'appTheme';
 
 export const ThemeProvider = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const systemColorScheme = useColorScheme(); // 'dark' | 'light' | null
+  const [hasUserPreference, setHasUserPreference] = useState(false);
+
+  // Initialize immediately from system appearance so iPhone dark mode users see zero white flash on launch
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const initialSystem = Appearance.getColorScheme();
+    return initialSystem === 'dark';
+  });
 
   useEffect(() => {
     const loadTheme = async () => {
       try {
         const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
         if (saved !== null) {
+          setHasUserPreference(true);
           setIsDarkMode(saved === 'dark');
+        } else {
+          // Fresh install / no preference saved yet:
+          // Match the iPhone / system theme automatically
+          setHasUserPreference(false);
+          const currentSystem = Appearance.getColorScheme();
+          setIsDarkMode(currentSystem === 'dark');
         }
       } catch (err) {
         console.log('Failed to load theme:', err);
@@ -22,20 +37,46 @@ export const ThemeProvider = ({ children }) => {
     loadTheme();
   }, []);
 
+  // If the user hasn't set an explicit preference, adapt dynamically to system theme changes
+  useEffect(() => {
+    if (!hasUserPreference && systemColorScheme) {
+      setIsDarkMode(systemColorScheme === 'dark');
+    }
+  }, [systemColorScheme, hasUserPreference]);
+
   const toggleTheme = async () => {
     try {
       const nextMode = !isDarkMode;
       setIsDarkMode(nextMode);
+      setHasUserPreference(true);
       await AsyncStorage.setItem(THEME_STORAGE_KEY, nextMode ? 'dark' : 'light');
     } catch (err) {
       console.log('Failed to save theme:', err);
     }
   };
 
+  const setTheme = async (mode) => {
+    try {
+      if (mode === 'system') {
+        setHasUserPreference(false);
+        await AsyncStorage.removeItem(THEME_STORAGE_KEY);
+        const currentSystem = Appearance.getColorScheme();
+        setIsDarkMode(currentSystem === 'dark');
+      } else {
+        const isDark = mode === 'dark';
+        setHasUserPreference(true);
+        setIsDarkMode(isDark);
+        await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
+      }
+    } catch (err) {
+      console.log('Failed to set theme:', err);
+    }
+  };
+
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, isDark: isDarkMode, toggleTheme, colors }}>
+    <ThemeContext.Provider value={{ isDarkMode, isDark: isDarkMode, toggleTheme, setTheme, hasUserPreference, colors }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -645,6 +645,7 @@ const PostTaskScreen = ({ route, navigation }) => {
       name: assignedProviderUser.fullName || assignedProviderUser.name || t('jobs.assignedProfessional'),
       id: assignedProviderUser.id,
       avatar: assignedProviderUser.avatar || assignedProviderUser.image,
+      phone: assignedProviderUser.phone || assignedProviderUser.phoneNumber || '',
     } : null;
 
     const openChatWithProvider = (provider, currentJob) => {
@@ -652,6 +653,7 @@ const PostTaskScreen = ({ route, navigation }) => {
         receiverId: provider.id,
         userName: provider.name,
         avatar: provider.avatar,
+        phone: provider.phone || '',
         task: currentJob
       });
     };

@@ -102,6 +102,7 @@ const normalizeParticipant = (participant) => {
     userName: userData.role === 'ADMIN' ? 'Fixam Support' : (userData.fullName || userData.phone || 'User'),
     receiverId: userData.id,
     avatar: userData.avatar || '',
+    phone: userData.phone || userData.phoneNumber || '',
     otherParticipant: userData,
   };
 };
@@ -144,10 +145,11 @@ const ChatScreen = ({ route, navigation }) => {
     userName: route.params?.userName || '',
     receiverId: route.params?.receiverId || '',
     avatar: route.params?.avatar || '',
+    phone: route.params?.phone || route.params?.phoneNumber || route.params?.otherParticipant?.phone || '',
     otherParticipant: route.params?.otherParticipant || null,
   });
   
-  const { userName, receiverId, avatar, otherParticipant } = participantDetails;
+  const { userName, receiverId, avatar, phone: participantPhone, otherParticipant } = participantDetails;
   const avatarUri = getMediaUrl(avatar);
   
   const [activeConvId, setActiveConvId] = useState(conversationId);
@@ -217,6 +219,7 @@ const ChatScreen = ({ route, navigation }) => {
         userName: route.params.userName || '',
         receiverId: route.params.receiverId || '',
         avatar: route.params.avatar || '',
+        phone: route.params.phone || route.params.phoneNumber || route.params.otherParticipant?.phone || '',
         otherParticipant: route.params.otherParticipant || null,
       });
       if (route.params.task) setActiveTask(route.params.task);
@@ -247,6 +250,11 @@ const ChatScreen = ({ route, navigation }) => {
           .then((res) => {
             if (res.data?.data?.id) {
               setActiveConvId(res.data.data.id);
+            }
+            if (res.data?.data?.participants) {
+              const other = res.data.data.participants.find((p) => (p.userId || p.user?.id || p.id) !== currentUser.id);
+              const normalized = normalizeParticipant(other);
+              if (normalized) setParticipantDetails(normalized);
             }
           })
           .catch((err) => {
@@ -434,6 +442,94 @@ const ChatScreen = ({ route, navigation }) => {
 
   const showCannotMessageAlert = () => {
     Alert.alert(t('common.error'), t('profile.chatClosedBanner'));
+  };
+
+  const handleCarrierCall = async () => {
+    // 1. Resolve registered phone number from available sources
+    let rawPhone = participantPhone ||
+      otherParticipant?.phone ||
+      otherParticipant?.phoneNumber ||
+      route.params?.phone ||
+      route.params?.phoneNumber ||
+      route.params?.otherParticipant?.phone ||
+      null;
+
+    // 2. Fallbacks from activeTask if available
+    if (!rawPhone && activeTask) {
+      if (currentUser?.role === 'PROVIDER') {
+        rawPhone = activeTask.client?.phone || activeTask.client?.phoneNumber;
+      } else {
+        rawPhone = activeTask.provider?.phone ||
+          activeTask.provider?.user?.phone ||
+          activeTask.assignedProvider?.phone ||
+          activeTask.assignments?.[0]?.provider?.user?.phone ||
+          activeTask.assignments?.[0]?.provider?.phone;
+      }
+    }
+
+    // 3. Fallback: query conversation if activeConvId exists
+    if (!rawPhone && activeConvId) {
+      try {
+        const res = await api.get(`/chat/conversations/${activeConvId}`);
+        const conv = res.data?.data;
+        if (conv?.participants) {
+          const other = conv.participants.find((p) => (p.userId || p.user?.id || p.id) !== currentUser.id);
+          const userData = other?.user || other;
+          if (userData?.phone) {
+            rawPhone = userData.phone;
+            setParticipantDetails(prev => ({
+              ...prev,
+              phone: userData.phone,
+              otherParticipant: { ...prev.otherParticipant, ...userData },
+            }));
+          }
+        }
+      } catch (err) {
+        console.log('[ChatScreen] Error fetching participant phone for carrier call:', err.message);
+      }
+    }
+
+    // 4. Fallback: if receiverId exists, attempt to fetch provider profile
+    if (!rawPhone && receiverId) {
+      try {
+        const res = await api.get(`/providers/${receiverId}`);
+        const providerData = res.data?.data;
+        const phoneCandidate = providerData?.user?.phone || providerData?.phone;
+        if (phoneCandidate) {
+          rawPhone = phoneCandidate;
+          setParticipantDetails(prev => ({ ...prev, phone: phoneCandidate }));
+        }
+      } catch (err) {
+        // Silent catch
+      }
+    }
+
+    if (!rawPhone) {
+      Alert.alert(
+        t('common.error', 'Error'),
+        t('profile.phoneUnavailable', 'Phone number not available for this contact.')
+      );
+      return;
+    }
+
+    // Clean phone number: keep + and digits
+    const cleaned = String(rawPhone).trim().replace(/[^\d+]/g, '');
+    if (!cleaned) {
+      Alert.alert(
+        t('common.error', 'Error'),
+        t('profile.phoneUnavailable', 'Phone number not available for this contact.')
+      );
+      return;
+    }
+
+    const telUrl = `tel:${cleaned}`;
+    Linking.openURL(telUrl).catch((err) => {
+      console.log('[ChatScreen] Failed to open carrier dialer:', err);
+      Alert.alert(
+        t('common.error', 'Error'),
+        t('profile.cannotMakeCall', 'Unable to initiate carrier call.')
+      );
+    });
   };
 
   const openTaskTracker = () => {
@@ -998,17 +1094,33 @@ const ChatScreen = ({ route, navigation }) => {
           <Text style={styles.headerStatus}>{!canMessage ? '' : isTyping ? t('messages.typing') : t('messages.online')}</Text>
         </View>
         {!isSupportConversation && (
-          <TouchableOpacity
-            style={[styles.trackCompact, { borderColor: colors.border, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#FFF' }]}
-            onPress={openTaskTracker}
-            accessibilityRole="button"
-            accessibilityLabel={user?.role === 'PROVIDER' ? 'Track client on map' : 'Track provider on map'}
-          >
-            <MaterialCommunityIcons name="crosshairs-gps" size={20} color={colors.text} />
-            <Text style={[styles.trackCompactCaption, { color: colors.textSecondary }]} numberOfLines={1}>
-              {user?.role === 'PROVIDER' ? 'Track client' : 'Track provider'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.callHeaderBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.12)' : '#F0FDFA' }]}
+              onPress={handleCarrierCall}
+              accessibilityRole="button"
+              accessibilityLabel={t('jobs.callContact', 'Call')}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="phone" size={15} color={colors.accent} />
+              <Text style={[styles.callHeaderBtnText, { color: colors.accent }]}>
+                {t('jobs.callContact', 'Call')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.trackHeaderBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.12)' : '#F0FDFA' }]}
+              onPress={openTaskTracker}
+              accessibilityRole="button"
+              accessibilityLabel={user?.role === 'PROVIDER' ? 'Track client on map' : 'Track provider on map'}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="crosshairs-gps" size={15} color={colors.accent} />
+              <Text style={[styles.trackHeaderBtnText, { color: colors.accent }]}>
+                {t('jobs.track', 'Track')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -1218,8 +1330,38 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 15,
   },
-  trackCompact: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 6, borderWidth: 1, borderRadius: 4, marginLeft: 6, maxWidth: 76 },
-  trackCompactCaption: { fontSize: 10, fontWeight: '800', marginTop: 2, textAlign: 'center' },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 6,
+  },
+  callHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 1.2,
+    borderRadius: 20,
+  },
+  callHeaderBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  trackHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 1.2,
+    borderRadius: 20,
+  },
+  trackHeaderBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
   bookCompact: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 8, paddingHorizontal: 10, height: 36, marginLeft: 6 },
   bookCompactText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   messageList: { padding: 20, paddingBottom: 30 },

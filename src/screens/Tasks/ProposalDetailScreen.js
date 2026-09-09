@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
   Alert, ActivityIndicator, Linking, Image, Modal
@@ -12,6 +12,7 @@ import { getMediaUrl } from '../../services/api';
 import api from '../../services/api';
 import UserAvatar from '../../components/UserAvatar';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../../context/AppContext';
 import { translateApiError } from '../../utils/eligibilityMessages';
 
@@ -20,10 +21,20 @@ const ProposalDetailScreen = ({ route, navigation }) => {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { fetchAppData } = useAppContext();
+  const insets = useSafeAreaInsets();
 
   const { assignment, provider, providerUser, job } = route.params || {};
   const [selectingAssignment, setSelectingAssignment] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState(null);
+
+  // Trigger viewed notification to provider when client opens proposal details
+  useEffect(() => {
+    const jobId = job?.id || assignment?.jobId || route.params?.jobId;
+    const assignmentId = assignment?.id || route.params?.assignmentId;
+    if (jobId && assignmentId) {
+      api.post(`/jobs/${jobId}/applications/${assignmentId}/view`).catch(() => {});
+    }
+  }, [job?.id, assignment?.id, assignment?.jobId, route.params?.jobId, route.params?.assignmentId]);
 
   const handleOpenAttachment = async (mediaUrl, isPdf) => {
     try {
@@ -46,24 +57,45 @@ const ProposalDetailScreen = ({ route, navigation }) => {
   };
 
   const chooseProvider = () => {
-    const providerName = providerUser?.fullName || providerUser?.name || t('jobs.thisProvider');
+    const providerName = providerUser?.fullName || providerUser?.name || t('jobs.thisProvider', 'this provider');
+    const jobId = job?.id || assignment?.jobId || route.params?.jobId;
+    const assignmentId = assignment?.id || route.params?.assignmentId;
+
+    if (!jobId || !assignmentId) {
+      Alert.alert(t('common.error'), t('jobs.couldNotChooseProvider', 'Could not select this provider. Missing job information.'));
+      return;
+    }
+
     Alert.alert(
-      t('jobs.chooseProviderQuestion'),
+      t('jobs.chooseProviderQuestion', 'Choose provider?'),
       t('jobs.chooseProviderBody', { name: providerName }),
       [
-        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
         {
-          text: t('common.confirm'),
+          text: t('common.confirm', 'Confirm & Hire'),
           onPress: async () => {
             setSelectingAssignment(true);
             try {
-              const res = await api.post(`/jobs/${job.id}/applications/${assignment.id}/select`);
+              const res = await api.post(`/jobs/${jobId}/applications/${assignmentId}/select`);
               await fetchAppData?.(true);
-              Alert.alert(t('jobs.providerSelected'), t('jobs.providerSelectedBody', { name: providerName }), [
-                { text: t('common.close'), onPress: () => navigation.goBack() }
-              ]);
+              if (route.params?.chooseProvider) {
+                try {
+                  route.params.chooseProvider(assignment);
+                } catch (_) {}
+              }
+
+              Alert.alert(
+                t('jobs.providerSelected', 'Provider selected'), 
+                t('jobs.providerSelectedBody', { name: providerName }), 
+                [
+                  { 
+                    text: t('common.close', 'Close'), 
+                    onPress: () => navigation.goBack() 
+                  }
+                ]
+              );
             } catch (error) {
-              Alert.alert(t('jobs.couldNotChooseProvider'), translateApiError(error, t));
+              Alert.alert(t('jobs.couldNotChooseProvider', 'Could not choose provider'), translateApiError(error, t));
             } finally {
               setSelectingAssignment(false);
             }
@@ -77,9 +109,12 @@ const ProposalDetailScreen = ({ route, navigation }) => {
   let mediaList = [];
   if (Array.isArray(assignment?.proposalMedia)) {
     mediaList = assignment.proposalMedia;
+  } else if (typeof assignment?.proposalMedia === 'object' && Array.isArray(assignment?.proposalMedia?.files)) {
+    mediaList = assignment.proposalMedia.files;
   } else if (typeof assignment?.proposalMedia === 'string') {
     try {
-      mediaList = JSON.parse(assignment.proposalMedia);
+      const parsed = JSON.parse(assignment.proposalMedia);
+      mediaList = Array.isArray(parsed) ? parsed : (parsed?.files || []);
     } catch (_) {}
   }
 
@@ -96,7 +131,7 @@ const ProposalDetailScreen = ({ route, navigation }) => {
           <View style={{ width: 44 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 40, 60) }]} showsVerticalScrollIndicator={false}>
           {/* Provider Info */}
           <View style={styles.providerSection}>
             <UserAvatar uri={providerUser?.avatar} name={providerUser?.fullName || t('common.provider')} size={72} radius={36} />
@@ -211,46 +246,71 @@ const ProposalDetailScreen = ({ route, navigation }) => {
               {job?.title || t('jobs.taskDetails')}
             </Text>
           </View>
+
+          {/* Flexible Action Buttons (Inside ScrollView so all screen sizes can scroll down to them) */}
+          <View style={styles.actionsContainer}>
+            <View style={styles.secondaryActionsRow}>
+              <TouchableOpacity
+                style={[styles.actionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+                onPress={() => navigation.navigate('ProviderProfile', { provider, task: job, assignment })}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="account-outline" size={20} color={colors.text} />
+                <Text style={[styles.actionBtnText, { color: colors.text }]}>{t('profile.viewProfile', 'View Profile')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.12)' : '#F0FDFA' }]}
+                onPress={() => {
+                  const jobId = job?.id || assignment?.jobId || route.params?.jobId;
+                  const assignmentId = assignment?.id || route.params?.assignmentId;
+                  if (jobId && assignmentId) {
+                    api.post(`/jobs/${jobId}/applications/${assignmentId}/interview`).catch(() => {});
+                  }
+                  navigation.navigate('Chat', {
+                    receiverId: providerUser?.id,
+                    userName: providerUser?.fullName || t('common.provider'),
+                    avatar: providerUser?.avatar,
+                    phone: providerUser?.phone || providerUser?.phoneNumber || '',
+                    task: job
+                  });
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="chat-outline" size={20} color={colors.accent} />
+                <Text style={[styles.actionBtnText, { color: colors.accent }]}>{t('chat.message', 'Message')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.hireBtn, 
+                { backgroundColor: assignment?.status === 'ACCEPTED' ? '#10B981' : colors.accent },
+                selectingAssignment && { opacity: 0.7 }
+              ]}
+              onPress={chooseProvider}
+              disabled={selectingAssignment || assignment?.status === 'ACCEPTED'}
+              activeOpacity={0.8}
+            >
+              {selectingAssignment ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator size="small" color="#FFF" />
+                  <Text style={styles.hireBtnText}>{t('common.processing', 'Processing...')}</Text>
+                </View>
+              ) : assignment?.status === 'ACCEPTED' ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <MaterialCommunityIcons name="check-circle" size={22} color="#FFF" />
+                  <Text style={styles.hireBtnText}>{t('jobs.assigned', 'Provider Hired')}</Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <MaterialCommunityIcons name="check-decagram" size={22} color="#FFF" />
+                  <Text style={styles.hireBtnText}>{t('jobs.hireNow', 'Hire This Provider')}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </ScrollView>
-
-        {/* Action Buttons */}
-        <View style={[styles.actionsFooter, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-            onPress={() => navigation.navigate('ProviderProfile', { provider, task: job, assignment })}
-          >
-            <MaterialCommunityIcons name="account-outline" size={18} color={colors.text} />
-            <Text style={[styles.actionBtnText, { color: colors.text }]}>{t('profile.viewProfile')}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.1)' : '#F0FDFA' }]}
-            onPress={() => navigation.navigate('Chat', {
-              receiverId: providerUser?.id,
-              userName: providerUser?.fullName || t('common.provider'),
-              avatar: providerUser?.avatar,
-              task: job
-            })}
-          >
-            <MaterialCommunityIcons name="chat-outline" size={18} color={colors.accent} />
-            <Text style={[styles.actionBtnText, { color: colors.accent }]}>{t('chat.message', 'Message')}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.hireBtn, { backgroundColor: colors.accent }]}
-            onPress={chooseProvider}
-            disabled={selectingAssignment}
-          >
-            {selectingAssignment ? (
-              <ActivityIndicator size="small" color="#FFF" />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="check-bold" size={18} color="#FFF" />
-                <Text style={styles.hireBtnText}>{t('jobs.hireNow')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
       </SafeAreaView>
 
       {/* Fullscreen Photo Preview Modal */}
@@ -356,41 +416,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  actionsFooter: {
+  actionsContainer: {
+    paddingTop: 30,
+    gap: 14,
+  },
+  secondaryActionsRow: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderTopWidth: 1,
+    gap: 12,
   },
   actionBtn: {
     flex: 1,
     height: 48,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 5,
+    gap: 6,
   },
   actionBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
   },
   hireBtn: {
-    flex: 1.3,
-    height: 48,
-    borderRadius: 10,
+    width: '100%',
+    height: 52,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 5,
     elevation: 4,
+    shadowColor: '#0D9488',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
   hireBtnText: {
     color: '#FFF',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '900',
+    letterSpacing: 0.3,
   },
 });
 

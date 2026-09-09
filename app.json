@@ -111,7 +111,9 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "The app accesses your camera to take profile photos and document proofs."
+          "cameraPermission": "The app accesses your camera to take profile photos and document proofs.",
+          "photosPermission": false,
+          "savePhotosPermission": false
         }
       ],
       [

@@ -431,7 +431,7 @@ const JobStatusScreen = ({ route, navigation }) => {
               {assignedProvider && (
                 <TouchableOpacity
                   style={[styles.chatBtn, { backgroundColor: colors.accent }]}
-                  onPress={() => navigation.navigate('Chat', { receiverId: assignedProvider.id, userName: assignedProvider.name, avatar: assignedProvider.avatar, task: job })}
+                  onPress={() => navigation.navigate('Chat', { receiverId: assignedProvider.id, userName: assignedProvider.name, avatar: assignedProvider.avatar, phone: assignedProviderUser?.phone || assignedProviderUser?.phoneNumber || '', task: job })}
                 >
                   <MaterialCommunityIcons name="message-text" size={22} color="#FFF" />
                 </TouchableOpacity>

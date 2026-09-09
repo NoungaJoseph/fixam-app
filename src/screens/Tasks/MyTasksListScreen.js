@@ -233,6 +233,7 @@ const MyTasksListScreen = ({ navigation }) => {
                 receiverId: item.isBooking ? item.rawJob.providerId : item.rawJob.assignments?.[0]?.provider?.userId,
                 userName: item.client,
                 avatar: item.avatar,
+                phone: item.isBooking ? item.rawJob.provider?.phone : (item.rawJob.assignments?.[0]?.provider?.user?.phone || item.rawJob.providerUser?.phone || ''),
                 task: item.rawJob,
               })}
             >

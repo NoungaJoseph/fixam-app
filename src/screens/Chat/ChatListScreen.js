@@ -216,6 +216,7 @@ const ChatListScreen = ({ navigation }) => {
           userName: displayName,
           receiverId: other.id,
           avatar: avatarUri,
+          phone: other.phone || other.phoneNumber || '',
           otherParticipant: other,
           isSupportConversation: isSupport || item.isSystem,
           task: item.activeTask || item.task || item.job || item.activeJob || item.booking,

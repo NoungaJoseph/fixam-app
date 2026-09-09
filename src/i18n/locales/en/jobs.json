@@ -332,6 +332,19 @@
     "boostProposalBtn": "🚀 Boost Proposal",
     "boostProposalAction": "Boost Proposal ({{coins}} Coins) 🚀",
     "boostRequired": "Boost Coins Required",
-    "boostRequiredBody": "Please enter at least 1 coin to boost your proposal."
+    "boostRequiredBody": "Please enter at least 1 coin to boost your proposal.",
+    "occupiedSpot": "Occupied Spot",
+    "spotOccupiedPrivacy": "Confidential • Spot Taken",
+    "track": "Track",
+    "trackClient": "Track Client",
+    "liveTracking": "Live Tracking",
+    "enRoute": "En Route",
+    "arrivedAtSite": "Arrived at Destination",
+    "openInMaps": "Open in Google Maps",
+    "copyAddress": "Copy Address",
+    "addressCopied": "Address copied to clipboard",
+    "liveLocationActive": "Live Location Active",
+    "callContact": "Call",
+    "safetyAssurance": "Fixam Live Protection: Real-time coordination and dedicated support for your service peace of mind."
   }
 }

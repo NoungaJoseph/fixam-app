@@ -132,9 +132,8 @@ const ProviderProfileEditItemScreen = ({ navigation, route }) => {
 
   const handleSelectMultipleMedia = async () => {
     try {
-      const mediaTypeOptions = ImagePicker.MediaTypeOptions?.All || ['images', 'videos'];
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mediaTypeOptions,
+        mediaTypes: ['images', 'videos'],
         allowsEditing: false,
         videoMaxDuration: 60,
         quality: 0.8,

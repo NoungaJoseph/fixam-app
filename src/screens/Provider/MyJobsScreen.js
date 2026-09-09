@@ -229,6 +229,7 @@ const MyJobsScreen = ({ navigation }) => {
                 receiverId: item.isBooking ? item.rawJob.clientId : item.rawJob.clientId,
                 userName: item.client,
                 avatar: item.avatar,
+                phone: item.rawJob?.client?.phone || item.rawJob?.client?.phoneNumber || '',
                 task: item.rawJob,
               })}
             >

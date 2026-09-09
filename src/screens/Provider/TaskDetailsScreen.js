@@ -243,6 +243,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         receiverId: clientId,
         userName: clientName,
         avatar: clientAvatar,
+        phone: displayTask.client?.phone || conversation.participants?.[0]?.phone || '',
         otherParticipant: conversation.participants?.[0] || { id: clientId, role: 'CLIENT' },
         isSupportConversation: conversation.isSystem,
         task,
@@ -263,6 +264,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         receiverId: targetUserId,
         userName: targetUser.fullName || targetUser.name || 'Co-Applicant',
         avatar: targetUser.avatar ? getMediaUrl(targetUser.avatar) : null,
+        phone: targetUser.phone || conversation.participants?.[0]?.phone || '',
         otherParticipant: conversation.participants?.[0] || { id: targetUserId, role: 'PROVIDER' },
         isSupportConversation: conversation.isSystem,
         task,
@@ -380,10 +382,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
               ) : (
                 <View style={[styles.leaderboardContainer, { borderColor: colors.border, backgroundColor: colors.card, borderBlockColor: colors.border }]}>
                   {jobDetails.assignments.slice(0, 5).map((assignment, index) => {
-                    const isOwn = assignment.provider?.userId === user?.id;
-                    const displayName = isOwn ? (user?.fullName || 'You') : (assignment.provider?.user?.fullName || `Provider #${index + 1}`);
+                    const isOwn = assignment.provider?.userId === user?.id || assignment.isOwn;
+                    const displayName = isOwn ? (user?.fullName || 'You') : t('jobs.occupiedSpot', 'Occupied Spot');
                     const avatarUri = isOwn ? getMediaUrl(user?.avatar) : null;
-                    const isAnon = assignment.isAnonymous;
                     const bidAmount = assignment.boostCoins || 0;
 
                     return (
@@ -397,53 +398,48 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                           )}
                         </View>
 
-                        {/* Avatar */}
-                        <View style={[styles.leaderboardAvatar, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]}>
-                          {avatarUri ? (
-                            <Image source={{ uri: avatarUri }} style={styles.leaderboardAvatarImg} />
-                          ) : (
-                            <MaterialCommunityIcons name="account" size={18} color={isDarkMode ? '#94A3B8' : '#64748B'} />
-                          )}
-                        </View>
+                        {/* Avatar / Mystery Shield */}
+                        {isOwn ? (
+                          <View style={[styles.leaderboardAvatar, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]}>
+                            {avatarUri ? (
+                              <Image source={{ uri: avatarUri }} style={styles.leaderboardAvatarImg} />
+                            ) : (
+                              <MaterialCommunityIcons name="account" size={18} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+                            )}
+                          </View>
+                        ) : (
+                          <View style={[styles.leaderboardAvatar, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)', borderWidth: 1, borderColor: colors.border }]}>
+                            <MaterialCommunityIcons name="shield-lock-outline" size={18} color={colors.accent} />
+                          </View>
+                        )}
 
-                        {/* Name */}
+                        {/* Name / Confidential Spot Design */}
                         <View style={styles.nameCol}>
-                          <Text 
-                            style={[
-                              styles.leaderboardName, 
-                              { color: colors.text },
-                              isAnon && {
-                                color: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)',
-                                textShadowColor: isDarkMode ? '#CBD5E1' : '#64748B',
-                                textShadowRadius: 7,
-                                textShadowOffset: { width: 0, height: 0 }
-                              }
-                            ]}
-                          >
-                            {displayName}
-                          </Text>
-                          {isOwn && (
-                            <View style={[styles.ownBadge, { backgroundColor: colors.accent + '20' }]}>
-                              <Text style={[styles.ownBadgeText, { color: colors.accent }]}>{t('common.you', 'You')}</Text>
+                          {isOwn ? (
+                            <>
+                              <Text style={[styles.leaderboardName, { color: colors.text }]}>
+                                {displayName}
+                              </Text>
+                              <View style={[styles.ownBadge, { backgroundColor: colors.accent + '20' }]}>
+                                <Text style={[styles.ownBadgeText, { color: colors.accent }]}>{t('common.you', 'You')}</Text>
+                              </View>
+                            </>
+                          ) : (
+                            <View style={[styles.blurredSpotPill, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: colors.border }]}>
+                              <MaterialCommunityIcons name="incognito" size={14} color={colors.textSecondary} />
+                              <Text style={[styles.blurredSpotText, { color: colors.textSecondary }]}>
+                                {t('jobs.occupiedSpot', 'Occupied Spot')}
+                              </Text>
                             </View>
                           )}
                         </View>
 
-                        {/* Bid Coins & Multi-Provider Message Action */}
+                        {/* Bid Coins - Competitor boost amount needed to beat */}
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <View style={[styles.bidBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
                             <MaterialCommunityIcons name="rocket-launch" size={14} color="#0D9488" style={{ marginRight: 4 }} />
                             <Text style={[styles.bidText, { color: colors.text }]}>{bidAmount} {t('payments.coins', 'Coins')}</Text>
                           </View>
-
-                          {isMultiProvider && !isOwn && assignment.provider?.user && (
-                            <TouchableOpacity
-                              style={{ padding: 6, borderRadius: 8, backgroundColor: colors.accent + '20' }}
-                              onPress={() => openApplicantChat(assignment.provider.user)}
-                            >
-                              <MaterialCommunityIcons name="message-text-outline" size={16} color={colors.accent} />
-                            </TouchableOpacity>
-                          )}
                         </View>
                       </View>
                     );
@@ -724,6 +720,20 @@ const styles = StyleSheet.create({
   ownBadgeText: { fontSize: 10, fontWeight: '900' },
   bidBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   bidText: { fontSize: 13, fontWeight: '900' },
+  blurredSpotPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  blurredSpotText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
 });
 
 export default TaskDetailsScreen;

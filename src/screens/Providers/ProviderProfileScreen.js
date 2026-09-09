@@ -325,6 +325,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         receiverId: providerUserId,
         userName: fullName,
         avatar: avatarUri,
+        phone: provider?.user?.phone || conversation.participants?.[0]?.phone || '',
         otherParticipant: conversation.participants?.[0] || { id: providerUserId, role: 'PROVIDER' },
         isSupportConversation: conversation.isSystem,
       });

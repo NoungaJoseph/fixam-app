@@ -288,9 +288,8 @@ const PostProjectScreen = ({ navigation, route }) => {
   const handlePickImages = async () => {
     try {
       setPickingMedia(true);
-      const mediaTypeOptions = ImagePicker.MediaTypeOptions?.Images || ['images'];
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mediaTypeOptions,
+        mediaTypes: ['images'],
         allowsMultipleSelection: true,
         quality: 0.8,
         allowsEditing: false,
@@ -316,9 +315,8 @@ const PostProjectScreen = ({ navigation, route }) => {
   const handlePickVideo = async () => {
     try {
       setPickingMedia(true);
-      const mediaTypeOptions = ImagePicker.MediaTypeOptions?.Videos || ['videos'];
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mediaTypeOptions,
+        mediaTypes: ['videos'],
         allowsMultipleSelection: true,
         videoMaxDuration: 60,
         quality: 0.8,

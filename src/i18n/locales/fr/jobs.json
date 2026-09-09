@@ -332,6 +332,19 @@
     "boostProposalBtn": "🚀 Booster la proposition",
     "boostProposalAction": "Booster la proposition ({{coins}} Pièces) 🚀",
     "boostRequired": "Pièces de boost requises",
-    "boostRequiredBody": "Veuillez entrer au moins 1 pièce pour booster votre proposition."
+    "boostRequiredBody": "Veuillez entrer au moins 1 pièce pour booster votre proposition.",
+    "occupiedSpot": "Place occupée",
+    "spotOccupiedPrivacy": "Confidentiel • Place occupée",
+    "track": "Suivre",
+    "trackClient": "Suivre le client",
+    "liveTracking": "Suivi en direct",
+    "enRoute": "En route",
+    "arrivedAtSite": "Arrivé sur place",
+    "openInMaps": "Ouvrir dans Google Maps",
+    "copyAddress": "Copier l'adresse",
+    "addressCopied": "Adresse copiée dans le presse-papiers",
+    "liveLocationActive": "Position en direct active",
+    "callContact": "Appeler",
+    "safetyAssurance": "Protection Fixam en direct : Coordination en temps réel et assistance dédiée pour votre sérénité."
   }
 }

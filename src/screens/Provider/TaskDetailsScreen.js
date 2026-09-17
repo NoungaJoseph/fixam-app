@@ -1,0 +1,739 @@
+import React, { useState } from 'react';
+import {
+  StyleSheet, View, Text, TouchableOpacity, ScrollView,
+  Image, StatusBar, Modal, Alert, Share, TextInput, ActivityIndicator,
+  TouchableWithoutFeedback, Keyboard
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import { useAppContext } from '../../context/AppContext';
+import { useTheme } from '../../context/ThemeContext';
+import api, { getMediaUrl } from '../../services/api';
+import { useSocket } from '../../context/SocketContext';
+import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { translateService } from '../../i18n/translate';
+import { getCurrencyForUser } from '../../constants/countries';
+import UserAvatar from '../../components/UserAvatar';
+import VerificationRequiredModal from '../../components/VerificationRequiredModal';
+import { getVerificationMessageKey, isIdentityVerified, translateApiError } from '../../utils/eligibilityMessages';
+import MaterialsListDisplay from '../../components/MaterialsListDisplay';
+import MaterialsListEditor from '../../components/MaterialsListEditor';
+import DisputeDetailsCard from '../../components/DisputeDetailsCard';
+import ServiceAgreementCard from '../../components/ServiceAgreementCard';
+
+const formatDate = (value, locale = 'en') => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const CATEGORY_ICONS = {
+  PLUMBING: 'pipe-wrench',
+  ELECTRICAL: 'lightning-bolt-circle',
+  CLEANING: 'broom',
+  PAINTING: 'format-paint',
+  CARPENTRY: 'hammer',
+  GARDENING: 'flower',
+  MOVING: 'truck-outline',
+  APPLIANCE: 'fridge-outline',
+  REPAIR: 'wrench',
+};
+
+const TaskDetailsScreen = ({ route, navigation }) => {
+  const { isDarkMode, colors } = useTheme();
+  const task = route.params?.task || route.params?.job || {};
+  const currentTaskId = task.id || route.params?.taskId || route.params?.jobId;
+  const { walletBalance, appliedJobIds, markJobApplied, favoriteJobIds, toggleFavoriteJob, isProviderOnline } = useAppContext();
+  const { user } = useAuth();
+  const { on } = useSocket();
+  const { t, locale } = useLanguage();
+  const insets = useSafeAreaInsets();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const [boostCoins, setBoostCoins] = useState('');
+  const [coverLetter, setCoverLetter] = useState('');
+  const [jobDetails, setJobDetails] = useState(task);
+  const [fetching, setFetching] = useState(true);
+  const [applicationCount, setApplicationCount] = useState(task.applicationCount ?? task._count?.assignments ?? task.assignments?.length ?? task.proposals ?? 0);
+  const [submitting, setSubmitting] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const coinCost = 1;
+  const isBooking = Boolean(route.params?.isBooking || task?.isBooking || task?.bookingDate);
+  const isFavorite = favoriteJobIds?.includes(currentTaskId);
+  
+  // Reset state whenever the active task/job changes
+  React.useEffect(() => {
+    setJobDetails(task);
+    setApplied(false);
+    setShowConfirm(false);
+    setBoostCoins('');
+    setCoverLetter('');
+    setApplicationCount(task.applicationCount ?? task._count?.assignments ?? task.assignments?.length ?? task.proposals ?? 0);
+    setActiveDispute(task.disputes?.[0] || null);
+  }, [currentTaskId]);
+
+  // Only use jobDetails if it matches the current active taskId to prevent stale previous task leak
+  const displayTask = (jobDetails && (!currentTaskId || jobDetails.id === currentTaskId))
+    ? { ...task, ...jobDetails }
+    : (task || {});
+
+  const clientObj = typeof displayTask.client === 'object' ? displayTask.client : (typeof task.client === 'object' ? task.client : null);
+  const clientName = clientObj?.fullName || (typeof displayTask.client === 'string' ? displayTask.client : (typeof task.client === 'string' ? task.client : t('common.client')));
+  const clientId = clientObj?.id || displayTask.clientId || task.clientId;
+  const clientAvatar = getMediaUrl(clientObj?.avatar);
+  const isClientVerified = clientObj?.isVerified === true || displayTask.clientVerified === true || task.clientVerified === true || clientObj?.providerProfile?.verification === 'VERIFIED';
+  
+  const budgetMin = Number(displayTask.budgetMin || displayTask.budget || task.budgetMin || task.budget || 0);
+  const budgetMax = Number(displayTask.budgetMax || displayTask.budget || task.budgetMax || task.budget || 0);
+  const budget = budgetMax;
+  const jobCurrency = getCurrencyForUser(displayTask.country || task.country || user?.country || 'Cameroon');
+  const budgetLabel = budgetMin && budgetMax && budgetMin !== budgetMax
+    ? `${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()} ${jobCurrency}`
+    : `${budget.toLocaleString()} ${jobCurrency}`;
+    
+  const taskBookingDate = displayTask.bookingDate || task.bookingDate;
+  const taskBookingTime = displayTask.bookingTime || task.bookingTime || displayTask.time || task.time;
+  const taskDuration = displayTask.bookingDuration || displayTask.duration || task.bookingDuration || task.duration;
+  const taskUrgency = displayTask.urgencyLevel || task.urgencyLevel;
+  const taskLocation = displayTask.location || displayTask.address || task.location || task.address;
+  const taskCategory = displayTask.category || task.category;
+  const taskServiceType = displayTask.serviceType || task.serviceType;
+  const taskMaterialsProvider = displayTask.materialsProvider || task.materialsProvider;
+  const rawDescription = displayTask.notes || displayTask.description || task.notes || task.description || '';
+  const taskDescription = rawDescription.replace(/\[(?:Workforce Required|Effectif requis)[^\]]*\]/gi, '').trim();
+  const providersNeeded = Number(displayTask.providersNeeded || task.providersNeeded || 1);
+
+  const photos = displayTask.photos?.length ? displayTask.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : (task.photos?.length ? task.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : []);
+  const fallbackIcon = CATEGORY_ICONS[String(taskCategory || '').toUpperCase()] || 'briefcase-outline';
+  const postedOn = formatDate(displayTask.createdAt || task.createdAt, locale);
+  const preferredDate = isBooking
+    ? (taskBookingDate 
+        ? `${new Date(taskBookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}${taskBookingTime ? ` @ ${taskBookingTime}` : ''}`
+        : (displayTask.scheduledTime ? formatDate(displayTask.scheduledTime, locale) : null))
+    : (displayTask.scheduledTime ? formatDate(displayTask.scheduledTime, locale) : null);
+  const hasApplied = applied || appliedJobIds?.includes(currentTaskId) || displayTask.assignments?.some((assignment) => (
+    assignment.providerId === user?.providerProfile?.id ||
+    assignment.provider?.userId === user?.id ||
+    assignment.provider?.user?.id === user?.id
+  )) || (isBooking && ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(String(displayTask.status || task.status || '').toUpperCase()));
+  const providerAssignment = displayTask.assignments?.find((assignment) => (
+    assignment.providerId === user?.providerProfile?.id ||
+    assignment.provider?.userId === user?.id ||
+    assignment.provider?.user?.id === user?.id ||
+    assignment.id === task.assignmentId
+  ));
+  const assignmentStatus = String(displayTask.assignmentStatus || task.assignmentStatus || providerAssignment?.status || '').toUpperCase();
+  const isSelectedProvider = isBooking || assignmentStatus === 'ACCEPTED' || Boolean(
+    (displayTask.assignedProviderId && (displayTask.assignedProviderId === user?.providerProfile?.id || displayTask.assignedProviderId === user?.id)) ||
+    (task.assignedProviderId && (task.assignedProviderId === user?.providerProfile?.id || task.assignedProviderId === user?.id)) ||
+    (jobDetails?.assignedProviderId && (jobDetails.assignedProviderId === user?.providerProfile?.id || jobDetails.assignedProviderId === user?.id))
+  );
+  const isMultiProvider = (Number(displayTask.providersNeeded || task.providersNeeded) || 1) > 1;
+  const canMessageClient = isMultiProvider || (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase()));
+  const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
+
+  React.useEffect(() => {
+    if (currentTaskId) {
+      const endpoint = isBooking ? `/disputes?bookingId=${currentTaskId}` : `/disputes?jobId=${currentTaskId}`;
+      api.get(endpoint)
+        .then(res => {
+          if (res.data?.data && res.data.data.length > 0) {
+            setActiveDispute(res.data.data[0]);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentTaskId, isBooking]);
+
+  React.useEffect(() => {
+    const off = on('job:application-count', ({ jobId, applicationCount: count }) => {
+      if (jobId === currentTaskId) setApplicationCount(count);
+    });
+    return () => off?.();
+  }, [on, currentTaskId]);
+
+  React.useEffect(() => {
+    let active = true;
+    const fetchDetails = async () => {
+      if (!currentTaskId) return;
+      try {
+        setFetching(true);
+        const endpoint = isBooking ? `/bookings/${currentTaskId}` : `/jobs/${currentTaskId}`;
+        const res = await api.get(endpoint);
+        if (res.data?.success && active) {
+          setJobDetails(res.data.data);
+          if (!isBooking) {
+            setApplicationCount(res.data.data.applicationCount ?? res.data.data._count?.assignments ?? res.data.data.assignments?.length ?? 0);
+          }
+        }
+      } catch (err) {
+        console.log('Error fetching task details:', err);
+      } finally {
+        if (active) setFetching(false);
+      }
+    };
+    fetchDetails();
+    return () => { active = false; };
+  }, [currentTaskId, isBooking]);
+
+  const handleAccept = () => {
+    if (hasApplied) {
+      if (isBooking) {
+        Alert.alert(t('jobs.alreadyApplied'), t('jobs.alreadyAppliedBody'));
+        return;
+      }
+      navigation.navigate('JobProposal', { task: displayTask, taskId: currentTaskId, isBoostOnly: true });
+      return;
+    }
+    if (user?.isBlocked) {
+      Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
+      return;
+    }
+    if (!isIdentityVerified(user)) {
+      setVerificationMessage(t(getVerificationMessageKey(user, 'apply')));
+      setShowVerificationModal(true);
+      return;
+    }
+    if (!isProviderOnline) {
+      Alert.alert(t('eligibility.providerOfflineTitle'), t('eligibility.providerOffline'));
+      return;
+    }
+
+    if (isBooking) {
+      Alert.alert(
+        t('jobs.acceptBookingTitle', 'Accept Booking'),
+        t('jobs.acceptBookingCoinNotice', 'Accepting this booking will deduct 1 coin from your wallet. Do you want to proceed?'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('jobs.accept', 'Accept'), onPress: confirmAcceptBooking }
+        ]
+      );
+      return;
+    }
+
+    navigation.navigate('JobProposal', { task: displayTask, taskId: currentTaskId });
+  };
+
+  const confirmAcceptBooking = async () => {
+    try {
+      setSubmitting(true);
+      await api.patch(`/bookings/${task.id}/status`, { status: 'ACCEPTED' });
+      setApplied(true);
+      Alert.alert(t('common.success', 'Success'), t('jobs.bookingAccepted', 'You have successfully accepted this booking. 1 coin was deducted.'), [
+        { text: t('common.close') }
+      ]);
+    } catch (error) {
+      const message = translateApiError(error, t);
+      Alert.alert(t('jobs.couldNotApply'), message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openClientChat = async () => {
+    try {
+      const res = await api.post('/chat/conversations', { participantId: clientId });
+      const conversation = res.data.data;
+      navigation.navigate('Chat', {
+        conversationId: conversation.id,
+        receiverId: clientId,
+        userName: clientName,
+        avatar: clientAvatar,
+        phone: displayTask.client?.phone || conversation.participants?.[0]?.phone || '',
+        otherParticipant: conversation.participants?.[0] || { id: clientId, role: 'CLIENT' },
+        isSupportConversation: conversation.isSystem,
+        task,
+      });
+    } catch (error) {
+      Alert.alert(t('common.error'), translateApiError(error, t, 'messages.sendFailed'));
+    }
+  };
+
+  const openApplicantChat = async (targetUser) => {
+    const targetUserId = targetUser?.id || targetUser?.userId;
+    if (!targetUserId) return;
+    try {
+      const res = await api.post('/chat/conversations', { participantId: targetUserId });
+      const conversation = res.data.data;
+      navigation.navigate('Chat', {
+        conversationId: conversation.id,
+        receiverId: targetUserId,
+        userName: targetUser.fullName || targetUser.name || 'Co-Applicant',
+        avatar: targetUser.avatar ? getMediaUrl(targetUser.avatar) : null,
+        phone: targetUser.phone || conversation.participants?.[0]?.phone || '',
+        otherParticipant: conversation.participants?.[0] || { id: targetUserId, role: 'PROVIDER' },
+        isSupportConversation: conversation.isSystem,
+        task,
+      });
+    } catch (error) {
+      Alert.alert(t('common.error'), translateApiError(error, t, 'messages.sendFailed'));
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareUrl = `https://usefixam.com/job/${task.id}`;
+      const message = `${task.title || t('jobs.taskDetails')}\n\n${task.description ? task.description.slice(0, 100) + '...' : ''}\n\n${t('jobs.shareJobMessage', { url: shareUrl })}`;
+      
+      await Share.share({
+        message: message,
+        url: shareUrl,
+        title: task.title || t('jobs.taskDetails')
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+          <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('jobs.taskDetails')}</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerIcon} onPress={handleShare}>
+            <MaterialCommunityIcons name="share-variant-outline" size={21} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
+            <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={22} color={isFavorite ? '#EF4444' : colors.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            {task.category ? <View style={styles.badge}><Text style={styles.badgeText}>{translateService(task.category)}</Text></View> : <View />}
+            {postedOn ? (
+              <View style={styles.postedBadge}>
+                <MaterialCommunityIcons name="clock-outline" size={16} color="#0D9488" />
+                <Text style={styles.postedText}>{postedOn}</Text>
+              </View>
+            ) : null}
+          </View>
+          <Text style={[styles.jobTitle, { color: colors.text }]}>{task.title || t('jobs.taskDetails')}</Text>
+          <View style={styles.heroBottom}>
+            <View style={styles.locationLine}>
+              <MaterialCommunityIcons name="map-marker-outline" size={22} color="#0D9488" />
+              <Text style={[styles.locationText, { color: colors.text }]}>{task.location || t('jobs.locationNotShared')}</Text>
+            </View>
+            {budget > 0 ? (
+              <View style={styles.priceBlock}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+                  <MaterialCommunityIcons name="wallet-outline" size={22} color="#06B85F" />
+                  <Text style={styles.priceText} adjustsFontSizeToFit minimumScaleFactor={0.7} numberOfLines={1}>{budgetLabel}</Text>
+                </View>
+                <Text style={styles.priceBadge}>{budgetMin !== budgetMax ? t('jobs.budgetRange').toUpperCase() : t('jobs.fixedPrice').toUpperCase()}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={[styles.clientCard, { borderColor: colors.border }]}>
+          <UserAvatar uri={clientAvatar} name={clientName} size={58} radius={8} style={styles.clientAvatar} />
+          <View style={styles.clientInfo}>
+            <Text style={[styles.clientRole, { color: colors.textSecondary }]}>{t('common.client')}</Text>
+            <View style={styles.clientNameRow}>
+              <Text style={[styles.clientName, { color: colors.text }]} numberOfLines={1}>{clientName}</Text>
+              {isClientVerified && <MaterialCommunityIcons name="check-decagram" size={20} color="#0D9488" />}
+            </View>
+            <Text style={[styles.cardSub, { color: colors.textSecondary }]}>{t('jobs.taskOwner')}</Text>
+          </View>
+        </View>
+
+        <View style={styles.overviewCard}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('jobs.overview')}</Text>
+          <View style={styles.inlineFacts}>
+            {task.id ? <Fact icon="clipboard-text-outline" label={isBooking ? t('jobs.bookingId', 'Booking ID') : t('jobs.jobId')} value={`#${isBooking ? 'BKG' : 'JOB'}-${String(task.id).slice(-7)}`} colors={colors} /> : null}
+            {postedOn ? <Fact icon="calendar-month-outline" label={t('jobs.posted')} value={postedOn} colors={colors} /> : null}
+            {preferredDate ? <Fact icon="clock-outline" label={isBooking ? t('jobs.scheduled', 'Scheduled') : t('jobs.preferred')} value={preferredDate} colors={colors} /> : null}
+            {providersNeeded > 1 ? (
+              <Fact icon="account-group-outline" label={t('jobs.providerNeed', 'Provider need')} value={String(providersNeeded)} colors={colors} />
+            ) : null}
+            {!isBooking ? (
+              <Fact icon="star-cog-outline" label={t('jobs.proposals')} value={t('jobs.receivedCount', { count: applicationCount })} colors={colors} />
+            ) : null}
+          </View>
+
+          {/* Top Bids Leaderboard - Only for Open Jobs, never for Direct Bookings */}
+          {!isBooking && (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24, marginBottom: 12 }]}>
+                {t('jobs.topBids', 'Top Application Bids')}
+              </Text>
+              
+              {fetching ? (
+                <ActivityIndicator size="small" color={colors.accent} style={{ marginVertical: 12 }} />
+              ) : !jobDetails.assignments || jobDetails.assignments.length === 0 ? (
+                <View style={[styles.emptyLeaderboard, { borderColor: colors.border }]}>
+                  <MaterialCommunityIcons name="trophy-outline" size={24} color={colors.textSecondary} />
+                  <Text style={[styles.emptyLeaderboardText, { color: colors.textSecondary }]}>
+                    {t('jobs.noBidsYet', 'No applications boosted yet. Apply with a bid to secure the top spot!')}
+                  </Text>
+                </View>
+              ) : (
+                <View style={[styles.leaderboardContainer, { borderColor: colors.border, backgroundColor: colors.card, borderBlockColor: colors.border }]}>
+                  {jobDetails.assignments.slice(0, 5).map((assignment, index) => {
+                    const isOwn = assignment.provider?.userId === user?.id || assignment.isOwn;
+                    const displayName = isOwn ? (user?.fullName || 'You') : t('jobs.occupiedSpot', 'Occupied Spot');
+                    const avatarUri = isOwn ? getMediaUrl(user?.avatar) : null;
+                    const bidAmount = assignment.boostCoins || 0;
+
+                    return (
+                      <View key={assignment.id || index} style={[styles.leaderboardRow, { borderBottomColor: index < 4 ? colors.border : 'transparent' }]}>
+                        {/* Rank Badge */}
+                        <View style={styles.rankCol}>
+                          {index === 0 ? (
+                            <MaterialCommunityIcons name="crown" size={20} color="#F59E0B" />
+                          ) : (
+                            <Text style={[styles.rankText, { color: colors.textSecondary }]}>#{index + 1}</Text>
+                          )}
+                        </View>
+
+                        {/* Avatar / Mystery Shield */}
+                        {isOwn ? (
+                          <View style={[styles.leaderboardAvatar, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]}>
+                            {avatarUri ? (
+                              <Image source={{ uri: avatarUri }} style={styles.leaderboardAvatarImg} />
+                            ) : (
+                              <MaterialCommunityIcons name="account" size={18} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+                            )}
+                          </View>
+                        ) : (
+                          <View style={[styles.leaderboardAvatar, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)', borderWidth: 1, borderColor: colors.border }]}>
+                            <MaterialCommunityIcons name="shield-lock-outline" size={18} color={colors.accent} />
+                          </View>
+                        )}
+
+                        {/* Name / Confidential Spot Design */}
+                        <View style={styles.nameCol}>
+                          {isOwn ? (
+                            <>
+                              <Text style={[styles.leaderboardName, { color: colors.text }]}>
+                                {displayName}
+                              </Text>
+                              <View style={[styles.ownBadge, { backgroundColor: colors.accent + '20' }]}>
+                                <Text style={[styles.ownBadgeText, { color: colors.accent }]}>{t('common.you', 'You')}</Text>
+                              </View>
+                            </>
+                          ) : (
+                            <View style={[styles.blurredSpotPill, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: colors.border }]}>
+                              <MaterialCommunityIcons name="incognito" size={14} color={colors.textSecondary} />
+                              <Text style={[styles.blurredSpotText, { color: colors.textSecondary }]}>
+                                {t('jobs.occupiedSpot', 'Occupied Spot')}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Bid Coins - Competitor boost amount needed to beat */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <View style={[styles.bidBadge, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+                            <MaterialCommunityIcons name="rocket-launch" size={14} color="#0D9488" style={{ marginRight: 4 }} />
+                            <Text style={[styles.bidText, { color: colors.text }]}>{bidAmount} {t('payments.coins', 'Coins')}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </>
+          )}
+
+          {taskDescription ? (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{t('jobs.description')}</Text>
+              <Text style={[styles.longText, { color: colors.textSecondary }]}>{taskDescription}</Text>
+            </>
+          ) : null}
+
+          {(jobDetails.whatNeedsDone || task.whatNeedsDone) ? (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{t('jobs.whatNeedsDone')}</Text>
+              <Text style={[styles.longText, { color: colors.textSecondary }]}>{jobDetails.whatNeedsDone || task.whatNeedsDone}</Text>
+            </>
+          ) : null}
+
+          {(jobDetails.importantDetails || task.importantDetails) ? (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{t('jobs.importantDetails')}</Text>
+              <Text style={[styles.longText, { color: colors.textSecondary }]}>{jobDetails.importantDetails || task.importantDetails}</Text>
+            </>
+          ) : null}
+
+          <MaterialsListDisplay
+            materialsList={displayTask.materialsList || task.materialsList}
+            materialsStatus={displayTask.materialsStatus || task.materialsStatus}
+            materialsVersion={displayTask.materialsVersion || task.materialsVersion}
+            requiresDiagnosis={displayTask.requiresDiagnosis || task.requiresDiagnosis}
+            agreements={displayTask.agreements || task.agreements || []}
+            isProvider={true}
+            isClient={false}
+          />
+
+          {Boolean(activeDispute) && (
+            <DisputeDetailsCard
+              dispute={activeDispute}
+              isClient={false}
+              isProvider={true}
+              onRefresh={async () => {
+                try {
+                  const res = await api.get(`/disputes/${activeDispute.id}`);
+                  if (res.data?.data) setActiveDispute(res.data.data);
+                } catch (_) {}
+              }}
+            />
+          )}
+
+          {isSelectedProvider && (
+            <ServiceAgreementCard
+              agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
+              booking={jobDetails || task}
+              isClient={false}
+              isProvider={true}
+              onRefresh={async () => {
+                try {
+                  const endpoint = isBooking ? `/bookings/${task.id}` : `/jobs/${task.id}`;
+                  const res = await api.get(endpoint);
+                  if (res.data?.data) setJobDetails(res.data.data);
+                } catch (_) {}
+              }}
+            />
+          )}
+
+          <TouchableOpacity style={[styles.shareJobBtn, { borderColor: colors.border, backgroundColor: isDarkMode ? '#134E4A' : '#E6FDF3' }]} onPress={handleShare}>
+            <MaterialCommunityIcons name="share-variant" size={20} color="#0D9488" />
+            <Text style={[styles.shareJobText, { color: colors.text }]}>{t('jobs.shareJob', 'Share this job')}</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>{t('jobs.photos')}</Text>
+          <View style={styles.photoRow}>
+            {photos.length > 0 ? (
+              <>
+                {photos.slice(0, 4).map((uri, index) => (
+                  <View key={`${uri.uri || index}-${index}`} style={[styles.photoWrap, { backgroundColor: colors.border }]}>
+                    <Image source={uri} style={styles.photo} />
+                    {index === 3 && photos.length > 4 && <Text style={styles.morePhotos}>+{photos.length - 4}</Text>}
+                  </View>
+                ))}
+              </>
+            ) : (
+              <View style={[styles.photoFallback, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.16)' : '#E6FDF3', borderColor: colors.border }]}>
+                <MaterialCommunityIcons name={fallbackIcon} size={38} color={colors.accent} />
+                <Text style={[styles.photoFallbackText, { color: colors.textSecondary }]}>{translateService(taskCategory || t('jobs.taskDetails'))}</Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>{t('jobs.details')}</Text>
+          <View style={styles.detailList}>
+            {taskCategory ? <DetailLine label={t('jobs.category')} value={translateService(taskCategory)} colors={colors} /> : null}
+            {taskServiceType ? <DetailLine label={t('jobs.serviceType')} value={translateService(taskServiceType)} colors={colors} /> : null}
+            <DetailLine label={t('jobs.providerNeed', 'Provider need')} value={String(providersNeeded)} colors={colors} />
+            {taskBookingDate ? <DetailLine label={t('jobs.scheduledDate', 'Scheduled Date')} value={new Date(taskBookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} colors={colors} /> : null}
+            {taskBookingTime ? <DetailLine label={t('jobs.scheduledTime', 'Time / Hours')} value={taskBookingTime} colors={colors} /> : null}
+            {taskDuration ? <DetailLine label={t('jobs.duration', 'Duration')} value={taskDuration} colors={colors} /> : null}
+            {taskUrgency ? <DetailLine label={t('jobs.urgency', 'Urgency Level')} value={taskUrgency} colors={colors} /> : null}
+            {taskLocation ? <DetailLine label={t('jobs.location', 'Location')} value={taskLocation} colors={colors} /> : null}
+            {budget > 0 ? <DetailLine label={t('jobs.budget')} value={budgetLabel} colors={colors} /> : null}
+            {taskMaterialsProvider ? <DetailLine label={t('jobs.materials')} value={taskMaterialsProvider === 'client' ? t('jobs.clientWillProvide') : t('jobs.professionalWillProvide')} colors={colors} /> : null}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* If already applied, show informative banner */}
+      {hasApplied && !isBooking && (
+        <View style={{ marginHorizontal: 20, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 12, borderWidth: 1, borderColor: '#BBF7D0', flexDirection: 'row', alignItems: 'center', gap: 8, bottom: Math.max(insets.bottom, 12) + 88, position: 'absolute', left: 0, right: 0 }}>
+          <MaterialCommunityIcons name="check-circle" size={18} color="#16A34A" />
+          <Text style={{ flex: 1, fontSize: 12, color: '#15803D', fontWeight: '700', lineHeight: 16 }}>
+            {t('jobs.appliedStatusNotice', 'You have already applied for this job.')}
+          </Text>
+        </View>
+      )}
+
+      <View style={[styles.footer, { bottom: Math.max(insets.bottom, 12) + 25 }]}>
+        <TouchableOpacity 
+          style={[styles.proposalBtn, (submitting || hasApplied) && styles.proposalBtnDisabled]} 
+          onPress={handleAccept} 
+          disabled={submitting || hasApplied}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.proposalTitle}>
+              {isBooking 
+                ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')) 
+                : (hasApplied ? t('jobs.applied', 'Applied') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
+            </Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.footerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
+          <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={25} color={isFavorite ? '#EF4444' : colors.text} />
+        </TouchableOpacity>
+      </View>
+      <View style={[styles.secureFooter, { bottom: Math.max(insets.bottom, 8) }]}>
+        <MaterialCommunityIcons name="lock" size={18} color="#64748B" />
+        <Text style={[styles.secureText, { color: colors.textSecondary }]}>{t('jobs.proposalSecure')}</Text>
+      </View>
+
+      <VerificationRequiredModal 
+        visible={showVerificationModal} 
+        onClose={() => setShowVerificationModal(false)}
+        message={verificationMessage || t('verification.jobRequired')}
+        isProvider={true}
+      />
+    </SafeAreaView>
+  );
+};
+
+const Fact = ({ icon, label, value, colors }) => (
+  <View style={[styles.factItem, { borderColor: colors.border, backgroundColor: colors.card }]}>
+    <MaterialCommunityIcons name={icon} size={20} color="#0D9488" />
+    <View>
+      <Text style={[styles.factLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.factValue, { color: colors.text }]}>{value}</Text>
+    </View>
+  </View>
+);
+
+const DetailLine = ({ label, value, colors }) => (
+  <View style={[styles.detailLine, { borderBottomColor: colors.border }]}>
+    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>
+    <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
+  </View>
+);
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  header: { paddingTop: 58, paddingHorizontal: 20, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { color: '#071936', fontSize: 21, fontWeight: '900' },
+  headerActions: { flexDirection: 'row', gap: 6 },
+  scrollContent: { paddingHorizontal: 18, paddingBottom: 138 },
+  heroCard: { paddingVertical: 18, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
+  badge: { backgroundColor: '#DFFAF5', borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8 },
+  badgeText: { color: '#0D9488', fontSize: 13, fontWeight: '900' },
+  postedBadge: { backgroundColor: '#DFFAF5', borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  postedText: { color: '#0D9488', fontSize: 13, fontWeight: '900' },
+  jobTitle: { color: '#071936', fontSize: 26, fontWeight: '900', marginBottom: 14 },
+  jobSummary: { color: '#10213D', fontSize: 17, lineHeight: 27, fontWeight: '600' },
+  heroBottom: { marginTop: 18, gap: 14 },
+  locationLine: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  locationText: { color: '#071936', fontSize: 16, fontWeight: '700', flex: 1 },
+  vDivider: { width: 1, height: 22, backgroundColor: '#CBD5E1' },
+  distanceText: { color: '#0D9488', fontSize: 14, fontWeight: '900' },
+  priceBlock: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
+  priceText: { color: '#06B85F', fontSize: 24, fontWeight: '900' },
+  priceBadge: { color: '#0D9488', backgroundColor: '#DFFAF5', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, fontSize: 12, fontWeight: '900' },
+  addressCard: { minHeight: 80, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
+  cardTitle: { color: '#071936', fontSize: 16, fontWeight: '900', marginBottom: 5 },
+  cardSub: { color: '#64748B', fontSize: 14, fontWeight: '700' },
+  clientCard: { paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, borderBottomWidth: 1 },
+  clientAvatar: { width: 58, height: 58, borderRadius: 8 },
+  clientInfo: { flex: 1, minWidth: 0 },
+  clientRole: { color: '#64748B', fontSize: 14, fontWeight: '700', marginBottom: 3 },
+  clientNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  clientName: { color: '#071936', fontSize: 17, fontWeight: '900', flexShrink: 1 },
+  clientAction: { alignItems: 'center', gap: 5, paddingHorizontal: 4 },
+  clientActionText: { color: '#071936', fontSize: 12, fontWeight: '800' },
+  overviewCard: { paddingHorizontal: 2, paddingTop: 8, marginBottom: 16 },
+  sectionTitle: { color: '#071936', fontSize: 18, fontWeight: '900', marginTop: 10, marginBottom: 16 },
+  inlineFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  factItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  factLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  factValue: { fontSize: 13, fontWeight: '800', marginTop: 2 },
+  longText: { color: '#334155', fontSize: 16, lineHeight: 25, fontWeight: '600' },
+  seeLess: { color: '#0D9488', fontSize: 15, fontWeight: '900', marginTop: 12, marginBottom: 14 },
+  todoBox: { backgroundColor: '#F8FAFC', borderRadius: 9, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20, borderWidth: 1 },
+  todoText: { color: '#334155', fontSize: 14, lineHeight: 22, fontWeight: '700', flex: 1 },
+  photoRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  photoWrap: { flex: 1, aspectRatio: 1.35, borderRadius: 9, overflow: 'hidden', backgroundColor: '#E2E8F0' },
+  photo: { width: '100%', height: '100%' },
+  photoFallback: { width: '100%', minHeight: 112, borderRadius: 0, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  photoFallbackText: { fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
+  morePhotos: { position: 'absolute', right: 10, bottom: 10, color: '#FFFFFF', fontWeight: '900', fontSize: 17 },
+  detailList: { marginBottom: 24 },
+  detailLine: { minHeight: 48, borderBottomWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  detailLabel: { color: '#071936', fontSize: 13, fontWeight: '800' },
+  detailValue: { color: '#334155', fontSize: 14, fontWeight: '800', flex: 1, textAlign: 'right' },
+  viewLocationBtn: { minHeight: 54, borderRadius: 8, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, marginBottom: 18 },
+  viewLocationText: { fontSize: 15, fontWeight: '900' },
+  shareJobBtn: { minHeight: 50, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8 },
+  shareJobText: { fontSize: 15, fontWeight: '800' },
+  prefRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  prefChip: { backgroundColor: '#F8FAFC', borderRadius: 8, paddingHorizontal: 12, height: 42, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  prefText: { color: '#334155', fontSize: 12, fontWeight: '900' },
+  footer: { position: 'absolute', left: 0, right: 0, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  footerIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  proposalBtn: { flex: 1, height: 56, borderRadius: 8, backgroundColor: '#0D9488', alignItems: 'center', justifyContent: 'center' },
+  proposalBtnDisabled: { backgroundColor: '#94A3B8' },
+  proposalTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
+  proposalSub: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', marginTop: 3 },
+  secureFooter: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  secureText: { color: '#64748B', fontSize: 13, fontWeight: '700' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 30 },
+  modalContent: { width: '100%', borderRadius: 24, padding: 26, alignItems: 'center', backgroundColor: '#FFFFFF' },
+  modalTitle: { color: '#071936', fontSize: 22, fontWeight: '900', marginBottom: 10 },
+  modalText: { color: '#64748B', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  modalActions: { width: '100%', gap: 12 },
+  confirmBtn: { height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0D9488' },
+  confirmBtnText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
+  cancelBtn: { height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0' },
+  cancelBtnText: { color: '#64748B', fontSize: 15, fontWeight: '700' },
+  boostLabel: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', alignSelf: 'flex-start', marginBottom: 6 },
+  boostInput: { width: '100%', height: 48, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 14, fontWeight: '700', marginBottom: 12 },
+  coverLetterInput: {
+    width: '100%',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '700',
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
+  totalCostBadge: { width: '100%', paddingVertical: 10, borderRadius: 12, alignItems: 'center', marginBottom: 20 },
+  totalCostText: { fontSize: 14, fontWeight: '800' },
+  emptyLeaderboard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 16, width: '100%', marginBottom: 16 },
+  emptyLeaderboardText: { fontSize: 13, lineHeight: 18, fontWeight: '600', flex: 1 },
+  leaderboardContainer: { borderWidth: 1.5, borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
+  leaderboardRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1 },
+  rankCol: { width: 32, alignItems: 'center', justifyContent: 'center' },
+  rankText: { fontSize: 14, fontWeight: '900' },
+  leaderboardAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 12, overflow: 'hidden' },
+  leaderboardAvatarImg: { width: '100%', height: '100%', borderRadius: 18 },
+  nameCol: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  leaderboardName: { fontSize: 15, fontWeight: '800' },
+  ownBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  ownBadgeText: { fontSize: 10, fontWeight: '900' },
+  bidBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  bidText: { fontSize: 13, fontWeight: '900' },
+  blurredSpotPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  blurredSpotText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+});
+
+export default TaskDetailsScreen;

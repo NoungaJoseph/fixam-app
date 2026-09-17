@@ -1,0 +1,1407 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, StatusBar, TextInput, ActivityIndicator, Alert, Modal, Platform, Share, ActionSheetIOS } from 'react-native';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { translateService } from '../../i18n/translate';
+import i18n from '../../i18n';
+import UserAvatar from '../../components/UserAvatar';
+import api, { getMediaUrl } from '../../services/api';
+import { useAppContext } from '../../context/AppContext';
+import { SUPPORTED_COUNTRIES, getCurrencyForUser } from '../../constants/countries';
+import { optimizeImageForUpload } from '../../utils/imageOptimizer';
+
+const DashboardScreen = ({ navigation }) => {
+  const { user, updateProfile, uploadFile, refreshUser } = useAuth();
+  const { jobs, fetchAppData } = useAppContext();
+  const { colors, isDarkMode } = useTheme();
+  const { t } = useLanguage();
+  const [, forceUpdate] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showSkillPicker, setShowSkillPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [reviews, setReviews] = useState([]);
+
+  useEffect(() => {
+    if (user?.id) {
+      api.get(`/reviews/users/${user.id}`)
+        .then((res) => setReviews(res.data.data || []))
+        .catch((err) => console.log('Error fetching reviews:', err));
+    }
+  }, [user?.id]);
+
+  const [form, setForm] = useState({
+    fullName: user?.fullName || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    country: user?.country || 'Cameroon',
+    bio: user?.providerProfile?.bio || '',
+    skills: user?.providerProfile?.skills || [],
+    rate: user?.providerProfile?.rate?.toString() || '',
+    serviceArea: user?.providerProfile?.serviceArea || '',
+    experienceLevel: user?.providerProfile?.experienceLevel || '',
+    portfolioTitle: user?.providerProfile?.portfolio?.[0]?.title || '',
+    portfolioDescription: user?.providerProfile?.portfolio?.[0]?.description || '',
+    portfolioImageUrl: user?.providerProfile?.portfolio?.[0]?.imageUrl || '',
+    certificateTitle: user?.providerProfile?.certificates?.[0]?.title || '',
+    certificateIssuer: user?.providerProfile?.certificates?.[0]?.issuer || '',
+    certificateYear: user?.providerProfile?.certificates?.[0]?.year || '',
+    certificateImageUrl: user?.providerProfile?.certificates?.[0]?.imageUrl || '',
+    dob: user?.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
+    location: user?.location || '',
+    password: '',
+  });
+
+  const handleBoostSelect = (duration, coins) => {
+    const currentBalance = user?.wallet?.balance || 0;
+    if (currentBalance < coins) {
+      Alert.alert(
+        t('common.error', 'Error'),
+        t('profile.insufficientCoins', 'Insufficient coins. Please top up your wallet.')
+      );
+      return;
+    }
+
+    Alert.alert(
+      t('profile.boostConfirmTitle', 'Boost Profile?'),
+      t('profile.boostConfirmDesc', '{{coins}} coins will be deducted from your wallet balance.').replace('{{coins}}', coins.toString()),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: t('common.done', 'Done'), 
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const res = await api.post('/providers/boost', { duration });
+              if (res.data?.success) {
+                Alert.alert(t('profile.success', 'Success'), t('profile.boostSuccess', 'Profile boosted successfully!'));
+                if (refreshUser) {
+                  await refreshUser();
+                }
+              }
+            } catch (err) {
+              const errMsg = err.response?.data?.message || err.message;
+              if (errMsg.includes('Insufficient') || errMsg.toLowerCase().includes('solde')) {
+                Alert.alert(t('common.error', 'Error'), t('profile.insufficientCoins', 'Insufficient coins. Please top up your wallet.'));
+              } else {
+                Alert.alert(t('common.error', 'Error'), errMsg);
+              }
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        country: user.country || 'Cameroon',
+        bio: user.providerProfile?.bio || '',
+        skills: user.providerProfile?.skills || [],
+        rate: user.providerProfile?.rate?.toString() || '',
+        serviceArea: user.providerProfile?.serviceArea || '',
+        experienceLevel: user.providerProfile?.experienceLevel || '',
+        portfolioTitle: user.providerProfile?.portfolio?.[0]?.title || '',
+        portfolioDescription: user.providerProfile?.portfolio?.[0]?.description || '',
+        portfolioImageUrl: user.providerProfile?.portfolio?.[0]?.imageUrl || '',
+        certificateTitle: user.providerProfile?.certificates?.[0]?.title || '',
+        certificateIssuer: user.providerProfile?.certificates?.[0]?.issuer || '',
+        certificateYear: user.providerProfile?.certificates?.[0]?.year || '',
+        certificateImageUrl: user.providerProfile?.certificates?.[0]?.imageUrl || '',
+        dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
+        password: '',
+      });
+    }
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (refreshUser) {
+        refreshUser();
+      }
+    }, [])
+  );
+
+  useEffect(() => {
+    const handler = () => forceUpdate((value) => value + 1);
+    i18n.on('languageChanged', handler);
+    return () => i18n.off('languageChanged', handler);
+  }, []);
+
+  const handleImagePick = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.6,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        uploadAvatar(result.assets[0].uri);
+      }
+    } catch (err) {
+      Alert.alert(t('profileDetail.permissionError'), t('profileDetail.galleryPermission'));
+    }
+  };
+
+  const uploadAvatar = async (rawUri) => {
+    setLoading(true);
+    try {
+      const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 800, quality: 0.7 });
+      const uri = optimized.uri;
+      const filename = uri.split('/').pop() || `avatar-${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const ext = match ? match[1].toLowerCase() : 'jpg';
+      const type = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : (ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : `image/${ext}`));
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        name: filename,
+        type,
+      });
+      formData.append('type', 'avatar');
+
+      const res = await uploadFile(formData, '/upload/profile', { timeout: 60000 });
+      const avatarUrl = res?.url || res?.data?.url;
+      if (avatarUrl) {
+        await updateProfile({ avatar: avatarUrl });
+        Alert.alert(t('common.success', 'Success'), t('profileDetail.pictureUpdated', 'Profile picture updated!'));
+      } else {
+        throw new Error(t('profileDetail.imageUploadFailed', 'Could not upload image'));
+      }
+    } catch (error) {
+      console.log('Upload error:', error?.response?.data || error?.message);
+      Alert.alert(
+        t('profileDetail.uploadFailed', 'Upload Failed'),
+        error?.response?.data?.message || error?.message || t('profileDetail.imageUploadFailed', 'Could not upload image')
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const save = async () => {
+    if (form.fullName !== user.fullName || form.password) {
+      const msg = [];
+      if (form.fullName !== user.fullName) msg.push(t('profileDetail.nameField'));
+      if (form.password) msg.push(t('profileDetail.passwordField'));
+
+      const confirm = await new Promise(resolve => {
+        Alert.alert(
+          t('profileDetail.profileChange'),
+          t('profileDetail.profileChangeBody', { fields: msg.join(` ${t('common.and') || 'and'} `) }),
+          [
+            { text: t('common.cancel'), onPress: () => resolve(false), style: "cancel" },
+            { text: t('common.continue'), onPress: () => resolve(true) }
+          ]
+        );
+      });
+      if (!confirm) return;
+    }
+
+    setLoading(true);
+    try {
+      const updates = {
+        fullName: form.fullName,
+        email: form.email,
+        dob: form.dob,
+        location: form.location
+      };
+      if (form.password) updates.password = form.password;
+
+      if (user?.role === 'PROVIDER') {
+        updates.bio = form.bio;
+        updates.skills = form.skills;
+        updates.rate = parseFloat(form.rate) || 0;
+        updates.serviceArea = form.serviceArea;
+        updates.experienceLevel = form.experienceLevel;
+        updates.portfolio = form.portfolioTitle || form.portfolioDescription || form.portfolioImageUrl ? [{
+          title: form.portfolioTitle,
+          description: form.portfolioDescription,
+          imageUrl: form.portfolioImageUrl
+        }] : [];
+        updates.certificates = form.certificateTitle || form.certificateIssuer || form.certificateImageUrl ? [{
+          title: form.certificateTitle,
+          issuer: form.certificateIssuer,
+          year: form.certificateYear,
+          imageUrl: form.certificateImageUrl
+        }] : [];
+      }
+
+      await updateProfile(updates);
+      setEditing(false);
+      Alert.alert(t('common.success'), t('profileDetail.profileUpdated'));
+    } catch (error) {
+      Alert.alert(t('common.error'), error.response?.data?.message || t('profileDetail.profileUpdateFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isProviderMode = user?.providerProfile?.profileMode === 'WORK';
+
+  const switchToProvider = () => {
+    Alert.alert(
+      t('profileDetail.becomeProvider'),
+      t('profileDetail.becomeProviderBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('profileDetail.switchToProvider'),
+          onPress: async () => {
+            try {
+              await updateProfile({ profileMode: 'WORK' });
+              const isProfileIncomplete = !user?.providerProfile?.bio || (user?.providerProfile?.skills || []).length === 0;
+              if (isProfileIncomplete) {
+                Alert.alert(
+                  t('profileDetail.welcomeWorkMode'),
+                  t('profileDetail.welcomeWorkModeBody'),
+                  [
+                    { text: t('common.later') },
+                    { text: t('profileDetail.completeProfile'), onPress: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' }) }
+                  ]
+                );
+              } else {
+                Alert.alert(t('common.done'), t('profileDetail.providerModeDone'));
+              }
+            } catch (error) {
+              Alert.alert(t('profileDetail.couldNotSwitch'), error.response?.data?.message || t('common.tryAgain'));
+            }
+          }
+        }
+      ]
+    );
+  };
+  
+  const claimSetupBonus = async () => {
+    if (loading) return;
+    try {
+      setLoading(true);
+      const res = await api.post('/providers/claim-setup-bonus');
+      if (res.data?.success) {
+        Alert.alert(t('profile.success', 'Success'), res.data.message || t('profile.bonusClaimed', 'Bonus claimed successfully!'));
+        if (refreshUser) await refreshUser();
+      }
+    } catch (err) {
+      Alert.alert(t('common.error', 'Error'), err.response?.data?.message || t('profile.bonusError', 'Could not claim bonus.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchToClient = () => {
+    Alert.alert(
+      t('profileDetail.switchToClientMode'),
+      t('profileDetail.switchToClientBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('profileDetail.switchToClient'),
+          onPress: async () => {
+            try {
+              await updateProfile({ profileMode: 'PERSONAL' });
+              Alert.alert(t('common.done'), t('profileDetail.clientModeDone'));
+            } catch (error) {
+              Alert.alert(t('profileDetail.couldNotSwitch'), error.response?.data?.message || t('common.tryAgain'));
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const toggleSkill = (skill) => {
+    setForm(prev => ({
+      ...prev,
+      skills: prev.skills.includes(skill)
+        ? prev.skills.filter(s => s !== skill)
+        : [...prev.skills, skill]
+    }));
+  };
+
+  const inputStyle = { backgroundColor: colors.card, borderColor: colors.border, color: colors.text };
+
+
+
+  if (isProviderMode && !editing) {
+    const portfolio = user.providerProfile?.portfolio || [];
+    const certificates = user.providerProfile?.certificates || [];
+    const skills = user.providerProfile?.skills || [];
+    const rate = user.providerProfile?.rate ? `${Number(user.providerProfile.rate).toLocaleString()} ${getCurrencyForUser(user)}/hr` : t('profileDetail.rateNotSet');
+    const employmentHistory = user.providerProfile?.employmentHistory || [];
+    const serviceAreaRaw = user.providerProfile?.serviceArea || '';
+    const serviceAreaQuarters = serviceAreaRaw
+      ? serviceAreaRaw.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+
+    const setupSteps = [
+      { key: 'avatar', completed: Boolean(user?.avatar && user.avatar.trim().length > 0), label: t('profileDetail.addProfilePicture', 'Add Profile Picture'), action: handleImagePick },
+      { key: 'bio', completed: !!user.providerProfile?.bio, label: t('profileDetail.addBio', 'Add Bio'), action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' }) },
+      { key: 'skills', completed: !!user.providerProfile?.skills && user.providerProfile.skills.length > 0, label: t('profileDetail.addSkills', 'Add Skills'), action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'skills' }) },
+      { key: 'serviceArea', completed: Boolean(user.providerProfile?.serviceArea && user.providerProfile.serviceArea.trim().length > 0 && user.providerProfile.serviceArea.toLowerCase().trim() !== (user?.location || '').toLowerCase().trim()), label: t('profileDetail.addServiceArea', 'Set Service Areas (Quarters)'), action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'serviceArea' }) },
+      { key: 'portfolio', completed: (user.providerProfile?.portfolio || []).length > 0, label: t('profileDetail.addProject', 'Add Portfolio Project'), action: () => navigation.navigate('ProviderProfileEditItem', { type: 'project' }) },
+      { key: 'verification', completed: user.providerProfile?.verification === 'VERIFIED', label: t('profileDetail.verifyId', 'Verify ID'), action: () => navigation.navigate('Verification') },
+    ];
+    const completedStepsCount = setupSteps.filter(s => s.completed).length;
+    const setupProgress = Math.round((completedStepsCount / setupSteps.length) * 100);
+    const showSetupWidget = !user.providerProfile?.setupBonusClaimed || setupProgress < 100;
+
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+        
+        <View style={[styles.freelancerHeader, { borderBottomColor: colors.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.freelancerHeaderTitle, { color: colors.text }]}>{t('profileDetail.professionalDashboard')}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.headerIconBtn, { backgroundColor: colors.accent + '15', borderRadius: 21 }]}
+            onPress={switchToClient}
+          >
+            <MaterialCommunityIcons name="account-convert" size={24} color={colors.accent} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.freelancerScroll}>
+          <View style={[styles.integrationPanel, { backgroundColor: isDarkMode ? '#2B2B2B' : '#F3F8F2', borderColor: colors.border }]}>
+            <TouchableOpacity style={styles.panelClose}>
+              <MaterialCommunityIcons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.integrationTitle, { color: colors.text }]}>{t('profileDetail.profileIntegrations')}</Text>
+            <Text style={[styles.integrationBody, { color: colors.textSecondary }]}>
+              {t('profileDetail.profileIntegrationsBody')}
+            </Text>
+            <TouchableOpacity style={[styles.integrationButton, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]} onPress={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'links' })}>
+              <Text style={[styles.integrationButtonText, { color: colors.text }]}>{t('profileDetail.viewLinkedAccounts')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.identityBlock, { borderBottomColor: colors.border }]}>
+            <View style={styles.profilePhotoWrap}>
+              <UserAvatar uri={user?.avatar} name={user?.fullName} size={94} style={styles.profilePhoto} />
+              <View style={styles.onlineDot} />
+              <TouchableOpacity style={[styles.photoEdit, { backgroundColor: colors.background, borderColor: colors.accent }]} onPress={handleImagePick}>
+                <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.accent} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={styles.nameLine}>
+                <Text style={[styles.freelancerName, { color: colors.text }]}>{user?.fullName || t('settings.yourName')}</Text>
+              </View>
+              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user.providerProfile?.serviceArea || t('profileDetail.serviceAreaNotSet')}</Text>
+              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>
+                <MaterialCommunityIcons name="earth" size={12} color={colors.textSecondary} /> {user?.country || 'Cameroon'}
+              </Text>
+              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{t('profileDetail.localTimeAvailable')}</Text>
+            </View>
+            <TouchableOpacity onPress={async () => {
+              try {
+                const url = `https://usefixam.com/profile/${user?.id}`;
+                await Share.share({
+                  title: t('profile.shareProfileTitle'),
+                  message: t('profile.shareProfileMessage', { url }),
+                  ...(Platform.OS === 'ios' ? { url } : {}),
+                });
+              } catch (e) {
+                /* dismissed */
+              }
+            }}>
+              <MaterialCommunityIcons name="share-variant-outline" size={26} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ProfileModeDropdown colors={colors} user={user} isProviderMode={isProviderMode} switchToClient={switchToClient} switchToProvider={switchToProvider} navigation={navigation} />
+
+          {/* Setup Progress Widget */}
+          {showSetupWidget && (
+            <View style={[styles.setupWidget, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
+              <Text style={[styles.setupTitle, { color: colors.text }]}>{t('profile.completeSetup', 'Complete Setup (Bonus 1 Coin)')}</Text>
+              
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBarFill, { backgroundColor: colors.accent, width: `${setupProgress}%` }]} />
+              </View>
+              <Text style={[styles.progressText, { color: colors.textSecondary }]}>{setupProgress}% {t('common.completed', 'Completed')}</Text>
+
+              <View style={styles.setupStepsContainer}>
+                {setupSteps.map((step, idx) => (
+                  <TouchableOpacity key={idx} style={styles.setupStepRow} onPress={step.action} disabled={step.completed}>
+                    <MaterialCommunityIcons name={step.completed ? "check-circle" : "checkbox-blank-circle-outline"} size={20} color={step.completed ? "#10B981" : colors.textSecondary} />
+                    <Text style={[styles.setupStepLabel, { color: step.completed ? colors.textSecondary : colors.text, textDecorationLine: step.completed ? 'line-through' : 'none' }]}>
+                      {step.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {setupProgress === 100 && (
+                <TouchableOpacity style={[styles.claimBonusBtn, { backgroundColor: colors.accent }]} onPress={claimSetupBonus} disabled={loading}>
+                  {loading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.claimBonusText}>{t('profile.claimBonus', 'Claim 1 Coin Bonus')}</Text>}
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Boost Profile Card for Providers */}
+          {(user?.role === 'PROVIDER' || user?.providerProfile) && (
+            <View style={[styles.boostCard, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC', borderColor: colors.accent, borderWidth: 2, borderRadius: 0, marginTop: 12, marginHorizontal: 20 }]}>
+              <View style={styles.boostHeader}>
+                <MaterialCommunityIcons name="rocket-launch" size={24} color={colors.accent} style={{ marginRight: 10 }} />
+                <Text style={[styles.boostTitle, { color: colors.text }]}>
+                  {t('profile.boostTitle', 'Boost Profile')}
+                </Text>
+              </View>
+              <Text style={[styles.boostSubtitle, { color: colors.textSecondary }]}>
+                {t('profile.boostSubtitle', 'Get up to 5x more jobs by boosting your profile!')}
+              </Text>
+              
+              {user?.providerProfile?.boostExpiresAt && new Date(user.providerProfile.boostExpiresAt) > new Date() ? (
+                <View style={styles.boostActiveContainer}>
+                  <View style={[styles.boostActiveBadge, { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderRadius: 0 }]}>
+                    <Text style={[styles.boostActiveText, { color: '#10B981', fontWeight: '900' }]}>
+                      {t('profile.boostActiveUntil', { date: new Date(user.providerProfile.boostExpiresAt).toLocaleDateString() }).replace('{{date}}', new Date(user.providerProfile.boostExpiresAt).toLocaleDateString())}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+              
+              <View style={styles.boostActionRow}>
+                <TouchableOpacity 
+                  style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, borderRadius: 0 }]} 
+                  onPress={() => navigation.navigate('BoostProfile')}
+                >
+                  <Text style={styles.boostBtnText}>
+                    {t('profile.viewBoostDashboard', 'View Performance & Boost')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          <Section colors={colors} title={form.experienceLevel || t('profileDetail.professionalProfile')} actionIcon="pencil-outline" onAction={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' })}>
+            <Text style={[styles.rateText, { color: colors.text }]}>{rate}</Text>
+            <Text style={[styles.bioText, { color: colors.text }]} numberOfLines={6}>
+              {user.providerProfile?.bio || t('profileDetail.bioPrompt')}
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' })}>
+              <Text style={[styles.moreText, { color: colors.accent }]}>{t('home.more')}</Text>
+            </TouchableOpacity>
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.portfolio')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('ProviderProfileEditItem', { type: 'project' })}>
+            {portfolio.length === 0 ? (
+              <EmptyProfileBlock icon="image-plus" title={t('profileDetail.showcaseWork')} action={t('profileDetail.addProject')} colors={colors} onActionPress={() => navigation.navigate('ProviderProfileEditItem', { type: 'project' })} />
+            ) : (
+              <View style={styles.portfolioGrid}>
+                {portfolio.map((item, index) => {
+                  const mediaUri = item.imageUrl || item.images?.[0] || item.video || item.videoUrl || item.videos?.[0];
+                  const isVideo = !item.imageUrl && !item.images?.[0] && Boolean(item.video || item.videoUrl || item.videos?.[0]);
+                  return (
+                    <View key={`${item.title}-${index}`} style={styles.portfolioItem}>
+                      {isVideo ? (
+                        <View style={[styles.portfolioPreview, { backgroundColor: '#0B1B3D', justifyContent: 'center', alignItems: 'center' }]}>
+                          <MaterialCommunityIcons name="video" size={36} color="#14B8A6" />
+                        </View>
+                      ) : mediaUri ? (
+                        <Image source={{ uri: getMediaUrl(mediaUri) }} style={styles.portfolioPreview} />
+                      ) : (
+                        <View style={[styles.portfolioPreview, { backgroundColor: colors.border }]} />
+                      )}
+                      <Text style={[styles.portfolioItemTitle, { color: colors.accent }]}>{item.title || t('profileDetail.project')}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.workHistory')}>
+            <Text style={[styles.mutedLarge, { color: colors.textSecondary }]}>{t('profileDetail.noItems')}</Text>
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.skills')} actionIcon="pencil-outline" onAction={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'skills' })}>
+            <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{t('profileDetail.selfReported')}</Text>
+            <View style={styles.profileChips}>
+              {skills.length === 0 ? (
+                <Text style={[styles.mutedLarge, { color: colors.textSecondary }]}>{t('profileDetail.noSkillsAdded')}</Text>
+              ) : skills.map(skill => (
+                <View key={skill} style={[styles.profileChip, { backgroundColor: isDarkMode ? '#303030' : '#EEF2F7' }]}>
+                  <Text style={[styles.profileChipText, { color: colors.text }]}>{translateService(skill)}</Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.serviceArea', 'Service Area (Quarters)')} actionIcon="pencil-outline" onAction={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'serviceArea' })}>
+            <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{t('profileDetail.operatingQuartersHelp', 'Quarters where you can travel and execute tasks')}</Text>
+            {serviceAreaQuarters.length === 0 ? (
+              <EmptyProfileBlock
+                icon="map-marker-outline"
+                title={t('profileDetail.serviceAreaHelp', 'Set your operating quarters so clients nearby can discover and book you first.')}
+                action={t('profileDetail.addServiceArea', 'Add Service Area (Quarters)')}
+                colors={colors}
+                onActionPress={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'serviceArea' })}
+              />
+            ) : (
+              <View style={styles.profileChips}>
+                {serviceAreaQuarters.map(quarter => (
+                  <View key={quarter} style={[styles.profileChip, { backgroundColor: isDarkMode ? '#0F4C4A' : '#ECFDF5', borderColor: '#0D9488', borderWidth: 1 }]}>
+                    <Text style={[styles.profileChipText, { color: isDarkMode ? '#5EEAD4' : '#0D9488' }]}>{quarter}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.certifications')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('ProviderProfileEditItem', { type: 'certificate' })}>
+            {certificates.length === 0 ? (
+              <EmptyProfileBlock icon="trophy-outline" title={t('profileDetail.certificationsHelp')} action={t('profileDetail.addCertification')} colors={colors} onActionPress={() => navigation.navigate('ProviderProfileEditItem', { type: 'certificate' })} />
+            ) : certificates.map((cert, index) => (
+              <View key={`${cert.title}-${index}`} style={styles.profileLineItem}>
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{cert.title || t('profileDetail.certificate')}</Text>
+                <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{cert.issuer || t('profileDetail.issuer')}{cert.year ? ` | ${cert.year}` : ''}</Text>
+              </View>
+            ))}
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.employmentHistory')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('ProviderProfileEditItem', { type: 'employment' })}>
+            {employmentHistory.length === 0 ? (
+              <>
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('profileDetail.addPastWork')}</Text>
+                <Text style={[styles.bioText, { color: colors.textSecondary }]}>{t('profileDetail.describeWork')}</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('ProviderProfileEditItem', { type: 'employment' })}>
+                  <Text style={[styles.moreText, { color: colors.accent }]}>{t('profileDetail.addEmployment')}</Text>
+                </TouchableOpacity>
+              </>
+            ) : employmentHistory.map((item, index) => (
+              <View key={`${item.title}-${index}`} style={styles.profileLineItem}>
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{item.title || t('profileDetail.employment')}</Text>
+                <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{item.company || t('profileDetail.company')}{item.period ? ` | ${item.period}` : ''}</Text>
+                {item.description ? <Text style={[styles.bioText, { color: colors.textSecondary }]}>{item.description}</Text> : null}
+              </View>
+            ))}
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.reviewsRatings')}>
+            {reviews.length === 0 ? (
+              <EmptyProfileBlock icon="star-outline" title={t('profileDetail.realReviewsHelp')} action={t('profileDetail.noReviewsYet')} colors={colors} />
+            ) : (
+              <View style={{ gap: 12 }}>
+                {reviews.slice(0, 2).map((review, i) => {
+                  const reviewerName = review.reviewer?.fullName || review.job?.client?.fullName || t('profile.verifiedUser');
+                  const reviewerAvatarUri = getMediaUrl(review.reviewer?.avatar || review.job?.client?.avatar);
+                  const reviewDateText = review.createdAt
+                    ? new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                    : t('common.recent');
+
+                  return (
+                    <View
+                      key={review.id || i}
+                      style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    >
+                      <View style={styles.reviewTopRow}>
+                        <UserAvatar uri={reviewerAvatarUri} name={reviewerName} size={44} radius={14} style={styles.reviewAvatar} />
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <View style={styles.reviewerNameRow}>
+                            <Text style={[styles.reviewerName, { color: colors.text }]} numberOfLines={1}>{reviewerName}</Text>
+                            <View style={[styles.verifiedClientBadge, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#EFF6FF' }]}>
+                              <Text style={[styles.verifiedClientText, { color: colors.accent }]}>
+                                {t('profile.verifiedClient') || 'Verified Client'}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.reviewRatingRow}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <MaterialCommunityIcons
+                                key={star}
+                                name={star <= (review.rating || 5) ? "star" : "star-outline"}
+                                size={14}
+                                color="#F59E0B"
+                                style={{ marginRight: 2 }}
+                              />
+                            ))}
+                            <Text style={[styles.reviewRatingText, { color: colors.text }]}>
+                              {(review.rating || 5).toFixed(1)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.reviewDate}>{reviewDateText}</Text>
+                      </View>
+                      <Text style={[styles.reviewComment, { color: colors.textSecondary }]}>
+                        {review.comment || t('profile.reviewFallback')}
+                      </Text>
+                    </View>
+                  );
+                })}
+                <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: user.id, role: 'PROVIDER' })}>
+                  <Text style={[styles.moreText, { color: colors.accent, textAlign: 'center', marginTop: 8 }]}>
+                    {t('profile.readMore')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.testimonials')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('RequestTestimony')}>
+            <EmptyProfileBlock icon="comment-quote-outline" title={t('profileDetail.endorsements')} action={t('profileDetail.requestTestimonial')} colors={colors} onActionPress={() => navigation.navigate('RequestTestimony')} />
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.linkedAccounts')} actionIcon="pencil-outline" onAction={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'links' })}>
+            {['LinkedIn', 'Facebook', 'Instagram', 'TikTok'].map((name) => (
+              <View key={name} style={[styles.socialRow, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{name}</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'links' })}>
+                  <Text style={[styles.moreText, { color: colors.accent }]}>{user.providerProfile?.socialLinks?.[name.toLowerCase()] ? t('profileDetail.editLink') : t('profileDetail.linkProfile')}</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </Section>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (!isProviderMode && !editing) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        
+
+        <View style={[styles.freelancerHeader, { borderBottomColor: colors.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.freelancerHeaderTitle, { color: colors.text }]}>{t('profileDetail.personalProfile')}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.headerIconBtn, { backgroundColor: colors.accent + '15', borderRadius: 21 }]}
+            onPress={switchToProvider}
+          >
+            <MaterialCommunityIcons name="account-convert" size={24} color={colors.accent} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.freelancerScroll}>
+          <View style={[styles.identityBlock, { borderBottomColor: colors.border }]}>
+            <View style={styles.profilePhotoWrap}>
+              <UserAvatar uri={user?.avatar} name={user?.fullName} size={94} style={styles.profilePhoto} />
+              <TouchableOpacity style={[styles.photoEdit, { backgroundColor: colors.background, borderColor: colors.accent }]} onPress={handleImagePick}>
+                <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.accent} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={[styles.nameLine, { flexWrap: 'wrap', alignItems: 'center' }]}>
+                <Text style={[styles.freelancerName, { color: colors.text }]}>{user?.fullName || t('common.client')}</Text>
+                {(user?.providerProfile?.verification === 'VERIFIED' || user?.isVerified) && (
+                  <MaterialCommunityIcons name="check-decagram" size={18} color="#0D9488" style={{ marginLeft: 6 }} />
+                )}
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                <MaterialCommunityIcons name="map-marker" size={14} color={colors.accent} />
+                <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.location || 'Douala, Cameroon'}</Text>
+              </View>
+              <View style={{ marginTop: 6, alignSelf: 'flex-start' }}>
+                <View style={{ backgroundColor: colors.accent + '15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: colors.accent }}>{t('profileDetail.personalAccount', 'Client Account')}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <Section colors={colors} title={t('profileDetail.profileOverview')} actionIcon="pencil-outline" onAction={() => setEditing(true)}>
+            <Text style={[styles.bioText, { color: colors.text }]}>
+              {user?.bio || t('profileDetail.personalProfileHelp')}
+            </Text>
+          </Section>
+
+          <ProfileModeDropdown colors={colors} user={user} isProviderMode={isProviderMode} switchToClient={switchToClient} switchToProvider={switchToProvider} navigation={navigation} defaultMode="PERSONAL" />
+
+          <Section colors={colors} title={t('profileDetail.trustVerification')}>
+            <View style={styles.profileLineItem}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="phone-check" size={18} color="#10B981" />
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('profileDetail.phone')}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.phone || t('profileDetail.notAdded')}</Text>
+                {user?.phone ? <MaterialCommunityIcons name="check-circle" size={16} color="#10B981" /> : null}
+              </View>
+            </View>
+            <View style={styles.profileLineItem}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="email-check" size={18} color="#10B981" />
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('profileDetail.email')}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.email || t('profileDetail.notAdded')}</Text>
+                {user?.email ? <MaterialCommunityIcons name="check-circle" size={16} color="#10B981" /> : null}
+              </View>
+            </View>
+            <View style={styles.profileLineItem}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="shield-account" size={18} color={user?.providerProfile?.verification === 'VERIFIED' ? "#10B981" : colors.accent} />
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('verification.idVerification', 'ID Verification')}</Text>
+              </View>
+              {user?.providerProfile?.verification === 'VERIFIED' ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#10B981' }}>{t('common.verified', 'Verified')}</Text>
+                  <MaterialCommunityIcons name="check-circle" size={16} color="#10B981" />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Verification')}
+                  style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 6, backgroundColor: colors.accent + '15' }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.accent }}>{t('verification.getVerified', 'Get Verified')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.profileLineItem}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="map-marker-outline" size={18} color="#0D9488" />
+                <Text style={[styles.lineItemTitle, { color: colors.text }]}>{t('register.location') || 'Location'}</Text>
+              </View>
+              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{user?.location || user?.country || 'Cameroon'}</Text>
+            </View>
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.reviewsRatings')}>
+            {reviews.length === 0 ? (
+              <EmptyProfileBlock icon="star-outline" title={t('profileDetail.realReviewsHelp')} action={t('profileDetail.noReviewsYet')} colors={colors} />
+            ) : (
+              <View style={{ gap: 12 }}>
+                {reviews.slice(0, 2).map((review, i) => {
+                  const reviewerName = review.reviewer?.fullName || review.job?.client?.fullName || t('profile.verifiedUser');
+                  const reviewerAvatarUri = getMediaUrl(review.reviewer?.avatar || review.job?.client?.avatar);
+                  const reviewDateText = review.createdAt
+                    ? new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                    : t('common.recent');
+
+                  return (
+                    <View
+                      key={review.id || i}
+                      style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    >
+                      <View style={styles.reviewTopRow}>
+                        <UserAvatar uri={reviewerAvatarUri} name={reviewerName} size={44} radius={14} style={styles.reviewAvatar} />
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <View style={styles.reviewerNameRow}>
+                            <Text style={[styles.reviewerName, { color: colors.text }]} numberOfLines={1}>{reviewerName}</Text>
+                            <View style={[styles.verifiedClientBadge, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#EFF6FF' }]}>
+                              <Text style={[styles.verifiedClientText, { color: colors.accent }]}>
+                                {t('profile.verifiedProvider') || 'Verified Provider'}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.reviewRatingRow}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <MaterialCommunityIcons
+                                key={star}
+                                name={star <= (review.rating || 5) ? "star" : "star-outline"}
+                                size={14}
+                                color="#F59E0B"
+                                style={{ marginRight: 2 }}
+                              />
+                            ))}
+                            <Text style={[styles.reviewRatingText, { color: colors.text }]}>
+                              {(review.rating || 5).toFixed(1)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.reviewDate}>{reviewDateText}</Text>
+                      </View>
+                      <Text style={[styles.reviewComment, { color: colors.textSecondary }]}>
+                        {review.comment || t('profile.reviewFallback')}
+                      </Text>
+                    </View>
+                  );
+                })}
+                <TouchableOpacity onPress={() => navigation.navigate('Reviews', { userId: user.id, role: 'CLIENT' })}>
+                  <Text style={[styles.moreText, { color: colors.accent, textAlign: 'center', marginTop: 8 }]}>
+                    {t('profile.readMore')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </Section>
+
+          <Section colors={colors} title={t('profileDetail.accountPreferences')}>
+            <View style={styles.profileChips}>
+              <View style={[styles.profileChip, { backgroundColor: isDarkMode ? '#303030' : '#EEF2F7' }]}>
+                <Text style={[styles.profileChipText, { color: colors.text }]}>{t('profileDetail.localProviders')}</Text>
+              </View>
+              <View style={[styles.profileChip, { backgroundColor: isDarkMode ? '#303030' : '#EEF2F7' }]}>
+                <Text style={[styles.profileChipText, { color: colors.text }]}>{t('profileDetail.secureChat')}</Text>
+              </View>
+              <View style={[styles.profileChip, { backgroundColor: isDarkMode ? '#303030' : '#EEF2F7' }]}>
+                <Text style={[styles.profileChipText, { color: colors.text }]}>{t('profileDetail.taskTracking')}</Text>
+              </View>
+            </View>
+          </Section>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+      
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.profileHeader}>
+          <View style={[styles.avatarWrap, { backgroundColor: colors.card }]}>
+            <UserAvatar uri={user?.avatar} name={user?.fullName} size={94} />
+            {loading && (
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 47, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#FFF" />
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.editAvatarBtn, { backgroundColor: colors.accent }]}
+              onPress={handleImagePick}
+              disabled={loading}
+            >
+              {loading ? <ActivityIndicator size="small" color="#FFF" /> : <MaterialCommunityIcons name="camera" size={16} color="#FFF" />}
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.userName, { color: colors.text }]}>
+            {user?.pendingName ? t('profileDetail.pendingName', { name: user.pendingName }) : user?.fullName || t('common.user')}
+          </Text>
+          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email || user?.phone}</Text>
+
+          <TouchableOpacity
+            style={[styles.editProfileBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => editing ? save() : setEditing(true)}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator size="small" color={colors.text} /> : (
+              <Text style={[styles.editProfileText, { color: colors.text }]}>{editing ? t('common.save') : t('profile.editProfile')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {(user?.role === 'PROVIDER' || user?.providerProfile) && (
+          <View style={[styles.boostCard, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC', borderColor: colors.accent, borderWidth: 2, borderRadius: 0 }]}>
+            <View style={styles.boostHeader}>
+              <MaterialCommunityIcons name="rocket-launch" size={24} color={colors.accent} style={{ marginRight: 10 }} />
+              <Text style={[styles.boostTitle, { color: colors.text }]}>
+                {t('profile.boostTitle', 'Boost Profile')}
+              </Text>
+            </View>
+            <Text style={[styles.boostSubtitle, { color: colors.textSecondary }]}>
+              {t('profile.boostSubtitle', 'Get up to 5x more jobs by boosting your profile!')}
+            </Text>
+            
+            {user?.providerProfile?.boostExpiresAt && new Date(user.providerProfile.boostExpiresAt) > new Date() ? (
+              <View style={styles.boostActiveContainer}>
+                <View style={[styles.boostActiveBadge, { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderRadius: 0 }]}>
+                  <Text style={[styles.boostActiveText, { color: '#10B981', fontWeight: '900' }]}>
+                    {t('profile.boostActiveUntil', { date: new Date(user.providerProfile.boostExpiresAt).toLocaleDateString() }).replace('{{date}}', new Date(user.providerProfile.boostExpiresAt).toLocaleDateString())}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+            
+            <View style={styles.boostActionRow}>
+              <TouchableOpacity 
+                style={[styles.boostBtn, { backgroundColor: colors.accent, flex: 1, borderRadius: 0 }]} 
+                onPress={() => navigation.navigate('BoostProfile')}
+              >
+                <Text style={styles.boostBtnText}>
+                  {t('profile.viewBoostDashboard', 'View Performance & Boost')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.formSection}>
+          <ProfileField label={t('profileDetail.fullName')} value={form.fullName} onChangeText={(v) => setForm({ ...form, fullName: v })} editable={editing} style={inputStyle} colors={colors} />
+          <ProfileField label={t('profileDetail.email')} value={form.email} onChangeText={(v) => setForm({ ...form, email: v })} editable={editing} style={inputStyle} colors={colors} />
+          <ProfileField label={t('register.location')} value={form.location} onChangeText={(v) => setForm({ ...form, location: v })} editable={editing} style={inputStyle} colors={colors} />
+          
+          <View style={styles.fieldWrap}>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('profileDetail.dateOfBirth')}</Text>
+            <TouchableOpacity 
+              style={[styles.input, inputStyle, !editing && { opacity: 0.72 }, { justifyContent: 'center' }]} 
+              onPress={() => editing && setShowDatePicker(true)}
+              disabled={!editing}
+            >
+              <Text style={{ color: form.dob ? colors.text : colors.placeholder }}>
+                {form.dob || "1995-01-01"}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={form.dob ? new Date(form.dob) : new Date(1995, 0, 1)}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (selectedDate) {
+                    setForm({ ...form, dob: selectedDate.toISOString().split('T')[0] });
+                  }
+                }}
+              />
+            )}
+          </View>
+
+          <ProfileField label={t('profileDetail.phone')} value={form.phone} editable={false} style={[inputStyle, { opacity: 0.5 }]} colors={colors} />
+          <ProfileField label={t('register.country') || 'Country'} value={form.country} editable={false} style={[inputStyle, { opacity: 0.5 }]} colors={colors} />
+
+          {user?.role === 'PROVIDER' && (
+            <>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('profileDetail.professionalProfile')}</Text>
+              <ProfileField label={t('profileDetail.bio')} value={form.bio} onChangeText={(v) => setForm({ ...form, bio: v })} editable={editing} style={inputStyle} colors={colors} multiline />
+              <ProfileField label={t('profileDetail.serviceArea')} value={form.serviceArea} onChangeText={(v) => setForm({ ...form, serviceArea: v })} editable={editing} style={inputStyle} colors={colors} placeholder={t('profileDetail.serviceAreaPlaceholder')} />
+              <ProfileField label={t('profileDetail.experienceLevel')} value={form.experienceLevel} onChangeText={(v) => setForm({ ...form, experienceLevel: v })} editable={editing} style={inputStyle} colors={colors} placeholder={t('profileDetail.experienceLevelPlaceholder')} />
+
+              <View style={styles.fieldWrap}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('profileDetail.skills')}</Text>
+                <View style={styles.skillsContainer}>
+                  {form.skills.map(skill => (
+                    <View key={skill} style={[styles.skillChip, { backgroundColor: colors.accent }]}>
+                      <Text style={styles.skillChipText}>{translateService(skill)}</Text>
+                      {editing && (
+                        <TouchableOpacity onPress={() => toggleSkill(skill)}>
+                          <MaterialCommunityIcons name="close-circle" size={16} color="#FFF" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                  {editing && (
+                    <TouchableOpacity
+                      style={[styles.addSkillBtn, { borderColor: colors.accent }]}
+                      onPress={() => setShowSkillPicker(true)}
+                    >
+                      <MaterialCommunityIcons name="plus" size={18} color={colors.accent} />
+                      <Text style={{ color: colors.accent, fontWeight: '700' }}>{t('profileDetail.addSkill')}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <ProfileField label={t('profileDetail.hourlyRate')} value={form.rate} onChangeText={(v) => setForm({ ...form, rate: v })} editable={editing} style={inputStyle} colors={colors} keyboardType="numeric" />
+
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('profileDetail.previousWork')}</Text>
+              <ProfileField label={t('profileDetail.projectTitle')} value={form.portfolioTitle} onChangeText={(v) => setForm({ ...form, portfolioTitle: v })} editable={editing} style={inputStyle} colors={colors} />
+              <ProfileField label={t('profileDetail.projectDescription')} value={form.portfolioDescription} onChangeText={(v) => setForm({ ...form, portfolioDescription: v })} editable={editing} style={inputStyle} colors={colors} multiline />
+              <ProfileField label={t('profileDetail.projectImageUrl')} value={form.portfolioImageUrl} onChangeText={(v) => setForm({ ...form, portfolioImageUrl: v })} editable={editing} style={inputStyle} colors={colors} />
+
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('profileDetail.certificate')}</Text>
+              <ProfileField label={t('profileDetail.certificateName')} value={form.certificateTitle} onChangeText={(v) => setForm({ ...form, certificateTitle: v })} editable={editing} style={inputStyle} colors={colors} />
+              <ProfileField label={t('profileDetail.issuer')} value={form.certificateIssuer} onChangeText={(v) => setForm({ ...form, certificateIssuer: v })} editable={editing} style={inputStyle} colors={colors} />
+              <ProfileField label={t('profileDetail.year')} value={form.certificateYear} onChangeText={(v) => setForm({ ...form, certificateYear: v })} editable={editing} style={inputStyle} colors={colors} keyboardType="numeric" />
+              <ProfileField label={t('profileDetail.certificateImageUrl')} value={form.certificateImageUrl} onChangeText={(v) => setForm({ ...form, certificateImageUrl: v })} editable={editing} style={inputStyle} colors={colors} />
+            </>
+          )}
+        </View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Simple Skill Picker Modal */}
+      <Modal visible={showSkillPicker} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profileDetail.chooseSkills')}</Text>
+              <TouchableOpacity onPress={() => setShowSkillPicker(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalScroll}>
+              {[
+                'Plumbing', 'Electrical', 'Carpentry', 'Painting', 'Masonry',
+                'AC Repair', 'Cleaning', 'Gardening', 'Tutoring', 'Handyman'
+              ].map(skill => {
+                const isSelected = form.skills.includes(skill);
+                return (
+                  <TouchableOpacity
+                    key={skill}
+                    style={[styles.pickerItem, { backgroundColor: isSelected ? colors.accent : colors.background, borderColor: colors.border }]}
+                    onPress={() => toggleSkill(skill)}
+                  >
+                    <Text style={{ color: isSelected ? '#FFF' : colors.text, fontWeight: '700' }}>{translateService(skill)}</Text>
+                    {isSelected && <MaterialCommunityIcons name="check" size={18} color="#FFF" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.modalDoneBtn, { backgroundColor: colors.accent }]}
+              onPress={() => setShowSkillPicker(false)}
+            >
+              <Text style={styles.modalDoneText}>{t('common.done')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+};
+
+const ProfileField = ({ label, value, onChangeText, editable, style, colors, multiline, ...props }) => (
+  <View style={styles.fieldWrap}>
+    <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
+    <TextInput
+      style={[styles.input, multiline && styles.textarea, style, !editable && { opacity: 0.72 }]}
+      value={value}
+      onChangeText={onChangeText}
+      editable={editable}
+      placeholder={label}
+      placeholderTextColor={colors.placeholder}
+      multiline={multiline}
+      textAlignVertical={multiline ? 'top' : 'center'}
+      {...props}
+    />
+  </View>
+);
+
+const ProfileModeDropdown = ({ colors, isProviderMode, switchToClient, switchToProvider, navigation }) => {
+  const { t } = useLanguage();
+  return (
+    <View style={[styles.profileSection, { borderBottomColor: colors.border }]}>
+      <View style={styles.profileSectionHeader}>
+        <Text style={[styles.profileSectionTitle, { color: colors.text }]}>{t('profileDetail.accountMode')}</Text>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.dropdownFake, { borderColor: colors.border, backgroundColor: colors.card }]}
+        onPress={isProviderMode ? switchToClient : switchToProvider}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={[styles.modeIconCircle, { backgroundColor: colors.accent + '15' }]}>
+            <MaterialCommunityIcons
+              name={isProviderMode ? "briefcase" : "account"}
+              size={22}
+              color={colors.accent}
+            />
+          </View>
+          <View>
+            <Text style={[styles.dropdownLabel, { color: colors.text }]}>
+              {isProviderMode ? t('profileDetail.providerMode') : t('profileDetail.clientMode')}
+            </Text>
+            <Text style={[styles.dropdownSubtext, { color: colors.textSecondary }]}>
+              {isProviderMode ? t('profileDetail.switchToPersonalBrowsing') : t('profileDetail.switchToWorkProfile')}
+            </Text>
+          </View>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.placeholder} />
+      </TouchableOpacity>
+
+
+    </View>
+  );
+};
+
+const Section = ({ title, children, colors, actionIcon, onAction }) => (
+  <View style={[styles.profileSection, { borderBottomColor: colors.border }]}>
+    <View style={styles.profileSectionHeader}>
+      <Text style={[styles.profileSectionTitle, { color: colors.text }]}>{title}</Text>
+      {actionIcon ? (
+        <TouchableOpacity style={[styles.roundAction, { borderColor: colors.accent }]} onPress={onAction}>
+          <MaterialCommunityIcons name={actionIcon} size={22} color={colors.accent} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
+    {children}
+  </View>
+);
+
+const EmptyProfileBlock = ({ icon, title, action, colors, onActionPress }) => (
+  <View style={styles.emptyProfileBlock}>
+    <MaterialCommunityIcons name={icon} size={74} color={colors.textSecondary} />
+    <Text style={[styles.emptyProfileTitle, { color: colors.text }]}>{title}</Text>
+    {onActionPress ? (
+      <TouchableOpacity onPress={onActionPress} accessibilityRole="link">
+        <Text style={[styles.moreText, { color: colors.text, textDecorationLine: 'underline' }]}>{action}</Text>
+      </TouchableOpacity>
+    ) : (
+      <Text style={[styles.moreText, { color: colors.textSecondary }]}>{action}</Text>
+    )}
+  </View>
+);
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  freelancerHeader: {
+    minHeight: Platform.OS === 'ios' ? 100 : 76,
+    paddingTop: Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight || 0),
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+  },
+  freelancerHeaderTitle: { fontSize: 18, fontWeight: '900' },
+  headerIconBtn: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  clientProfileHeader: {
+    minHeight: 92,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 18,
+    paddingHorizontal: 22,
+    paddingBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+  },
+  clientProfileHeaderTitle: { flex: 1, fontSize: 24, lineHeight: 30, fontWeight: '900' },
+  clientEditBtn: {
+    minWidth: 86,
+    height: 44,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  clientEditText: { color: '#FFF', fontSize: 15, fontWeight: '900' },
+  freelancerScroll: { paddingBottom: 100 },
+  integrationPanel: { margin: 22, padding: 22, borderRadius: 8, borderWidth: 1 },
+  panelClose: { position: 'absolute', top: 14, right: 14, zIndex: 1 },
+  integrationTitle: { fontSize: 24, lineHeight: 30, fontWeight: '900', marginRight: 30, marginBottom: 16 },
+  integrationBody: { fontSize: 14, lineHeight: 22, marginBottom: 18 },
+  integrationButton: { height: 48, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  integrationButtonText: { fontSize: 15, fontWeight: '900' },
+  identityBlock: { flexDirection: 'row', gap: 16, alignItems: 'center', paddingHorizontal: 22, paddingVertical: 22, borderBottomWidth: 1 },
+  profilePhotoWrap: { width: 94, height: 94, position: 'relative' },
+  profilePhoto: { width: 94, height: 94, borderRadius: 47 },
+  onlineDot: { position: 'absolute', left: 5, top: 4, width: 16, height: 16, borderRadius: 8, backgroundColor: '#12A800', borderWidth: 2, borderColor: '#111' },
+  photoEdit: { position: 'absolute', right: -1, bottom: -1, width: 38, height: 38, borderRadius: 19, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  freelancerName: { fontSize: 22, fontWeight: '900' },
+  profileMeta: { fontSize: 15, lineHeight: 23, fontWeight: '600' },
+  profileSection: { paddingHorizontal: 22, paddingVertical: 24, borderBottomWidth: 1 },
+  profileSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 18, marginBottom: 16 },
+  profileSectionTitle: { flex: 1, fontSize: 18, lineHeight: 24, fontWeight: '900' },
+  roundAction: { width: 42, height: 42, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  dropdownFake: { minHeight: 70, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  modeIconCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  dropdownLabel: { fontSize: 16, fontWeight: '800' },
+  dropdownSubtext: { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  dropdownText: { fontSize: 16, fontWeight: '700' },
+  profileModeRow: { flexDirection: 'row', gap: 10 },
+  modeOption: { flex: 1, minHeight: 48, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  modeText: { fontSize: 14, fontWeight: '900', textAlign: 'center' },
+  rateText: { fontSize: 18, fontWeight: '900', marginBottom: 14 },
+  bioText: { fontSize: 14, lineHeight: 22, fontWeight: '500' },
+  moreText: { fontSize: 14, fontWeight: '800', textDecorationLine: 'underline', marginTop: 8 },
+  linkMuted: { fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
+  portfolioGrid: { flexDirection: 'row', gap: 20 },
+  portfolioItem: { flex: 1 },
+  portfolioPreview: { width: '100%', aspectRatio: 1.2, borderRadius: 8, marginBottom: 12 },
+  portfolioItemTitle: { fontSize: 15, lineHeight: 21, fontWeight: '800' },
+  mutedLarge: { fontSize: 14, fontWeight: '600' },
+  profileChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  profileChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999 },
+  profileChipText: { fontSize: 14, fontWeight: '800' },
+  profileLineItem: { marginBottom: 18 },
+  lineItemTitle: { fontSize: 16, lineHeight: 22, fontWeight: '900' },
+  emptyProfileBlock: { alignItems: 'center', paddingVertical: 22 },
+  emptyProfileTitle: { fontSize: 18, lineHeight: 26, fontWeight: '700', textAlign: 'center', marginTop: 18 },
+  linkedAccountBox: { borderRadius: 8, padding: 18 },
+  socialRow: { paddingVertical: 14, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  scrollContent: { paddingBottom: 100 },
+  profileHeader: { alignItems: 'center', paddingVertical: 30, paddingHorizontal: 20 },
+  avatarWrap: { width: 100, height: 100, borderRadius: 50, padding: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  avatar: { width: '100%', height: '100%', borderRadius: 50 },
+  editAvatarBtn: { position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF' },
+  userName: { fontSize: 20, fontWeight: '900', marginTop: 15, textAlign: 'center' },
+  userEmail: { fontSize: 14, marginTop: 4 },
+  editProfileBtn: { marginTop: 15, paddingHorizontal: 20, paddingVertical: 9, borderRadius: 18, borderWidth: 1 },
+  editProfileText: { fontSize: 13, fontWeight: '900' },
+  formSection: { paddingHorizontal: 20 },
+  sectionLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 1, marginTop: 24, marginBottom: 12, textTransform: 'uppercase' },
+  fieldWrap: { marginBottom: 16 },
+  fieldLabel: { fontSize: 12, fontWeight: '900', marginBottom: 8, textTransform: 'uppercase' },
+  input: { minHeight: 54, borderRadius: 16, borderWidth: 1, paddingHorizontal: 15, fontSize: 15, fontWeight: '700' },
+  textarea: { minHeight: 96, paddingTop: 15 },
+  skillsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  skillChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
+  skillChipText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+  addSkillBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 25 },
+  modalContent: { borderRadius: 25, padding: 20, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '900' },
+  modalScroll: { gap: 10 },
+  pickerItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderRadius: 15, borderWidth: 1 },
+  modalDoneBtn: { height: 54, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
+  modalDoneText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
+  reviewCard: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  reviewTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  reviewerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  reviewerName: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  verifiedClientBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  verifiedClientText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  reviewRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewRatingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+  reviewDate: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  reviewComment: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  boostCard: {
+    marginHorizontal: 20,
+    marginVertical: 14,
+    padding: 16,
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  boostHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  boostTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  setupWidget: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+  },
+  setupTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    marginBottom: 16,
+    textAlign: 'right',
+  },
+  setupStepsContainer: {
+    marginBottom: 12,
+  },
+  setupStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  setupStepLabel: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  claimBonusBtn: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  claimBonusText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  boostSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'left',
+  },
+  boostActiveContainer: {
+    marginTop: 4,
+    alignItems: 'stretch',
+  },
+  boostActiveBadge: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boostActiveText: {
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  boostActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  boostBtn: {
+    flex: 1,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boostBtnText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+});
+
+export default DashboardScreen;

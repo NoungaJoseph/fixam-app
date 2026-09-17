@@ -1,0 +1,719 @@
+import React, { useState } from 'react';
+import SafeAreaView from '../../components/Common/TealSafeAreaView';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar, Image, Platform } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import { useTheme } from '../../context/ThemeContext';
+import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { COUNTRY_DATA, detectCountryFromPhone } from '../../constants/countries';
+
+const CoinSystemScreen = ({ navigation }) => {
+  const { colors, isDarkMode } = useTheme();
+  const { walletBalance, transactions } = useAppContext();
+  const { user } = useAuth();
+  const { t, locale } = useLanguage();
+
+  const userCountry = user?.country || detectCountryFromPhone(user?.phone) || 'Cameroon';
+  const countryConfig = COUNTRY_DATA[userCountry] || COUNTRY_DATA.Cameroon;
+  const currency = countryConfig.currency;
+
+  console.log('[CoinSystemScreen] User profile info:', {
+    phone: user?.phone,
+    countryField: user?.country,
+    detectedCountry: userCountry
+  });
+
+  const PACKAGES = [
+    { id: 'p1', coins: 10, price: `${(countryConfig.coinPrices.p1).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p1, label: 'Starter', popular: false, bonus: 0 },
+    { id: 'p2', coins: 20, price: `${(countryConfig.coinPrices.p2).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p2, label: 'Standard', popular: true, bonus: 2 },
+    { id: 'p3', coins: 30, price: `${(countryConfig.coinPrices.p3).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p3, label: 'Popular', popular: false, bonus: 3 },
+    { id: 'p4', coins: 40, price: `${(countryConfig.coinPrices.p4).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p4, label: 'Growth', popular: false, bonus: 4 },
+    { id: 'p5', coins: 50, price: `${(countryConfig.coinPrices.p5).toLocaleString()} ${currency}`, rawPrice: countryConfig.coinPrices.p5, label: 'Premium', popular: false, bonus: 5 },
+  ];
+
+  const [selectedPkg, setSelectedPkg] = useState('p2');
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const renderNetworkBadge = (methodId) => {
+    const badges = {
+      mtn: { bg: '#FFCC00', border: '#000', t1: 'MTN', t1c: '#000', t2: 'momo', t2c: '#0066CC', italic: true },
+      orange: { bg: '#F16E00', border: '#F16E00', t1: 'orange', t1c: '#FFF', t2: 'money', t2c: '#FFF', radius: 4 },
+      mpesa: { bg: '#22C55E', border: '#22C55E', t1: 'm-pesa', t1c: '#FFF' },
+      vodafone: { bg: '#E11D48', border: '#E11D48', t1: 'voda', t1c: '#FFF', t2: 'cash', t2c: '#FFF' },
+      airtel: { bg: '#E11D48', border: '#E11D48', t1: 'airtel', t1c: '#FFF', t2: 'money', t2c: '#FFF' },
+      airteltigo: { bg: '#E11D48', border: '#E11D48', t1: 'airtel', t1c: '#FFF', t2: 'tigo', t2c: '#FFF' },
+      moov: { bg: '#0066CC', border: '#0066CC', t1: 'moov', t1c: '#FFF' },
+      wave: { bg: '#0EA5E9', border: '#0EA5E9', t1: 'wave', t1c: '#FFF' },
+      tigo: { bg: '#1E3A8A', border: '#1E3A8A', t1: 'tigo', t1c: '#FFF', t2: 'pesa', t2c: '#FFF' },
+      etisalat: { bg: '#059669', border: '#059669', t1: 'etisalat', t1c: '#FFF' },
+    };
+    const b = badges[methodId];
+    if (!b) return (
+      <View style={[styles.momoBadge, { backgroundColor: '#94A3B8', borderColor: '#94A3B8' }]}>
+        <MaterialCommunityIcons name="cellphone-wireless" size={16} color="#FFF" />
+      </View>
+    );
+    return (
+      <View style={[styles.momoBadge, { backgroundColor: b.bg, borderColor: b.border, borderRadius: b.radius || 16 }]}>
+        <Text style={[styles.badgeText1, { color: b.t1c, fontStyle: b.italic ? 'italic' : 'normal' }]}>{b.t1}</Text>
+        {b.t2 && <Text style={[styles.badgeText2, { color: b.t2c }]}>{b.t2}</Text>}
+      </View>
+    );
+  };
+
+  const handleContinue = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    const pkg = PACKAGES.find(p => p.id === selectedPkg);
+    navigation.navigate('CoinPaymentForm', { package: pkg });
+    setTimeout(() => setIsNavigating(false), 1000);
+  };
+
+  const translateTransactionDescription = (tx) => {
+    const description = String(tx.description || '').toLowerCase();
+    if (description.includes('purchase')) return t('payments.coinPurchase');
+    if (description.includes('spent') || description.includes('unlock') || description.includes('apply')) return t('payments.coinSpent');
+    if (description.includes('service')) return t('payments.servicePayment');
+    return tx.description || (tx.amount > 0 ? t('payments.coinPurchase') : t('payments.coinSpent'));
+  };
+
+  // Branded Payment Provider Logos
+  const paymentLogos = [
+    { name: 'MTN MoMo', uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/MTN_Logo.svg/320px-MTN_Logo.svg.png' },
+    { name: 'Orange Money', uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Orange_logo.svg/320px-Orange_logo.svg.png' },
+  ];
+
+  const getPackageBadgeColors = (label) => {
+    switch (label) {
+      case 'Standard':
+        return { bg: '#ECFDF5', text: '#0D9488' };
+      case 'Popular':
+        return { bg: '#EFF6FF', text: '#2563EB' };
+      case 'Premium':
+        return { bg: '#F3E8FF', text: '#8B5CF6' };
+      default:
+        return { bg: '#F1F5F9', text: '#64748B' };
+    }
+  };
+
+  return (
+    <View style={[styles.background, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA' }]}>
+      
+      
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            onPress={() => navigation.openDrawer()} 
+            style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#F1F5F9' }]}
+          >
+            <MaterialCommunityIcons name="menu" size={22} color={isDarkMode ? '#FFF' : '#0F172A'} />
+          </TouchableOpacity>
+          
+          <Text style={[styles.headerTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('wallet.topUpCoins')}</Text>
+          
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('HelpCenter')}
+            style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#F1F5F9' }]}
+          >
+            <MaterialCommunityIcons name="help-circle-outline" size={22} color={isDarkMode ? '#FFF' : '#0F172A'} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          
+          {/* Gradient Balance Card */}
+          <LinearGradient
+            colors={['#0D9488', '#0EA5E9', '#1D4ED8']}
+            style={styles.balanceCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.balanceLeft}>
+              <View style={styles.coinIconWrapper}>
+                <MaterialCommunityIcons name="database" size={22} color="#FFF" />
+              </View>
+              
+              <Text style={styles.balanceLabel}>{t('wallet.currentBalance')}</Text>
+              <View style={styles.balanceValueRow}>
+                <Text style={styles.balanceValue}>{walletBalance || 0}</Text>
+                <Text style={styles.balanceUnit}>{t('wallet.coins')}</Text>
+              </View>
+            </View>
+
+            <View style={styles.balanceRight}>
+              <MaterialCommunityIcons name="wallet-plus-outline" size={80} color="rgba(255,255,255,0.15)" style={styles.bgWalletIcon} />
+              <View style={[styles.statPill, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                <MaterialCommunityIcons name="account-circle-outline" size={14} color="#FFF" />
+                <Text style={styles.statPillText}>{user?.fullName?.split(' ')[0] || t('common.provider')}</Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          {/* Section Titles */}
+          <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('wallet.choosePackage')}</Text>
+          <Text style={[styles.subtitle, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>
+            {t('wallet.packageSubtitle')}
+          </Text>
+
+          {/* Packages List */}
+          <View style={styles.packagesList}>
+            {PACKAGES.map((pkg) => {
+              const isSelected = selectedPkg === pkg.id;
+              const badgeColors = getPackageBadgeColors(pkg.label);
+              const cleanPrice = pkg.rawPrice.toLocaleString();
+
+              return (
+                <TouchableOpacity
+                  key={pkg.id}
+                  onPress={() => setSelectedPkg(pkg.id)}
+                  style={[
+                    styles.pkgCard,
+                    { 
+                      backgroundColor: isDarkMode ? '#1E293B' : '#FFF',
+                      borderColor: isSelected ? '#0D9488' : (isDarkMode ? '#334155' : '#F1F5F9'),
+                      borderWidth: isSelected ? 2 : 1,
+                    }
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  {/* BEST VALUE Banner overlay */}
+                  {pkg.popular && (
+                    <View style={styles.popularBadge}>
+                      <MaterialCommunityIcons name="star" size={10} color="#FFF" style={{ marginRight: 2 }} />
+                      <Text style={styles.popularText}>{t('wallet.bestValue')}</Text>
+                    </View>
+                  )}
+
+                  {/* Left Circle Icon */}
+                  <View style={[
+                    styles.pkgIconContainer, 
+                    { backgroundColor: isSelected ? '#ECFDF5' : (isDarkMode ? '#0F172A' : '#F1F5F9') }
+                  ]}>
+                    <MaterialCommunityIcons 
+                      name="database" 
+                      size={20} 
+                      color={isSelected ? '#10B981' : (isDarkMode ? '#94A3B8' : '#334155')} 
+                    />
+                  </View>
+
+                  {/* Middle Column details */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.pkgCoins, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
+                      {t('wallet.coinCount', { count: pkg.coins })}
+                    </Text>
+                    
+                    <View style={[styles.badgePill, { backgroundColor: isDarkMode ? '#115E5920' : badgeColors.bg }]}>
+                      <Text style={[styles.badgeText, { color: isDarkMode ? '#0D9488' : badgeColors.text }]}>
+                        {t(`wallet.packages.${pkg.label.toLowerCase()}`)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Right Column price and radio check */}
+                  <View style={styles.pkgRight}>
+                    <View style={styles.priceRow}>
+                      <Text style={[styles.priceValue, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
+                        {cleanPrice}
+                      </Text>
+                      <Text style={[styles.priceUnit, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>
+                        {" "}{currency}
+                      </Text>
+                    </View>
+
+                    {isSelected ? (
+                      <MaterialCommunityIcons name="check-circle" size={22} color="#0D9488" />
+                    ) : (
+                      <MaterialCommunityIcons name="checkbox-blank-circle-outline" size={22} color="#CBD5E1" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Info Block card */}
+          <View style={[styles.infoCard, { backgroundColor: isDarkMode ? '#1E293B' : '#F0FDF4', borderColor: isDarkMode ? '#334155' : '#DCFCE7' }]}>
+            <View style={styles.infoLeft}>
+              <MaterialCommunityIcons name="shield-check" size={22} color="#10B981" style={{ marginTop: 2 }} />
+            </View>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={[styles.infoTitle, { color: isDarkMode ? '#FFF' : '#14532D' }]}>{t('wallet.whyTopUp')}</Text>
+              <Text style={[styles.infoSub, { color: isDarkMode ? '#94A3B8' : '#166534' }]}>
+                {t('wallet.whyTopUpDesc')}
+              </Text>
+            </View>
+            
+            {/* Wallet 3D asset */}
+            <Image 
+              source={{ uri: 'https://img.icons8.com/isometric/512/wallet.png' }}
+              style={styles.infoWalletImage}
+            />
+          </View>
+
+          {/* Checkout Button */}
+          <TouchableOpacity
+            style={styles.continueBtn}
+            onPress={handleContinue}
+            activeOpacity={0.9}
+            disabled={isNavigating}
+          >
+            <MaterialCommunityIcons name="lock" size={18} color="#FFF" style={{ marginRight: 6 }} />
+            <Text style={styles.continueBtnText}>{t('wallet.continueToPayment')}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+
+          {/* Secure transaction row */}
+          <View style={styles.secureRow}>
+            <MaterialCommunityIcons name="check-decagram" size={16} color="#22C55E" />
+            <Text style={[styles.secureText, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>
+              {t('wallet.securePayment')}
+            </Text>
+          </View>
+
+          {/* Payment providers footer logo card */}
+          <View style={[styles.logoCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#F1F5F9', marginBottom: 28 }]}>
+            <View style={styles.logoRow}>
+              {countryConfig.paymentMethods.filter(m => m.type === 'momo').slice(0, 3).map((method) => (
+                <View key={method.id} style={styles.badgeWrapper}>
+                  {renderNetworkBadge(method.id)}
+                  <Text style={[styles.badgeLabel, { color: isDarkMode ? '#FFF' : '#0F172A', textAlign: 'center', marginTop: 4 }]} numberOfLines={2}>{method.name}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Transaction History Section */}
+          <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A', marginTop: 12 }]}>{t('wallet.transactionHistory')}</Text>
+          
+          {!transactions || transactions.length === 0 ? (
+            <View style={[styles.emptyHistory, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
+              <MaterialCommunityIcons name="history" size={40} color={isDarkMode ? '#475569' : '#CBD5E1'} />
+              <Text style={[styles.emptyHistoryText, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>{t('payments.noTransactions')}</Text>
+            </View>
+          ) : (
+            <View style={[styles.txListContainer, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
+              {transactions.slice(0, 10).map((tx, i) => (
+                <View 
+                  key={tx.id || i} 
+                  style={[
+                    styles.txRow, 
+                    { 
+                      borderBottomColor: isDarkMode ? '#334155' : '#F8FAFC',
+                      borderBottomWidth: i === transactions.length - 1 ? 0 : 1 
+                    }
+                  ]}
+                >
+                  <View style={[
+                    styles.txIcon, 
+                    { backgroundColor: tx.amount > 0 ? (isDarkMode ? 'rgba(34,197,94,0.15)' : '#F0FDF4') : (isDarkMode ? 'rgba(239,68,68,0.15)' : '#FEF2F2') }
+                  ]}>
+                    <MaterialCommunityIcons 
+                      name={tx.amount > 0 ? 'arrow-down-left' : 'arrow-up-right'} 
+                      size={18} 
+                      color={tx.amount > 0 ? '#22C55E' : '#EF4444'} 
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.txTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>
+                      {translateTransactionDescription(tx)}
+                    </Text>
+                    <Text style={[styles.txDate, { color: isDarkMode ? '#64748B' : '#94A3B8' }]}>
+                      {new Date(tx.createdAt).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                  </View>
+                  <Text style={[styles.txAmount, { color: tx.amount > 0 ? '#22C55E' : '#EF4444' }]}>
+                    {tx.amount > 0 ? '+' : ''}{t('wallet.coinCount', { count: tx.amount })}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View style={{ height: 110 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  background: { flex: 1 },
+  container: { flex: 1 },
+  
+  // Header Styles
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingTop: Platform.OS === 'ios' ? 10 : 35, 
+    paddingBottom: 12 
+  },
+  headerBtn: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 22, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  headerTitle: { 
+    fontSize: 18, 
+    fontWeight: '800' 
+  },
+
+  content: { 
+    paddingHorizontal: 20, 
+    paddingTop: 8,
+    paddingBottom: 40 
+  },
+
+  // Gradient Balance Card Styles
+  balanceCard: { 
+    borderRadius: 24, 
+    padding: 24, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#0D9488',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  balanceLeft: {
+    flex: 1,
+    zIndex: 2,
+  },
+  coinIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  balanceLabel: { 
+    color: 'rgba(255,255,255,0.75)', 
+    fontSize: 13, 
+    fontWeight: '700', 
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2 
+  },
+  balanceValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  balanceValue: { 
+    color: '#FFF', 
+    fontSize: 32, 
+    fontWeight: '900' 
+  },
+  balanceUnit: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    marginLeft: 6,
+  },
+  estimatedText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  balanceRight: {
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    zIndex: 2,
+  },
+  bgWalletIcon: {
+    position: 'absolute',
+    top: -15,
+    right: -10,
+    opacity: 0.9,
+  },
+  statPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: 'auto',
+  },
+  statPillText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  // Titles
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: '900', 
+    marginBottom: 6 
+  },
+  subtitle: { 
+    fontSize: 13, 
+    lineHeight: 18, 
+    marginBottom: 22 
+  },
+
+  // Packages Cards
+  packagesList: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  pkgCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderRadius: 20,
+    padding: 16, 
+    gap: 14, 
+    position: 'relative', 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  popularBadge: { 
+    position: 'absolute', 
+    top: -10, 
+    right: 16, 
+    backgroundColor: '#0D9488',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+    zIndex: 50,
+  },
+  popularText: { 
+    color: '#FFF', 
+    fontSize: 9, 
+    fontWeight: '900' 
+  },
+  pkgIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pkgCoins: { 
+    fontSize: 15, 
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  badgePill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  pkgRight: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  priceRow: { 
+    flexDirection: 'row', 
+    alignItems: 'baseline' 
+  },
+  priceValue: { 
+    fontSize: 16, 
+    fontWeight: '800' 
+  },
+  priceUnit: { 
+    fontSize: 10, 
+    fontWeight: '700' 
+  },
+
+  // Info card styles
+  infoCard: {
+    flexDirection: 'row',
+    borderRadius: 20,
+    padding: 16,
+    gap: 10,
+    borderWidth: 1,
+    marginBottom: 24,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  infoLeft: {
+    justifyContent: 'flex-start',
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  infoSub: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    width: '80%',
+  },
+  infoWalletImage: {
+    width: 80,
+    height: 80,
+    position: 'absolute',
+    right: 8,
+    bottom: -15,
+    resizeMode: 'contain',
+  },
+
+  // Checkout Button
+  continueBtn: { 
+    height: 54, 
+    borderRadius: 16, 
+    backgroundColor: '#0D9488',
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    paddingHorizontal: 18, 
+    shadowColor: '#0D9488',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  continueBtnText: { 
+    color: '#FFF', 
+    fontSize: 16, 
+    fontWeight: '800' 
+  },
+  secureRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 4, 
+    marginTop: 12,
+    marginBottom: 24,
+  },
+  secureText: { 
+    fontSize: 11, 
+    fontWeight: '700' 
+  },
+
+  // Logo Footer
+  logoCard: {
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.01,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-evenly',
+    width: '100%',
+  },
+  badgeWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minWidth: 70,
+    maxWidth: 100,
+  },
+  momoBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+  },
+  badgeText1: {
+    fontSize: 8,
+    fontWeight: '900',
+    lineHeight: 8,
+  },
+  badgeText2: {
+    fontSize: 6,
+    fontWeight: '900',
+    lineHeight: 7,
+  },
+  badgeLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  // Transaction History styles
+  emptyHistory: { 
+    borderRadius: 20, 
+    borderWidth: 1, 
+    padding: 32, 
+    alignItems: 'center', 
+    gap: 10 
+  },
+  emptyHistoryText: { 
+    fontSize: 13, 
+    fontWeight: '600' 
+  },
+  txListContainer: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.01,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  txRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 12, 
+    paddingHorizontal: 16, 
+    paddingVertical: 14, 
+    borderBottomWidth: 1 
+  },
+  txIcon: { 
+    width: 36, 
+    height: 36, 
+    borderRadius: 12, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  txTitle: { 
+    fontSize: 14, 
+    fontWeight: '800' 
+  },
+  txDate: { 
+    fontSize: 11, 
+    marginTop: 2 
+  },
+  txAmount: { 
+    fontSize: 14, 
+    fontWeight: '900' 
+  },
+});
+
+export default CoinSystemScreen;

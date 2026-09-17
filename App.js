@@ -212,6 +212,7 @@ const ThemedAppContent = () => {
   const dynamicPaperTheme = React.useMemo(() => ({
     ...theme,
     dark: isDarkMode,
+    isV3: true,
     colors: {
       ...theme.colors,
       primary: colors.accent,
@@ -221,6 +222,12 @@ const ThemedAppContent = () => {
       text: colors.text,
       placeholder: colors.placeholder,
       outline: colors.border,
+    },
+    fonts: {
+      ...(theme.fonts || {}),
+      medium: { fontFamily: 'Inter-Medium', fontWeight: '500' },
+      regular: { fontFamily: 'Inter-Regular', fontWeight: '400' },
+      bold: { fontFamily: 'Inter-Bold', fontWeight: '700' },
     },
   }), [isDarkMode, colors]);
 

@@ -4,6 +4,12 @@ import messaging from '@react-native-firebase/messaging';
 
 import App from './App';
 
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs([
+  'This method is deprecated (as well as all React Native Firebase namespaced API)',
+]);
+
 // Register background handler
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('[FCM Background] Message handled in the background!', remoteMessage);

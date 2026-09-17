@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme as NavDefaultTheme, DarkTheme as NavDarkTheme } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import AuthNavigator from './AuthNavigator';
 import TabNavigator from './TabNavigator';
@@ -42,15 +42,32 @@ const AppNavigator = () => {
   const { on } = useSocket();
   const navigationRef = useRef(null);
 
+  const baseNavTheme = isDarkMode ? NavDarkTheme : NavDefaultTheme;
+  const defaultFonts = baseNavTheme?.fonts || {
+    regular: { fontFamily: 'System', fontWeight: '400' },
+    medium: { fontFamily: 'System', fontWeight: '500' },
+    bold: { fontFamily: 'System', fontWeight: '600' },
+    heavy: { fontFamily: 'System', fontWeight: '700' },
+  };
+
   const navTheme = {
+    ...baseNavTheme,
     dark: isDarkMode,
     colors: {
+      ...(baseNavTheme?.colors || {}),
       primary: colors.accent,
       background: colors.background,
       card: colors.surface,
       text: colors.text,
       border: colors.border,
       notification: colors.accent,
+    },
+    fonts: {
+      ...defaultFonts,
+      regular: { ...defaultFonts.regular },
+      medium: { ...defaultFonts.medium },
+      bold: { ...defaultFonts.bold },
+      heavy: { ...defaultFonts.heavy },
     },
   };
 

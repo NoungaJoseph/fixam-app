@@ -92,7 +92,7 @@ const useMaintenanceCheck = () => {
 };
 
 const AppChrome = () => {
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, colors } = useTheme();
   const { user, token, isRestoring, logout } = useAuth();
   const { fetchAppData, fetchConversations } = useAppContext();
   const [locked, setLocked] = useState(false);
@@ -198,11 +198,44 @@ const AppChrome = () => {
 
   return (
     <>
-      <StatusBar style="light" backgroundColor="#14B8A6" />
+      <StatusBar style={isDarkMode ? "light" : "dark"} backgroundColor={colors.background} />
       <AppNavigator />
       <SupportChatButton />
       <CallModal />
     </>
+  );
+};
+
+const ThemedAppContent = () => {
+  const { isDarkMode, colors } = useTheme();
+
+  const dynamicPaperTheme = React.useMemo(() => ({
+    ...theme,
+    dark: isDarkMode,
+    colors: {
+      ...theme.colors,
+      primary: colors.accent,
+      accent: colors.accent,
+      background: colors.background,
+      surface: colors.surface,
+      text: colors.text,
+      placeholder: colors.placeholder,
+      outline: colors.border,
+    },
+  }), [isDarkMode, colors]);
+
+  return (
+    <PaperProvider theme={dynamicPaperTheme}>
+      <AuthProvider>
+        <SocketProvider>
+          <AppProvider>
+            <NavigationStateProvider>
+              <AppChrome />
+            </NavigationStateProvider>
+          </AppProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </PaperProvider>
   );
 };
 
@@ -241,21 +274,11 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <PaperProvider theme={theme}>
-          <LanguageProvider>
-            <ThemeProvider>
-              <AuthProvider>
-                <SocketProvider>
-                  <AppProvider>
-                    <NavigationStateProvider>
-                      <AppChrome />
-                    </NavigationStateProvider>
-                  </AppProvider>
-                </SocketProvider>
-              </AuthProvider>
-            </ThemeProvider>
-          </LanguageProvider>
-        </PaperProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <ThemedAppContent />
+          </ThemeProvider>
+        </LanguageProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

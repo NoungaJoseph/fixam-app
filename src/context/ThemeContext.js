@@ -8,47 +8,67 @@ const THEME_STORAGE_KEY = 'appTheme';
 
 export const ThemeProvider = ({ children }) => {
   const systemColorScheme = useColorScheme(); // 'dark' | 'light' | null
-  const [hasUserPreference, setHasUserPreference] = useState(false);
+  const [themeMode, setThemeMode] = useState('system'); // 'system' | 'dark' | 'light'
 
-  // Initialize immediately from system appearance so iPhone dark mode users see zero white flash on launch
+  // Initialize immediately from system appearance so iPhone dark mode users see dark mode on launch
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const initialSystem = Appearance.getColorScheme();
+    const initialSystem = Appearance.getColorScheme() || systemColorScheme;
     return initialSystem === 'dark';
   });
+
+  // Sync with native Appearance changes (e.g. iOS Control Center toggle or sunrise/sunset schedule)
+  useEffect(() => {
+    const handleAppearanceChange = ({ colorScheme }) => {
+      if (themeMode === 'system') {
+        const isDark = (colorScheme || Appearance.getColorScheme() || systemColorScheme) === 'dark';
+        setIsDarkMode(isDark);
+      }
+    };
+
+    const subscription = Appearance.addChangeListener(handleAppearanceChange);
+    return () => subscription.remove();
+  }, [themeMode, systemColorScheme]);
+
+  // Sync with React Native's useColorScheme hook as well for maximum reliability
+  useEffect(() => {
+    if (themeMode === 'system') {
+      const activeScheme = systemColorScheme || Appearance.getColorScheme();
+      if (activeScheme) {
+        setIsDarkMode(activeScheme === 'dark');
+      }
+    }
+  }, [systemColorScheme, themeMode]);
 
   useEffect(() => {
     const loadTheme = async () => {
       try {
         const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-        if (saved !== null) {
-          setHasUserPreference(true);
-          setIsDarkMode(saved === 'dark');
+        if (saved === 'dark') {
+          setThemeMode('dark');
+          setIsDarkMode(true);
+        } else if (saved === 'light') {
+          setThemeMode('light');
+          setIsDarkMode(false);
         } else {
-          // Fresh install / no preference saved yet:
-          // Match the iPhone / system theme automatically
-          setHasUserPreference(false);
-          const currentSystem = Appearance.getColorScheme();
-          setIsDarkMode(currentSystem === 'dark');
+          // Default: follow iPhone / system appearance automatically
+          setThemeMode('system');
+          const currentSystem = Appearance.getColorScheme() || systemColorScheme;
+          if (currentSystem) {
+            setIsDarkMode(currentSystem === 'dark');
+          }
         }
       } catch (err) {
         console.log('Failed to load theme:', err);
       }
     };
     loadTheme();
-  }, []);
-
-  // If the user hasn't set an explicit preference, adapt dynamically to system theme changes
-  useEffect(() => {
-    if (!hasUserPreference && systemColorScheme) {
-      setIsDarkMode(systemColorScheme === 'dark');
-    }
-  }, [systemColorScheme, hasUserPreference]);
+  }, [systemColorScheme]);
 
   const toggleTheme = async () => {
     try {
       const nextMode = !isDarkMode;
       setIsDarkMode(nextMode);
-      setHasUserPreference(true);
+      setThemeMode(nextMode ? 'dark' : 'light');
       await AsyncStorage.setItem(THEME_STORAGE_KEY, nextMode ? 'dark' : 'light');
     } catch (err) {
       console.log('Failed to save theme:', err);
@@ -57,14 +77,15 @@ export const ThemeProvider = ({ children }) => {
 
   const setTheme = async (mode) => {
     try {
+      setThemeMode(mode);
       if (mode === 'system') {
-        setHasUserPreference(false);
         await AsyncStorage.removeItem(THEME_STORAGE_KEY);
-        const currentSystem = Appearance.getColorScheme();
-        setIsDarkMode(currentSystem === 'dark');
+        const currentSystem = Appearance.getColorScheme() || systemColorScheme;
+        if (currentSystem) {
+          setIsDarkMode(currentSystem === 'dark');
+        }
       } else {
         const isDark = mode === 'dark';
-        setHasUserPreference(true);
         setIsDarkMode(isDark);
         await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
       }
@@ -73,10 +94,11 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  const hasUserPreference = themeMode !== 'system';
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, isDark: isDarkMode, toggleTheme, setTheme, hasUserPreference, colors }}>
+    <ThemeContext.Provider value={{ isDarkMode, isDark: isDarkMode, themeMode, toggleTheme, setTheme, hasUserPreference, colors }}>
       {children}
     </ThemeContext.Provider>
   );

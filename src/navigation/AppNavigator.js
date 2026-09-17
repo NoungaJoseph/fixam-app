@@ -6,6 +6,7 @@ import TabNavigator from './TabNavigator';
 import ProviderTabNavigator from './ProviderTabNavigator';
 import AnimatedSplashScreen from '../screens/Auth/AnimatedSplashScreen';
 import { useNavigationStateContext } from '../context/NavigationStateContext';
+import { useTheme } from '../context/ThemeContext';
 import notificationService from '../services/notificationService';
 
 import { createStackNavigator } from '@react-navigation/stack';
@@ -36,9 +37,22 @@ const linking = {
 
 const AppNavigator = () => {
   const { user, isLoading, isRestoring } = useAuth();
+  const { isDarkMode, colors } = useTheme();
   const { setCurrentRouteName } = useNavigationStateContext();
   const { on } = useSocket();
   const navigationRef = useRef(null);
+
+  const navTheme = {
+    dark: isDarkMode,
+    colors: {
+      primary: colors.accent,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.accent,
+    },
+  };
 
   // Provide the navigation ref to the notification service so it can
   // navigate when the user taps a push notification (background / quit state).
@@ -48,10 +62,6 @@ const AppNavigator = () => {
   }, [setCurrentRouteName]);
 
   React.useEffect(() => {
-    // Initialize FCM notifications only after user is authenticated.
-    // This ensures the JWT auth token is already set on the axios instance
-    // (via setAuthToken in AuthContext) before we try to sync the FCM token
-    // to the backend, preventing "Not authorized, token failed" errors.
     if (user) {
       notificationService.initialize().catch((err) => {
         if (__DEV__) console.log('[FCM] Initialization error:', err.message);
@@ -73,6 +83,7 @@ const AppNavigator = () => {
       onReady={onNavigationReady}
       onStateChange={(state) => setCurrentRouteName(getActiveRouteName(state))}
       linking={linking}
+      theme={navTheme}
     >
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         <RootStack.Screen name="MainApp">

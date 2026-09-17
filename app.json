@@ -17,10 +17,12 @@
       "bundleIdentifier": "com.fixam.app.iosapp",
       "googleServicesFile": "./firebase/GoogleService-Info.plist",
       "buildNumber": "27",
+      "userInterfaceStyle": "automatic",
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
+        "UIUserInterfaceStyle": "Automatic",
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Fixam uses your location to discover verified service providers and available jobs near you (for example, finding plumbers or electricians in your neighborhood), and to calculate accurate travel distances to service addresses.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Fixam uses your location to notify you of nearby task requests and provide live arrival tracking when a service provider is en route to your location.",
@@ -36,7 +38,8 @@
     "android": {
       "package": "com.fixam.app.android",
       "googleServicesFile": "./firebase/google-services.json",
-      "versionCode": 21,
+      "versionCode": 22,
+      "userInterfaceStyle": "automatic",
       "softwareKeyboardLayoutMode": "resize",
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",

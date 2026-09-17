@@ -459,8 +459,8 @@ const ProviderHomeScreen = ({ navigation }) => {
   if (isInitialLoad) {
     return (
       <>
-        <StatusBar style="light" backgroundColor="#14B8A6" />
-        <SafeAreaView style={[styles.container, { backgroundColor: '#14B8A6' }]} edges={['top']}>
+        <StatusBar style={isDarkMode ? "light" : "dark"} backgroundColor={colors.background} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
           <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#0D9488" />
             <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
@@ -474,8 +474,8 @@ const ProviderHomeScreen = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar style="light" backgroundColor="#14B8A6" />
-      <SafeAreaView style={[styles.container, { backgroundColor: '#14B8A6' }]} edges={['top']}>
+      <StatusBar style={isDarkMode ? "light" : "dark"} backgroundColor={colors.background} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
         <View style={{ flex: 1, backgroundColor: colors.background }}>
           {/* FIXED FLOATING SEARCH/FILTER AT TOP */}
           <ScrollView ref={providerMainScrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { backgroundColor: colors.background }]}>

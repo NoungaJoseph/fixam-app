@@ -254,8 +254,8 @@ const HomeScreen = ({ navigation }) => {
   if (isInitialLoad) {
     return (
       <>
-        <StatusBar style="light" backgroundColor="#14B8A6" />
-        <SafeAreaView style={[styles.container, { backgroundColor: '#14B8A6' }]} edges={['top']}>
+        <StatusBar style="light" backgroundColor={isDarkMode ? '#0F4C4A' : '#14B8A6'} />
+        <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#0F4C4A' : '#14B8A6' }]} edges={['top']}>
           <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#0D9488" />
             <Text style={{ marginTop: 16, color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.loading', 'Loading Fixam...')}</Text>
@@ -267,8 +267,8 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar style="light" backgroundColor="#14B8A6" />
-      <SafeAreaView style={[styles.container, { backgroundColor: '#14B8A6' }]} edges={['top']}>
+      <StatusBar style="light" backgroundColor={isDarkMode ? '#0F4C4A' : '#14B8A6'} />
+      <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#0F4C4A' : '#14B8A6' }]} edges={['top']}>
         <View style={{ flex: 1, backgroundColor: colors.background }}>
           {/* ═══ 1. HEADER with gradient ═══ */}
           <LinearGradient

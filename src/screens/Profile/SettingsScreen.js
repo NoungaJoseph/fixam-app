@@ -8,6 +8,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { translateStatus } from '../../i18n/translate';
 import UserAvatar from '../../components/UserAvatar';
+import DeleteAccountModal from '../../components/DeleteAccountModal';
 import api from '../../services/api';
 
 const SettingsScreen = ({ navigation, route }) => {
@@ -15,6 +16,7 @@ const SettingsScreen = ({ navigation, route }) => {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const [location, setLocation] = useState(true);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const isProviderMode = user?.providerProfile?.profileMode === 'WORK';
 
   const handleLogout = () => {
@@ -43,6 +45,7 @@ const SettingsScreen = ({ navigation, route }) => {
     'help-circle-outline':     ['#0D9488', '#F0FDFA'],
     'message-draw':            ['#8B5CF6', '#F5F3FF'],
     'logout':                  ['#EF4444', '#FEF2F2'],
+    'delete-forever-outline':  ['#EF4444', '#FEF2F2'],
   };
 
   const SettingItem = ({ icon, title, desc, onPress, right, danger }) => {
@@ -212,12 +215,25 @@ const SettingsScreen = ({ navigation, route }) => {
           <SectionHeader icon="power" label={t('settings.actions')} />
           <SectionCard>
             <SettingItem icon="logout" title={t('settings.logout')} desc={t('settings.logoutDesc')} onPress={handleLogout} />
+            <SettingItem
+              icon="delete-forever-outline"
+              title={t('settings.deleteAccount', 'Delete Account')}
+              desc={t('settings.deleteAccountDesc', 'Permanently delete your account and all data')}
+              onPress={() => setDeleteModalVisible(true)}
+              danger={true}
+            />
           </SectionCard>
 
           <Text style={[styles.version, { color: colors.placeholder }]}>{t('settings.version')}</Text>
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Account Deletion Confirmation Modal */}
+      <DeleteAccountModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+      />
     </View>
   );
 };

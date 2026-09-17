@@ -16,13 +16,18 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.fixam.app.iosapp",
       "googleServicesFile": "./firebase/GoogleService-Info.plist",
-      "buildNumber": "26",
+      "buildNumber": "27",
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "This app accesses your microphone to allow you to record and send voice messages in chats."
+        "NSLocationWhenInUseUsageDescription": "Fixam uses your location to discover verified service providers and available jobs near you (for example, finding plumbers or electricians in your neighborhood), and to calculate accurate travel distances to service addresses.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Fixam uses your location to notify you of nearby task requests and provide live arrival tracking when a service provider is en route to your location.",
+        "NSLocationAlwaysUsageDescription": "Fixam uses your location to notify you of nearby task requests and provide live arrival tracking when a service provider is en route to your location.",
+        "NSCameraUsageDescription": "Fixam accesses your camera so you can take profile photos, capture pictures of repair issues when creating a job request, and scan identity verification documents.",
+        "NSPhotoLibraryUsageDescription": "Fixam accesses your photo library to let you select and upload pictures of repair tasks, showcase your work portfolio, and update your profile picture.",
+        "NSMicrophoneUsageDescription": "Fixam accesses your microphone to allow you to record and send voice audio messages to clients or service providers within task chats."
       },
       "associatedDomains": [
         "applinks:usefixam.com"
@@ -111,7 +116,7 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "The app accesses your camera to take profile photos and document proofs.",
+          "cameraPermission": "Fixam accesses your camera so you can take profile photos, capture pictures of repair issues when creating a job request, and scan identity verification documents.",
           "photosPermission": false,
           "savePhotosPermission": false
         }

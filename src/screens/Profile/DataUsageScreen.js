@@ -19,6 +19,7 @@ import { Image } from 'expo-image';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import DeleteAccountModal from '../../components/DeleteAccountModal';
 import api, { setLowDataModePreference } from '../../services/api';
 
 const DataUsageScreen = ({ navigation }) => {
@@ -526,56 +527,10 @@ const DataUsageScreen = ({ navigation }) => {
       </Modal>
 
       {/* Delete Account Modal */}
-      <Modal 
-        visible={deleteModalVisible} 
-        transparent 
-        animationType="fade" 
-        onRequestClose={() => setDeleteModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={styles.closeBtn}>
-              <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
-            </TouchableOpacity>
-            
-            <Text style={[styles.modalTitle, { color: colors.error }]}>
-              {t('profile.deleteAccountConfirmTitle', 'Delete Account?')}
-            </Text>
-            <Text style={[styles.modalSub, { color: colors.textSecondary, marginBottom: 20 }]}>
-              {t('profile.deleteAccountConfirmMsg', 'Warning: This will permanently delete your account, bookings, wallet balance, and profile. This cannot be undone. Enter your password to confirm.')}
-            </Text>
-
-            <View style={[styles.inputWrap, { borderColor: colors.border }]}>
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                value={deletePassword}
-                onChangeText={setDeletePassword}
-                placeholder={t('profile.enterPassword', 'Enter your password')}
-                placeholderTextColor={colors.placeholder}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <MaterialCommunityIcons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.placeholder} />
-              </TouchableOpacity>
-            </View>
-
-            {deleteError ? <Text style={styles.errorText}>{deleteError}</Text> : null}
-
-            <TouchableOpacity 
-              style={[styles.primaryBtn, { backgroundColor: colors.error, marginTop: 24 }, (!deletePassword || deleteLoading) && styles.disabledBtn]}
-              onPress={handleDeleteAccount}
-              disabled={!deletePassword || deleteLoading}
-            >
-              {deleteLoading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.btnText}>{t('profile.deleteAccount', 'Delete Account')}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <DeleteAccountModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+      />
     </View>
   );
 };

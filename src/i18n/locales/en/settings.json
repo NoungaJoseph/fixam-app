@@ -36,12 +36,24 @@
     "logoutDesc": "Sign out from your account",
     "logoutConfirmTitle": "Log Out",
     "logoutConfirmBody": "Are you sure you want to log out?",
+    "deleteAccount": "Delete Account",
+    "deleteAccountDesc": "Permanently delete your account and all data",
+    "deleteAccountConfirmTitle": "Delete Account Permanently?",
+    "deleteAccountConfirmBody": "Warning: This action is permanent and cannot be undone. All your profile information, job postings, booking history, chat messages, and wallet balance will be permanently erased.",
+    "deleteAccountConfirmPrompt": "To confirm deletion, enter your password below:",
+    "deleteAccountOtpPrompt": "To confirm deletion, please type DELETE below:",
+    "typeDeleteToConfirm": "Type DELETE to confirm",
+    "enterYourPassword": "Enter your password",
+    "confirmDeleteButton": "Permanently Delete Account",
+    "deletingAccount": "Deleting account...",
+    "deleteAccountSuccessTitle": "Account Deleted",
+    "deleteAccountSuccessBody": "Your account and all associated personal data have been permanently erased.",
     "verifyRequiredTitle": "Verification Required",
     "verifyRequiredBody": "Verify your account so clients can trust your profile.",
     "verifyNow": "Verify Now",
     "clientAccount": "Client Account",
     "providerAccount": "Provider Account",
     "yourName": "Your Name",
-    "version": "Fixam v1.0.4 · Production"
+    "version": "Fixam v1.1.2 (27) · Production"
   }
 }

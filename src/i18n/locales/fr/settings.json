@@ -36,12 +36,24 @@
     "logoutDesc": "Se déconnecter du compte",
     "logoutConfirmTitle": "Se déconnecter",
     "logoutConfirmBody": "Voulez-vous vraiment vous déconnecter ?",
+    "deleteAccount": "Supprimer le compte",
+    "deleteAccountDesc": "Supprimer définitivement votre compte et vos données",
+    "deleteAccountConfirmTitle": "Supprimer définitivement le compte ?",
+    "deleteAccountConfirmBody": "Attention : cette action est irréversible. Toutes vos informations de profil, missions, réservations, messages et solde seront définitivement effacés.",
+    "deleteAccountConfirmPrompt": "Pour confirmer la suppression, entrez votre mot de passe ci-dessous :",
+    "deleteAccountOtpPrompt": "Pour confirmer la suppression, tapez SUPPRIMER ci-dessous :",
+    "typeDeleteToConfirm": "Tapez SUPPRIMER pour confirmer",
+    "enterYourPassword": "Entrez votre mot de passe",
+    "confirmDeleteButton": "Supprimer définitivement mon compte",
+    "deletingAccount": "Suppression du compte en cours...",
+    "deleteAccountSuccessTitle": "Compte supprimé",
+    "deleteAccountSuccessBody": "Votre compte et toutes vos données personnelles ont été définitivement effacés.",
     "verifyRequiredTitle": "Vérification requise",
     "verifyRequiredBody": "Vérifiez votre compte afin que les clients puissent faire confiance à votre profil.",
     "verifyNow": "Vérifier maintenant",
     "clientAccount": "Compte client",
     "providerAccount": "Compte prestataire",
     "yourName": "Votre nom",
-    "version": "Fixam v1.0.4 · Production"
+    "version": "Fixam v1.1.2 (27) · Production"
   }
 }

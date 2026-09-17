@@ -7,12 +7,14 @@ import * as SecureStore from 'expo-secure-store';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import DeleteAccountModal from '../../components/DeleteAccountModal';
 import api from '../../services/api';
 
 const PrivacySecurityScreen = ({ navigation }) => {
   const { isDarkMode, colors } = useTheme();
   const { t } = useLanguage();
   const { user, refreshUser } = useAuth();
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [faceId, setFaceId] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(true);
   const [twoStep, setTwoStep] = useState(user?.twoFactorEnabled || false);
@@ -269,9 +271,40 @@ const PrivacySecurityScreen = ({ navigation }) => {
             />
           </View>
 
+          {/* Account Deletion */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: '#EF4444' }]}>{t('profile.accountDeletion', 'Account Deletion')}</Text>
+            
+            <TouchableOpacity 
+              style={[styles.settingItem, { borderBottomColor: colors.border }]}
+              onPress={() => setDeleteModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingInfo}>
+                <View style={styles.iconWrap}>
+                  <MaterialCommunityIcons name="delete-forever-outline" size={22} color="#EF4444" />
+                </View>
+                <View style={styles.settingTexts}>
+                  <Text style={[styles.settingTitle, { color: '#EF4444' }]}>
+                    {t('settings.deleteAccount', 'Delete Account')}
+                  </Text>
+                  <Text style={[styles.settingDesc, { color: colors.textSecondary }]}>
+                    {t('settings.deleteAccountDesc', 'Permanently delete your account and all data')}
+                  </Text>
+                </View>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
 
         </ScrollView>
       </SafeAreaView>
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+      />
 
       {/* OTP Modal */}
       <Modal visible={otpModalVisible} transparent animationType="slide" onRequestClose={() => setOtpModalVisible(false)}>

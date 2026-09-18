@@ -70,12 +70,15 @@ api.interceptors.response.use(response => {
   if (__DEV__) console.log(`[API Error] ${error.response?.status} from ${error.config?.url}:`, error.response?.data || error.message);
   
   if (error.response?.status === 401) {
-    if (onUnauthorizedCallback) {
-      onUnauthorizedCallback();
+    const isDeleteAccount = error.config?.url?.includes('/users/me') && error.config?.method?.toLowerCase() === 'delete';
+    if (!isDeleteAccount) {
+      if (onUnauthorizedCallback) {
+        onUnauthorizedCallback();
+      }
+      AsyncStorage.removeItem('authToken').catch(() => {});
+      AsyncStorage.removeItem('authUser').catch(() => {});
+      AsyncStorage.removeItem('last_active_time').catch(() => {});
     }
-    AsyncStorage.removeItem('authToken').catch(() => {});
-    AsyncStorage.removeItem('authUser').catch(() => {});
-    AsyncStorage.removeItem('last_active_time').catch(() => {});
   }
   
   return Promise.reject(error);

@@ -54,8 +54,7 @@ const DeleteAccountModal = ({ visible, onClose }) => {
       const trimmed = inputVal.trim();
       await api.delete('/users/me', {
         data: {
-          password: trimmed,
-          confirmation: trimmed.toUpperCase() === 'DELETE' || trimmed.toUpperCase() === 'SUPPRIMER' ? 'DELETE' : trimmed
+          password: trimmed
         }
       });
 
@@ -172,8 +171,8 @@ const DeleteAccountModal = ({ visible, onClose }) => {
             {/* Input Prompt */}
             <Text style={[styles.inputLabel, { color: isDarkMode ? '#E2E8F0' : '#1E293B' }]}>
               {language === 'fr'
-                ? 'Entrez votre mot de passe ou tapez SUPPRIMER :'
-                : 'Enter your password or type DELETE to confirm:'}
+                ? 'Entrez votre mot de passe pour confirmer :'
+                : 'Enter your password to confirm:'}
             </Text>
 
             <View style={[styles.inputWrap, { borderColor: isDarkMode ? '#334155' : '#CBD5E1' }]}>
@@ -181,7 +180,7 @@ const DeleteAccountModal = ({ visible, onClose }) => {
                 style={[styles.input, { color: isDarkMode ? '#FFF' : '#000' }]}
                 value={inputVal}
                 onChangeText={setInputVal}
-                placeholder={language === 'fr' ? 'Mot de passe ou SUPPRIMER' : 'Password or DELETE'}
+                placeholder={language === 'fr' ? 'Mot de passe' : 'Enter your password'}
                 placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"

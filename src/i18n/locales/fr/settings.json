@@ -44,7 +44,7 @@
     "deleteAccountOtpPrompt": "Pour confirmer la suppression, tapez SUPPRIMER ci-dessous :",
     "typeDeleteToConfirm": "Tapez SUPPRIMER pour confirmer",
     "enterYourPassword": "Entrez votre mot de passe",
-    "confirmDeleteButton": "Supprimer définitivement mon compte",
+    "confirmDeleteButton": "Supprimer le compte",
     "deletingAccount": "Suppression du compte en cours...",
     "deleteAccountSuccessTitle": "Compte supprimé",
     "deleteAccountSuccessBody": "Votre compte et toutes vos données personnelles ont été définitivement effacés.",

@@ -44,7 +44,7 @@
     "deleteAccountOtpPrompt": "To confirm deletion, please type DELETE below:",
     "typeDeleteToConfirm": "Type DELETE to confirm",
     "enterYourPassword": "Enter your password",
-    "confirmDeleteButton": "Permanently Delete Account",
+    "confirmDeleteButton": "Delete Account",
     "deletingAccount": "Deleting account...",
     "deleteAccountSuccessTitle": "Account Deleted",
     "deleteAccountSuccessBody": "Your account and all associated personal data have been permanently erased.",

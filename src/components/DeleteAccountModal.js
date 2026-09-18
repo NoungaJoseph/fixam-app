@@ -98,15 +98,27 @@ const DeleteAccountModal = ({ visible, onClose }) => {
           onPress={handleClose} 
         />
         
-        <View style={[styles.modalCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+        <View style={[
+          styles.modalCard, 
+          { 
+            backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+            borderColor: isDarkMode ? '#334155' : '#E2E8F0'
+          }
+        ]}>
           <ScrollView 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Warning Icon Badge */}
-            <View style={styles.iconCircle}>
-              <MaterialCommunityIcons name="alert-octagon-outline" size={36} color="#EF4444" />
+            {/* Warning Icon Badge (Square, no border radius) */}
+            <View style={[
+              styles.iconBox,
+              { 
+                backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
+                borderColor: isDarkMode ? '#7F1D1D' : '#FCA5A5'
+              }
+            ]}>
+              <MaterialCommunityIcons name="alert-octagon-outline" size={32} color="#EF4444" />
             </View>
 
             {/* Title */}
@@ -122,8 +134,14 @@ const DeleteAccountModal = ({ visible, onClose }) => {
               )}
             </Text>
 
-            {/* Bullet Disclosures */}
-            <View style={[styles.bulletCard, { backgroundColor: isDarkMode ? '#0F172A' : '#FEF2F2', borderColor: '#FCA5A5' }]}>
+            {/* Bullet Disclosures (Square, no border radius) */}
+            <View style={[
+              styles.bulletCard, 
+              { 
+                backgroundColor: isDarkMode ? '#0F172A' : '#FEF2F2', 
+                borderColor: isDarkMode ? '#7F1D1D' : '#FCA5A5' 
+              }
+            ]}>
               <View style={styles.bulletRow}>
                 <MaterialCommunityIcons name="close-circle-outline" size={16} color="#EF4444" />
                 <Text style={[styles.bulletText, { color: isDarkMode ? '#FCA5A5' : '#991B1B' }]}>
@@ -170,17 +188,26 @@ const DeleteAccountModal = ({ visible, onClose }) => {
 
             {/* Input Prompt */}
             <Text style={[styles.inputLabel, { color: isDarkMode ? '#E2E8F0' : '#1E293B' }]}>
-              {language === 'fr'
+              {t('settings.deleteAccountConfirmPrompt', language === 'fr'
                 ? 'Entrez votre mot de passe pour confirmer :'
-                : 'Enter your password to confirm:'}
+                : 'Enter your password to confirm:')}
             </Text>
 
-            <View style={[styles.inputWrap, { borderColor: isDarkMode ? '#334155' : '#CBD5E1' }]}>
+            <View style={[
+              styles.inputWrap, 
+              { 
+                backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC',
+                borderColor: errorMessage ? '#EF4444' : (isDarkMode ? '#334155' : '#CBD5E1') 
+              }
+            ]}>
               <TextInput
                 style={[styles.input, { color: isDarkMode ? '#FFF' : '#000' }]}
                 value={inputVal}
-                onChangeText={setInputVal}
-                placeholder={language === 'fr' ? 'Mot de passe' : 'Enter your password'}
+                onChangeText={(text) => {
+                  setInputVal(text);
+                  if (errorMessage) setErrorMessage('');
+                }}
+                placeholder={t('settings.enterYourPassword', language === 'fr' ? 'Mot de passe' : 'Enter your password')}
                 placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
@@ -195,21 +222,14 @@ const DeleteAccountModal = ({ visible, onClose }) => {
             </View>
 
             {errorMessage ? (
-              <Text style={styles.errorBanner}>{errorMessage}</Text>
+              <View style={styles.errorContainer}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                <Text style={styles.errorBanner}>{errorMessage}</Text>
+              </View>
             ) : null}
 
-            {/* Action Buttons */}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[styles.cancelBtn, { borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
-                onPress={handleClose}
-                disabled={loading}
-              >
-                <Text style={[styles.cancelBtnText, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>
-                  {t('common.cancel', 'Cancel')}
-                </Text>
-              </TouchableOpacity>
-
+            {/* Action Buttons - Full width vertical stack, zero border radius */}
+            <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[
                   styles.deleteBtn,
@@ -217,14 +237,35 @@ const DeleteAccountModal = ({ visible, onClose }) => {
                 ]}
                 onPress={handleDelete}
                 disabled={!isConfirmed || loading}
+                activeOpacity={0.8}
               >
                 {loading ? (
-                  <ActivityIndicator size="small" color="#FFF" />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.deleteBtnText}>
-                    {t('settings.confirmDeleteButton', 'Delete Permanently')}
-                  </Text>
+                  <View style={styles.deleteBtnContent}>
+                    <MaterialCommunityIcons name="trash-can-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.deleteBtnText}>
+                      {t('settings.confirmDeleteButton', language === 'fr' ? 'Supprimer le compte' : 'Delete Account')}
+                    </Text>
+                  </View>
                 )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.cancelBtn,
+                  { 
+                    backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9',
+                    borderColor: isDarkMode ? '#334155' : '#CBD5E1'
+                  }
+                ]}
+                onPress={handleClose}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.cancelBtnText, { color: isDarkMode ? '#94A3B8' : '#475569' }]}>
+                  {t('common.cancel', 'Cancel')}
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -248,7 +289,8 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 420,
-    borderRadius: 20,
+    borderRadius: 0,
+    borderWidth: 1,
     maxHeight: '88%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -261,11 +303,11 @@ const styles = StyleSheet.create({
     padding: 22,
     alignItems: 'center',
   },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FEE2E2',
+  iconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 0,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -284,7 +326,7 @@ const styles = StyleSheet.create({
   },
   bulletCard: {
     width: '100%',
-    borderRadius: 12,
+    borderRadius: 0,
     borderWidth: 1,
     padding: 12,
     gap: 8,
@@ -324,7 +366,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderRadius: 12,
+    borderRadius: 0,
     paddingHorizontal: 14,
     height: 48,
     width: '100%',
@@ -338,46 +380,65 @@ const styles = StyleSheet.create({
   eyeBtn: {
     padding: 6,
   },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 10,
+    paddingHorizontal: 8,
+  },
   errorBanner: {
     color: '#EF4444',
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 10,
+    flexShrink: 1,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
+  buttonContainer: {
+    flexDirection: 'column',
+    gap: 10,
     width: '100%',
-    marginTop: 10,
-  },
-  cancelBtn: {
-    flex: 1,
-    height: 46,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
+    marginTop: 12,
   },
   deleteBtn: {
-    flex: 1.5,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: '#EF4444',
+    width: '100%',
+    height: 48,
+    borderRadius: 0,
+    backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   deleteBtnDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
+  },
+  deleteBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteBtnText: {
     color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginLeft: 8,
+    letterSpacing: 0.2,
+  },
+  cancelBtn: {
+    width: '100%',
+    height: 46,
+    borderRadius: 0,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  cancelBtnText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

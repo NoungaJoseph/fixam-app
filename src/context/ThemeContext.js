@@ -44,13 +44,16 @@ export const ThemeProvider = ({ children }) => {
       try {
         const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
         if (saved === 'dark') {
+          // User explicitly enabled dark mode — honour their choice
           setThemeMode('dark');
           setIsDarkMode(true);
-        } else if (saved === 'light') {
-          setThemeMode('light');
-          setIsDarkMode(false);
         } else {
-          // Default: follow iPhone / system appearance automatically
+          // 'light', null, or any other value → follow the system appearance
+          // (clear stale 'light' override from the old toggle so the app
+          //  always mirrors the iPhone / Android system dark-mode setting)
+          if (saved === 'light') {
+            await AsyncStorage.removeItem(THEME_STORAGE_KEY);
+          }
           setThemeMode('system');
           const currentSystem = Appearance.getColorScheme() || systemColorScheme;
           if (currentSystem) {
@@ -66,10 +69,19 @@ export const ThemeProvider = ({ children }) => {
 
   const toggleTheme = async () => {
     try {
-      const nextMode = !isDarkMode;
-      setIsDarkMode(nextMode);
-      setThemeMode(nextMode ? 'dark' : 'light');
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, nextMode ? 'dark' : 'light');
+      if (isDarkMode) {
+        // Turning OFF dark mode → revert to following system appearance
+        // (this is how iPhone users expect it: system controls the theme)
+        setThemeMode('system');
+        await AsyncStorage.removeItem(THEME_STORAGE_KEY);
+        const currentSystem = Appearance.getColorScheme() || systemColorScheme;
+        setIsDarkMode(currentSystem === 'dark');
+      } else {
+        // Turning ON dark mode → explicit dark override
+        setIsDarkMode(true);
+        setThemeMode('dark');
+        await AsyncStorage.setItem(THEME_STORAGE_KEY, 'dark');
+      }
     } catch (err) {
       console.log('Failed to save theme:', err);
     }

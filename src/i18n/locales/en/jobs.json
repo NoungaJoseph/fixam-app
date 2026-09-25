@@ -345,6 +345,7 @@
     "addressCopied": "Address copied to clipboard",
     "liveLocationActive": "Live Location Active",
     "callContact": "Call",
-    "safetyAssurance": "Fixam Live Protection: Real-time coordination and dedicated support for your service peace of mind."
+    "safetyAssurance": "Fixam Live Protection: Real-time coordination and dedicated support for your service peace of mind.",
+    "shareJobMessage": "View this job on Fixam and apply now: {{url}}\n\nDownload Fixam:\niOS: https://apps.apple.com/cm/app/fixam-pro/id6791191286?l=en-GB\nAndroid: https://play.google.com/store/apps/details?id=com.fixam.app.android"
   }
 }

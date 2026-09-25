@@ -345,6 +345,7 @@
     "addressCopied": "Adresse copiée dans le presse-papiers",
     "liveLocationActive": "Position en direct active",
     "callContact": "Appeler",
-    "safetyAssurance": "Protection Fixam en direct : Coordination en temps réel et assistance dédiée pour votre sérénité."
+    "safetyAssurance": "Protection Fixam en direct : Coordination en temps réel et assistance dédiée pour votre sérénité.",
+    "shareJobMessage": "Voir cette offre sur Fixam et postuler maintenant : {{url}}\n\nTélécharger Fixam :\niOS : https://apps.apple.com/cm/app/fixam-pro/id6791191286?l=en-GB\nAndroid : https://play.google.com/store/apps/details?id=com.fixam.app.android"
   }
 }

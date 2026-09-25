@@ -297,7 +297,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const handleShare = async () => {
     try {
       const uid = providerUserId;
-      const url = uid ? `https://usefixam.com/profile/${uid}` : 'https://usefixam.com/download';
+      const url = uid ? `https://usefixam.com/profile/${uid}` : 'https://play.google.com/store/apps/details?id=com.fixam.app.android';
       await Share.share({
         title: t('profile.shareProfileTitle'),
         message: t('profile.shareProviderProfileMessage', { name: fullName, url }),

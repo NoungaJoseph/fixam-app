@@ -340,7 +340,7 @@
     "step1": "Partagez votre code avec vos amis",
     "step2": "Ils s'inscrivent et font vérifier leur identité",
     "step3": "Vous recevez tous les deux 1 crédit après l'approbation de leur identité",
-    "shareMessage": "Rejoins-moi sur Fixam ! Utilise mon code {{code}} afin que nous gagnions tous les deux 1 crédit lors de la validation de ton identité. Téléchargement : https://usefixam.com/download",
+    "shareMessage": "Rejoins-moi sur Fixam ! Utilise mon code {{code}} afin que nous gagnions tous les deux 1 crédit lors de la validation de ton identité.\n\nTélécharger sur iOS : https://apps.apple.com/cm/app/fixam-pro/id6791191286?l=en-GB\nTélécharger sur Android : https://play.google.com/store/apps/details?id=com.fixam.app.android",
     "shareProfileTitle": "Mon Profil Fixam",
     "shareProfileMessage": "Voir mon profil Fixam : {{url}}",
     "shareProviderProfileMessage": "Réserver {{name}} sur Fixam : {{url}}",

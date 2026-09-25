@@ -340,7 +340,7 @@
     "step1": "Share your code with friends",
     "step2": "They sign up and verify their identity",
     "step3": "You both receive 1 credit after their verification is approved",
-    "shareMessage": "Join me on Fixam! Use my referral code {{code}} so we both earn 1 credit when your profile identity gets verified. Download here: https://usefixam.com/download",
+    "shareMessage": "Join me on Fixam! Use my referral code {{code}} so we both earn 1 credit when your profile identity gets verified.\n\nDownload on iOS: https://apps.apple.com/cm/app/fixam-pro/id6791191286?l=en-GB\nDownload on Android: https://play.google.com/store/apps/details?id=com.fixam.app.android",
     "shareProfileTitle": "My Fixam Profile",
     "shareProfileMessage": "View my Fixam profile: {{url}}",
     "shareProviderProfileMessage": "Book {{name}} on Fixam: {{url}}",

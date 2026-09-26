@@ -21,6 +21,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const { favoriteProviderIds, toggleFavoriteProvider } = useAppContext();
   const { user } = useAuth();
   const provider = route.params?.provider || null;
+  const initialTargetId = provider?.id || route.params?.providerId || route.params?.uid;
   const isNavigatingRef = useRef(false);
   const handleSafeNavigate = (route, params) => {
     if (isNavigatingRef.current) return;
@@ -28,7 +29,9 @@ const ProviderProfileScreen = ({ route, navigation }) => {
     navigation.navigate(route, params);
     setTimeout(() => { isNavigatingRef.current = false; }, 500);
   };
-  const providerUserId = provider?.user?.id || provider?.userId;
+  const [profileData, setProfileData] = React.useState(provider);
+  const currentProvider = profileData || provider;
+  const providerUserId = currentProvider?.user?.id || currentProvider?.userId || route.params?.uid;
   const insets = useSafeAreaInsets();
   const [pastHeader, setPastHeader] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('overview');
@@ -38,8 +41,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [existingBooking, setExistingBooking] = React.useState(null);
   const [showVerificationModal, setShowVerificationModal] = React.useState(false);
   const [verificationMessage, setVerificationMessage] = React.useState('');
-  const [profileData, setProfileData] = React.useState(provider);
-  const [loadingProfile, setLoadingProfile] = React.useState(true);
+  const [loadingProfile, setLoadingProfile] = React.useState(!provider && !!initialTargetId);
   const [unlocking, setUnlocking] = React.useState(false);
   const [callingAction, setCallingAction] = React.useState(null); // 'call' | 'whatsapp' | null
   const { refreshUser } = useAuth();
@@ -80,12 +82,17 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   const [showAllQuarters, setShowAllQuarters] = React.useState(false);
 
   const handleOpenProjectDetail = (project) => {
-    navigation.navigate('ProjectDetail', { project, provider: profileData || provider });
+    navigation.navigate('ProjectDetail', { project, provider: currentProvider });
   };
 
   const fetchLatestProfile = async () => {
+    const targetId = provider?.id || route.params?.providerId || route.params?.uid || providerUserId;
+    if (!targetId) {
+      setLoadingProfile(false);
+      return;
+    }
     try {
-      const res = await api.get(`/providers/${provider.id}`);
+      const res = await api.get(`/providers/${targetId}`);
       if (res.data?.success && res.data?.data) {
         setProfileData(res.data.data);
       }
@@ -98,9 +105,11 @@ const ProviderProfileScreen = ({ route, navigation }) => {
 
   React.useEffect(() => {
     fetchLatestProfile();
-  }, [provider.id]);
+  }, [provider?.id, route.params?.uid, route.params?.providerId]);
 
   const handleUnlockContact = () => {
+    const targetId = currentProvider?.id || route.params?.providerId || route.params?.uid;
+    if (!targetId) return;
     Alert.alert(
       t('profile.unlockConfirmTitle'),
       t('profile.unlockConfirmDesc'),
@@ -111,7 +120,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           onPress: async () => {
             setUnlocking(true);
             try {
-              const res = await api.post(`/providers/${provider.id}/unlock`);
+              const res = await api.post(`/providers/${targetId}/unlock`);
               if (res.data?.success) {
                 await fetchLatestProfile();
                 if (refreshUser) await refreshUser();
@@ -176,7 +185,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
 
 
   React.useEffect(() => {
-    const userId = provider?.user?.id;
+    const userId = currentProvider?.user?.id || providerUserId;
     if (!userId) return;
 
     if (user?.id === userId && myReviews?.length > 0) {
@@ -184,7 +193,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
       return;
     }
 
-    const fallbackReviews = profileData?.reviews || provider?.reviews || [];
+    const fallbackReviews = currentProvider?.reviews || [];
 
     api.get(`/reviews/users/${userId}`)
       .then((res) => {
@@ -192,7 +201,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         setReviews(data.length > 0 ? data : fallbackReviews);
       })
       .catch(() => setReviews(fallbackReviews));
-  }, [provider?.user?.id, user?.id, myReviews, profileData?.reviews, provider?.reviews]);
+  }, [currentProvider?.user?.id, providerUserId, user?.id, myReviews, currentProvider?.reviews]);
 
   React.useEffect(() => {
     const checkBookingStatus = async () => {
@@ -214,7 +223,15 @@ const ProviderProfileScreen = ({ route, navigation }) => {
     }
   }, [providerUserId]);
 
-  if (!provider) {
+  if (loadingProfile && !currentProvider) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
+  if (!currentProvider) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 }]}>
         <Text style={[styles.sectionTitle, { color: colors.text, textAlign: 'center' }]}>{t('profile.providerUnavailable')}</Text>
@@ -227,43 +244,43 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   }
 
   // Pure dynamic data binding from DB
-  const fullName = provider.user?.fullName || t('common.provider');
-  const avatarUri = getMediaUrl(provider.user?.avatar);
+  const fullName = currentProvider.user?.fullName || t('common.provider');
+  const avatarUri = getMediaUrl(currentProvider.user?.avatar);
 
-  const numericRating = Number(provider.rating || 0);
+  const numericRating = Number(currentProvider.rating || 0);
   const ratingVal = numericRating > 0 ? numericRating.toFixed(1) : '0.0';
-  const reviewCountVal = Number(provider.reviewCount || reviews.length || 0);
-  const jobsCompletedCount = Number(provider.jobsCompleted || 0);
+  const reviewCountVal = Number(currentProvider.reviewCount || reviews.length || 0);
+  const jobsCompletedCount = Number(currentProvider.jobsCompleted || 0);
   const positiveReviewCount = reviews.filter(r => Number(r.rating || 0) >= 4).length;
   const successRate = jobsCompletedCount > 0 && reviewCountVal > 0
     ? Math.round((positiveReviewCount / reviewCountVal) * 100)
     : null;
-  const experienceLevel = provider.experienceLevel || t('profile.standardLevel');
-  const skillRank = profileData?.skillRank || provider.skillRank || 'Newcomer';
-  const bio = (profileData?.bio || profileData?.user?.bio || provider.bio || provider.user?.bio || profileData?.description || provider.description || '').trim() || t('profile.noBiography');
-  const rawServiceArea = profileData?.serviceArea || provider.serviceArea || '';
+  const experienceLevel = currentProvider.experienceLevel || t('profile.standardLevel');
+  const skillRank = currentProvider.skillRank || 'Newcomer';
+  const bio = (currentProvider.bio || currentProvider.user?.bio || currentProvider.description || '').trim() || t('profile.noBiography');
+  const rawServiceArea = currentProvider.serviceArea || '';
   const quarterChips = rawServiceArea
     ? rawServiceArea.split(',').map(s => s.trim()).filter(Boolean)
     : [];
-  const serviceArea = quarterChips.length > 0 ? quarterChips.slice(0, 3).join(', ') : (provider.serviceArea || 'Douala, Cameroon');
-  const isOnline = provider.user?.isOnline || false;
-  const isFavorite = favoriteProviderIds?.includes(provider.id);
+  const serviceArea = quarterChips.length > 0 ? quarterChips.slice(0, 3).join(', ') : (currentProvider.serviceArea || 'Douala, Cameroon');
+  const isOnline = currentProvider.user?.isOnline || false;
+  const isFavorite = favoriteProviderIds?.includes(currentProvider.id);
 
-  const ratePrice = provider.rate
-    ? `${provider.rate.toLocaleString()} ${getCurrencyForUser(provider.user?.country || user?.country || 'Cameroon')}`
+  const ratePrice = currentProvider.rate
+    ? `${currentProvider.rate.toLocaleString()} ${getCurrencyForUser(currentProvider.user?.country || user?.country || 'Cameroon')}`
     : t('profile.contactForPrice');
 
-  const skills = provider.skills && provider.skills.length > 0
-    ? provider.skills
+  const skills = currentProvider.skills && currentProvider.skills.length > 0
+    ? currentProvider.skills
     : [];
 
-  const socialLinks = provider.socialLinks || {};
+  const socialLinks = currentProvider.socialLinks || {};
   const hasSocialLinks = Object.values(socialLinks).some(Boolean);
-  const portfolio = Array.isArray(provider.portfolio) ? provider.portfolio.filter(item => Object.values(item || {}).some(Boolean)) : [];
-  const certificates = Array.isArray(provider.certificates) ? provider.certificates.filter(item => Object.values(item || {}).some(Boolean)) : [];
-  const employmentHistory = Array.isArray(provider.employmentHistory) ? provider.employmentHistory.filter(item => Object.values(item || {}).some(Boolean)) : [];
+  const portfolio = Array.isArray(currentProvider.portfolio) ? currentProvider.portfolio.filter(item => Object.values(item || {}).some(Boolean)) : [];
+  const certificates = Array.isArray(currentProvider.certificates) ? currentProvider.certificates.filter(item => Object.values(item || {}).some(Boolean)) : [];
+  const employmentHistory = Array.isArray(currentProvider.employmentHistory) ? currentProvider.employmentHistory.filter(item => Object.values(item || {}).some(Boolean)) : [];
   const earnedHighlights = [
-    provider.verification === 'VERIFIED' ? {
+    currentProvider.verification === 'VERIFIED' ? {
       icon: 'shield-check',
       color: '#10B981',
       bg: isDarkMode ? '#115E5920' : '#ECFDF5',
@@ -296,11 +313,11 @@ const ProviderProfileScreen = ({ route, navigation }) => {
 
   const handleShare = async () => {
     try {
-      const uid = providerUserId;
+      const uid = currentProvider?.id || providerUserId;
       const url = uid ? `https://usefixam.com/profile/${uid}` : 'https://play.google.com/store/apps/details?id=com.fixam.app.android';
       await Share.share({
-        title: t('profile.shareProfileTitle'),
-        message: t('profile.shareProviderProfileMessage', { name: fullName, url }),
+        title: t('profile.invite.shareProfileTitle'),
+        message: t('profile.invite.shareProviderProfileMessage', { name: fullName, url }),
         ...(Platform.OS === 'ios' ? { url } : {}),
       });
     } catch (_) { }
@@ -321,7 +338,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         receiverId: providerUserId,
         userName: fullName,
         avatar: avatarUri,
-        phone: provider?.user?.phone || conversation.participants?.[0]?.phone || '',
+        phone: currentProvider?.user?.phone || conversation.participants?.[0]?.phone || '',
         otherParticipant: conversation.participants?.[0] || { id: providerUserId, role: 'PROVIDER' },
         isSupportConversation: conversation.isSystem,
       });
@@ -386,7 +403,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                 <TouchableOpacity onPress={handleShare} style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF' }]}>
                   <MaterialCommunityIcons name="share-variant-outline" size={20} color={isDarkMode ? '#FFF' : '#0F172A'} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => toggleFavoriteProvider?.(provider.id)} style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF' }]}>
+                <TouchableOpacity onPress={() => toggleFavoriteProvider?.(currentProvider.id)} style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF' }]}>
                   <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={21} color={isFavorite ? '#EF4444' : (isDarkMode ? '#FFF' : '#0F172A')} />
                 </TouchableOpacity>
               </View>
@@ -397,7 +414,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           <View style={styles.avatarWrapper}>
             <View style={[styles.avatarBorderShadow, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF' }]}>
               <UserAvatar uri={avatarUri} name={fullName} size={102} />
-              {provider.verification === 'VERIFIED' && (
+              {currentProvider.verification === 'VERIFIED' && (
                 <View style={styles.verifiedOverlay}>
                   <MaterialCommunityIcons name="check" size={16} color="#FFF" />
                 </View>
@@ -410,13 +427,13 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         <View style={styles.profileDetailsSection}>
           <View style={styles.nameRow}>
             <Text style={[styles.heroName, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{fullName}</Text>
-            {provider.verification === 'VERIFIED' && (
+            {currentProvider.verification === 'VERIFIED' && (
               <MaterialCommunityIcons name="check-decagram" size={22} color="#0D9488" />
             )}
           </View>
 
           {/* Verified Professional Badge */}
-          {provider.verification === 'VERIFIED' && (
+          {currentProvider.verification === 'VERIFIED' && (
             <View style={styles.badgeWrapper}>
               <View style={[styles.verifiedProfessionalBadge, { backgroundColor: isDarkMode ? '#115E5920' : '#ECFDF5', borderColor: isDarkMode ? '#115E59' : '#A7F3D0' }]}>
                 <MaterialCommunityIcons name="shield-check" size={14} color="#0D9488" style={{ marginRight: 4 }} />
@@ -974,7 +991,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
                   setShowVerificationModal(true);
                   return;
                 }
-                navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: provider.rate || 0 });
+                navigation.navigate('BookingForm', { providerId: providerUserId, providerName: fullName, providerRate: currentProvider?.rate || 0 });
               }}
             >
               <MaterialCommunityIcons name="calendar-check" size={22} color="#FFF" style={{ marginRight: 6 }} />

@@ -29,6 +29,13 @@ const ProviderProfileScreen = ({ route, navigation }) => {
     navigation.navigate(route, params);
     setTimeout(() => { isNavigatingRef.current = false; }, 500);
   };
+  const handleBack = () => {
+    if (navigation?.canGoBack && navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('MainApp');
+    }
+  };
   const [profileData, setProfileData] = React.useState(provider);
   const currentProvider = profileData || provider;
   const providerUserId = currentProvider?.user?.id || currentProvider?.userId || route.params?.uid;
@@ -108,6 +115,17 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   }, [provider?.id, route.params?.uid, route.params?.providerId]);
 
   const handleUnlockContact = () => {
+    if (!user) {
+      Alert.alert(
+        t('auth.loginRequired', 'Login Required'),
+        t('auth.loginToUnlock', 'Please log in to unlock provider contact details.'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('auth.login', 'Log In'), onPress: () => navigation.navigate('MainApp') }
+        ]
+      );
+      return;
+    }
     const targetId = currentProvider?.id || route.params?.providerId || route.params?.uid;
     if (!targetId) return;
     Alert.alert(
@@ -236,7 +254,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
       <View style={[styles.container, { backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 }]}>
         <Text style={[styles.sectionTitle, { color: colors.text, textAlign: 'center' }]}>{t('profile.providerUnavailable')}</Text>
         <Text style={[styles.aboutText, { color: colors.textSecondary, textAlign: 'center', marginBottom: 18 }]}>{t('profile.providerUnavailableDesc')}</Text>
-        <TouchableOpacity style={[styles.bookButton, { backgroundColor: colors.accent, flex: 0, paddingHorizontal: 20 }]} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={[styles.bookButton, { backgroundColor: colors.accent, flex: 0, paddingHorizontal: 20 }]} onPress={handleBack}>
           <Text style={styles.bookButtonText}>{t('common.goBack')}</Text>
         </TouchableOpacity>
       </View>
@@ -324,6 +342,17 @@ const ProviderProfileScreen = ({ route, navigation }) => {
   };
 
   const handleMessageProvider = async () => {
+    if (!user) {
+      Alert.alert(
+        t('auth.loginRequired', 'Login Required'),
+        t('auth.loginToChat', 'Please log in to message this provider.'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('auth.login', 'Log In'), onPress: () => navigation.navigate('MainApp') }
+        ]
+      );
+      return;
+    }
 
     try {
       if (!providerUserId) {
@@ -396,7 +425,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
           >
             <SafeAreaView style={styles.headerSafeArea} edges={['top']}>
               <View style={styles.headerActions}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF' }]}>
+                <TouchableOpacity onPress={handleBack} style={[styles.headerBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF' }]}>
                   <MaterialCommunityIcons name="arrow-left" size={24} color={isDarkMode ? '#FFF' : '#0F172A'} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{t('profile.providerProfile')}</Text>
@@ -982,6 +1011,17 @@ const ProviderProfileScreen = ({ route, navigation }) => {
               style={[styles.staticBookButton, { backgroundColor: colors.accent, opacity: providerUserId ? 1 : 0.55 }]}
               disabled={!providerUserId}
               onPress={() => {
+                if (!user) {
+                  Alert.alert(
+                    t('auth.loginRequired', 'Login Required'),
+                    t('auth.loginToBook', 'Please log in to book this provider.'),
+                    [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      { text: t('auth.login', 'Log In'), onPress: () => navigation.navigate('MainApp') }
+                    ]
+                  );
+                  return;
+                }
                 if (user?.isBlocked) {
                   Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
                   return;

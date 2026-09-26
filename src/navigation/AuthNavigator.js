@@ -41,6 +41,8 @@ const AuthNavigator = () => {
       <Stack.Screen name="ProviderSkills" component={require('../screens/Auth/ProviderSkillsScreen').default} />
       <Stack.Screen name="ProviderDocUpload" component={require('../screens/Auth/ProviderDocUploadScreen').default} />
       <Stack.Screen name="ProviderPhoto" component={require('../screens/Auth/ProviderPhotoScreen').default} />
+      <Stack.Screen name="ProviderProfile" component={require('../screens/Providers/ProviderProfileScreen').default} />
+      <Stack.Screen name="TaskDetails" component={require('../screens/Provider/TaskDetailsScreen').default} />
     </Stack.Navigator>
   );
 };

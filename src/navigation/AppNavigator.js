@@ -11,6 +11,8 @@ import notificationService from '../services/notificationService';
 
 import { createStackNavigator } from '@react-navigation/stack';
 import { useSocket } from '../context/SocketContext';
+import ProviderProfileScreen from '../screens/Providers/ProviderProfileScreen';
+import TaskDetailsScreen from '../screens/Provider/TaskDetailsScreen';
 
 const RootStack = createStackNavigator();
 
@@ -25,6 +27,8 @@ const linking = {
   prefixes: ['fixam://', 'https://usefixam.com', 'https://*.usefixam.com'],
   config: {
     screens: {
+      ProviderProfile: 'profile/:uid',
+      TaskDetails: 'job/:taskId',
       MainApp: {
         screens: {
           ProviderProfile: 'profile/:uid',
@@ -114,7 +118,8 @@ const AppNavigator = () => {
             )
           )}
         </RootStack.Screen>
-
+        <RootStack.Screen name="ProviderProfile" component={ProviderProfileScreen} />
+        <RootStack.Screen name="TaskDetails" component={TaskDetailsScreen} />
       </RootStack.Navigator>
     </NavigationContainer>
   );

@@ -44,6 +44,12 @@ const RegisterScreen = ({ navigation, route }) => {
       region: '',
       city: ''
     }));
+    setErrors(prev => ({
+      ...prev,
+      phone: null,
+      region: null,
+      city: null
+    }));
     setShowCountryPicker(false);
   };
   const [showPassword, setShowPassword] = useState(false);
@@ -52,9 +58,16 @@ const RegisterScreen = ({ navigation, route }) => {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showRegionPicker, setShowRegionPicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const setField = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
-  const setPhoneField = (value) => setField('phone', value.replace(/\D/g, '').slice(0, selectedCountry.phoneLength));
+  const setField = (key, value) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+    setErrors(prev => (prev[key] ? { ...prev, [key]: null } : prev));
+  };
+  const setPhoneField = (value) => {
+    setField('phone', value.replace(/\D/g, '').slice(0, selectedCountry.phoneLength));
+    setErrors(prev => (prev.phone ? { ...prev, phone: null } : prev));
+  };
   const phoneDigits = formData.phone.replace(/\D/g, '').slice(0, selectedCountry.phoneLength);
   const authInputStyle = { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)', color: '#FFF' };
 
@@ -74,44 +87,56 @@ const RegisterScreen = ({ navigation, route }) => {
   const strengthLabel = { weak: 'Weak', fair: 'Fair', good: 'Good', strong: 'Strong' };
   const strengthWidth = ['0%', '25%', '50%', '75%', '100%'][metCount];
 
-  // ── Form validity ────────────────────────────────────────────────────────────
-  const isFormValid =
-    formData.firstName.trim().length > 0 &&
-    formData.lastName.trim().length > 0 &&
-    isValidEmail(formData.email.trim()) &&
-    isValidPhone(phoneDigits) &&
-    formData.region.trim().length > 0 &&
-    formData.city.trim().length > 0 &&
-    metCount >= 3 &&
-    formData.password === formData.repeatPassword &&
-    agree;
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = t('validation.firstNameRequired', 'First name is required');
+    }
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = t('validation.lastNameRequired', 'Last name is required');
+    }
+    if (!formData.email.trim()) {
+      newErrors.email = t('validation.emailRequired', 'A valid email address is required');
+    } else if (!isValidEmail(formData.email.trim())) {
+      newErrors.email = t('validation.emailRequired', 'A valid email address is required');
+    }
+    if (!phoneDigits) {
+      newErrors.phone = t('validation.phoneRequired', 'A valid phone number is required');
+    } else if (!isValidPhone(phoneDigits)) {
+      newErrors.phone = t('validation.phoneRequired', 'A valid phone number is required');
+    }
+    if (!formData.region.trim()) {
+      newErrors.region = t('validation.regionRequired', 'Region is required');
+    }
+    if (!formData.city.trim()) {
+      newErrors.city = t('validation.cityRequired', 'City is required');
+    }
+    if (!formData.password) {
+      newErrors.password = t('validation.passwordRequired', 'Password is required');
+    } else if (metCount < 3) {
+      newErrors.password = t('validation.passwordFormat', 'Password must be at least 8 characters and meet requirements');
+    }
+    if (!formData.repeatPassword) {
+      newErrors.repeatPassword = t('validation.repeatPasswordRequired', 'Please repeat your password');
+    } else if (formData.password !== formData.repeatPassword) {
+      newErrors.repeatPassword = t('validation.passwordMismatch', 'Passwords do not match');
+    }
+    if (!agree) {
+      newErrors.agree = t('register.termsRequired', 'Please accept the Terms & Conditions and Privacy Policy');
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleRegister = async () => {
+    if (!validateForm()) {
+      return;
+    }
     const normalizedPhone = phoneDigits;
     const finalLocation = formData.city && formData.region ? `${formData.city}, ${formData.region}` : '';
     const userData = { ...formData, location: finalLocation, phone: normalizedPhone, fullName: `${formData.firstName} ${formData.lastName}`.trim() };
-
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      alert(t('validation.nameRequired')); return;
-    }
-    if (!isValidEmail(formData.email.trim())) {
-      alert(t('validation.emailRequired')); return;
-    }
-    if (!isValidPhone(normalizedPhone)) {
-      alert(t('validation.phoneRequired')); return;
-    }
-    if (!formData.region.trim() || !formData.city.trim()) {
-      alert(t('validation.locationRequired')); return;
-    }
-    if (metCount < 3) {
-      alert(t('validation.passwordFormat')); return;
-    }
-    if (!agree) {
-      alert(t('register.termsRequired')); return;
-    }
-    if (formData.password !== formData.repeatPassword) {
-      alert(t('validation.passwordMismatch')); return;
-    }
     try {
       setSubmitting(true);
       const res = await api.post('/auth/register', {
@@ -178,31 +203,33 @@ const RegisterScreen = ({ navigation, route }) => {
               <View style={styles.half}>
                 <Text style={styles.label}>{t('register.firstName')}</Text>
                 <TextInput
-                  style={[styles.input, inputStyle]}
+                  style={[styles.input, inputStyle, errors.firstName && styles.inputError]}
                   placeholder={t('register.firstName')}
                   placeholderTextColor="rgba(255,255,255,0.66)"
                   value={formData.firstName}
                   onChangeText={(v) => setField('firstName', v)}
                   selectionColor="#FFF"
                 />
+                {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
               </View>
               <View style={styles.half}>
                 <Text style={styles.label}>{t('register.lastName')}</Text>
                 <TextInput
-                  style={[styles.input, inputStyle]}
+                  style={[styles.input, inputStyle, errors.lastName && styles.inputError]}
                   placeholder={t('register.lastName')}
                   placeholderTextColor="rgba(255,255,255,0.66)"
                   value={formData.lastName}
                   onChangeText={(v) => setField('lastName', v)}
                   selectionColor="#FFF"
                 />
+                {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
               </View>
             </View>
 
             {/* Email */}
             <Text style={styles.label}>{t('register.email')}</Text>
             <TextInput
-              style={[styles.input, inputStyle]}
+              style={[styles.input, inputStyle, errors.email && styles.inputError]}
               placeholder={t('register.emailPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.66)"
               keyboardType="email-address"
@@ -212,10 +239,11 @@ const RegisterScreen = ({ navigation, route }) => {
               autoCapitalize="none"
               autoCorrect={false}
             />
+            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
             {/* Phone */}
             <Text style={styles.label}>{t('register.phone')}</Text>
-            <View style={[styles.phoneInputWrapper, inputStyle]}>
+            <View style={[styles.phoneInputWrapper, inputStyle, errors.phone && styles.inputError]}>
               <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
                 <Text style={styles.flagText}>{selectedCountry.flag}</Text>
                 <Text style={styles.prefixText}>{selectedCountry.dialCode}</Text>
@@ -232,6 +260,7 @@ const RegisterScreen = ({ navigation, route }) => {
                 selectionColor="#FFF"
               />
             </View>
+            {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
             {/* Referral */}
             <Text style={styles.label}>{t('register.referral')}</Text>
@@ -249,17 +278,18 @@ const RegisterScreen = ({ navigation, route }) => {
             <View style={styles.row}>
               <View style={styles.half}>
                 <TouchableOpacity 
-                  style={[styles.input, inputStyle, { justifyContent: 'center' }]} 
+                  style={[styles.input, inputStyle, { justifyContent: 'center' }, errors.region && styles.inputError]} 
                   onPress={() => setShowRegionPicker(true)}
                 >
                   <Text style={{ color: formData.region ? '#FFF' : 'rgba(255,255,255,0.66)', fontSize: 15, fontWeight: '600' }}>
                     {formData.region || t('register.selectRegion')}
                   </Text>
                 </TouchableOpacity>
+                {errors.region && <Text style={styles.errorText}>{errors.region}</Text>}
               </View>
               <View style={styles.half}>
                 <TouchableOpacity 
-                  style={[styles.input, inputStyle, { justifyContent: 'center' }, !formData.region && { opacity: 0.5 }]} 
+                  style={[styles.input, inputStyle, { justifyContent: 'center' }, !formData.region && { opacity: 0.5 }, errors.city && styles.inputError]} 
                   onPress={() => formData.region && setShowCityPicker(true)}
                   disabled={!formData.region}
                 >
@@ -267,11 +297,12 @@ const RegisterScreen = ({ navigation, route }) => {
                     {formData.city || t('register.selectCity')}
                   </Text>
                 </TouchableOpacity>
+                {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
               </View>
             </View>
             {/* Password */}
             <Text style={styles.label}>{t('register.password')}</Text>
-            <View style={[styles.inputWrapper, inputStyle]}>
+            <View style={[styles.inputWrapper, inputStyle, errors.password && styles.inputError]}>
               <TextInput
                 style={styles.flexInput}
                 placeholder={t('login.password')}
@@ -293,6 +324,7 @@ const RegisterScreen = ({ navigation, route }) => {
                 />
               </TouchableOpacity>
             </View>
+            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
             {/* Password strength + requirements */}
             {showRequirements && (
@@ -329,7 +361,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
             {/* Repeat password */}
             <Text style={styles.label}>{t('register.repeatPassword')}</Text>
-            <View style={[styles.inputWrapper, inputStyle]}>
+            <View style={[styles.inputWrapper, inputStyle, errors.repeatPassword && styles.inputError]}>
               <TextInput
                 style={styles.flexInput}
                 placeholder={t('login.repeatPassword')}
@@ -349,13 +381,20 @@ const RegisterScreen = ({ navigation, route }) => {
                 />
               </TouchableOpacity>
             </View>
+            {errors.repeatPassword && <Text style={styles.errorText}>{errors.repeatPassword}</Text>}
 
             {/* Terms */}
-            <TouchableOpacity style={styles.termsRow} onPress={() => setAgree(!agree)}>
+            <TouchableOpacity 
+              style={[styles.termsRow, errors.agree && { padding: 6, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.18)' }]} 
+              onPress={() => {
+                setAgree(!agree);
+                setErrors(prev => (prev.agree ? { ...prev, agree: null } : prev));
+              }}
+            >
               <MaterialCommunityIcons
                 name={agree ? 'checkbox-marked' : 'checkbox-blank-outline'}
                 size={22}
-                color="#FFF"
+                color={errors.agree ? '#FCA5A5' : '#FFF'}
               />
               <Text style={styles.termsText}>
                 {t('register.agreePrefix')}{' '}
@@ -368,13 +407,14 @@ const RegisterScreen = ({ navigation, route }) => {
                 </Text>
               </Text>
             </TouchableOpacity>
+            {errors.agree && <Text style={styles.errorText}>{errors.agree}</Text>}
 
             {/* Register button */}
             <TouchableOpacity
-              style={[styles.registerBtn, { opacity: submitting || !isFormValid ? 0.5 : 1 }]}
+              style={[styles.registerBtn, { opacity: submitting ? 0.7 : 1 }]}
               onPress={handleRegister}
               activeOpacity={0.85}
-              disabled={submitting || !isFormValid}
+              disabled={submitting}
             >
               <Text style={styles.registerBtnText}>
                 {submitting ? t('register.creating') : t('register.submit')}
@@ -483,6 +523,18 @@ const styles = StyleSheet.create({
   flagText: { fontSize: 20 },
   prefixText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   flexInput: { flex: 1, height: '100%', color: '#FFF', fontSize: 15, fontWeight: '600' },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  errorText: {
+    color: '#FCA5A5',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 5,
+    marginLeft: 4,
+  },
   // Password requirements
   requirementsBox: { marginTop: 10, marginBottom: 2, paddingHorizontal: 4 },
   strengthRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },

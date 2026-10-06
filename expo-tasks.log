@@ -1,0 +1,9 @@
+
+> fixam@1.0.0 start
+> expo start --port 8081 --localhost
+
+env: load .env
+env: export EXPO_PUBLIC_API_URL EXPO_PUBLIC_SOCKET_URL
+Starting project at C:\Users\Prova\Videos\Fixam\app
+› Port 8081 is being used by another process
+› Skipping dev server

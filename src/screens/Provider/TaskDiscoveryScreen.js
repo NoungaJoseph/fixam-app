@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, ScrollView, Modal, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -22,6 +22,14 @@ const TaskDiscoveryScreen = ({ navigation }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
+  // External Job One-Tap Apply Modal state
+  const [selectedExternalJob, setSelectedExternalJob] = useState(null);
+  const [extApplicantName, setExtApplicantName] = useState(user?.fullName || '');
+  const [extApplicantEmail, setExtApplicantEmail] = useState(user?.email || '');
+  const [extApplicantPhone, setExtApplicantPhone] = useState(user?.phone || '');
+  const [extCoverLetter, setExtCoverLetter] = useState('');
+  const [isApplyingExternal, setIsApplyingExternal] = useState(false);
+
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
@@ -35,18 +43,19 @@ const TaskDiscoveryScreen = ({ navigation }) => {
   const fetchTasks = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await api.get('/jobs/available', {
-        params: {
-          page,
-          limit: ITEMS_PER_PAGE,
-          sortBy,
-          search: searchTerm,
-          location: locationFilter
-        }
-      });
-      setTasks(response.data.data || []);
-      setCurrentPage(response.data.pagination?.page || 1);
-      setTotalPages(response.data.pagination?.pages || 1);
+      const [res, extRes] = await Promise.allSettled([
+        api.get('/jobs/available', {
+          params: { page, limit: ITEMS_PER_PAGE, sortBy, search: searchTerm, location: locationFilter }
+        }),
+        api.get('/external-jobs', {
+          params: { page, limit: ITEMS_PER_PAGE, search: searchTerm, location: locationFilter }
+        })
+      ]);
+      const direct = res.status === 'fulfilled' ? (res.value.data?.data || []) : [];
+      const external = extRes.status === 'fulfilled' ? (extRes.value.data?.data || []) : [];
+      setTasks([...direct, ...external]);
+      setCurrentPage(res.status === 'fulfilled' ? (res.value.data?.pagination?.page || 1) : 1);
+      setTotalPages(res.status === 'fulfilled' ? (res.value.data?.pagination?.pages || 1) : 1);
     } catch (error) {
       console.log('Error fetching tasks:', error);
     } finally {
@@ -62,7 +71,45 @@ const TaskDiscoveryScreen = ({ navigation }) => {
   };
 
   const handleTaskPress = (task) => {
+    if (task.isExternal) {
+      setSelectedExternalJob(task);
+      setExtApplicantName(user?.fullName || '');
+      setExtApplicantEmail(user?.email || '');
+      setExtApplicantPhone(user?.phone || '');
+      setExtCoverLetter(
+        `Dear Hiring Team at ${task.companyName || 'the Organization'},\n\nI am writing to express my interest in the ${task.title} position.\n\nWith my background in ${task.category || 'this domain'}, I am confident in delivering quality results.\n\nPlease find my contact details and attached CV for your consideration.\n\nThank you,\n${user?.fullName || ''}`
+      );
+      return;
+    }
     navigation.navigate('TaskDetails', { task });
+  };
+
+  const handleSendExternalApplication = async () => {
+    if (!extApplicantEmail.trim()) {
+      Alert.alert(t('common.error', 'Required'), 'Please enter your email address so recruiters can reach you.');
+      return;
+    }
+    try {
+      setIsApplyingExternal(true);
+      const res = await api.post(`/external-jobs/${selectedExternalJob.id}/apply`, {
+        applicantName: extApplicantName.trim(),
+        applicantEmail: extApplicantEmail.trim(),
+        applicantPhone: extApplicantPhone.trim(),
+        coverLetter: extCoverLetter.trim()
+      });
+      if (res.data?.success) {
+        Alert.alert(
+          '🎉 ' + (t('jobs.applicationSent', 'Application Sent!')),
+          `Your application has been delivered to ${selectedExternalJob.companyName}. Recruiter replies will arrive in your email inbox at ${extApplicantEmail}.`
+        );
+        setSelectedExternalJob(null);
+        setTasks(prev => prev.filter(t => t.id !== selectedExternalJob.id));
+      }
+    } catch (err) {
+      Alert.alert(t('common.error', 'Error'), err.response?.data?.message || 'Failed to send application. Please try again.');
+    } finally {
+      setIsApplyingExternal(false);
+    }
   };
 
   const timeAgo = (dateStr) => {
@@ -92,6 +139,21 @@ const TaskDiscoveryScreen = ({ navigation }) => {
     >
       <View style={styles.taskHeader}>
         <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            {task.isExternal ? (
+              <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF', borderColor: '#93C5FD' }]}>
+                <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#BFDBFE' : '#1D4ED8' }]}>
+                  🌐 {task.companyName ? `${task.companyName} • External` : 'External Opportunity'}
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#A7F3D0' : '#047857' }]}>
+                  ⚡ Fixam Job
+                </Text>
+              </View>
+            )}
+          </View>
           <Text style={[styles.taskTitle, { color: colors.text }]}>{task.title}</Text>
           <Text style={[styles.taskCategory, { color: colors.textSecondary }]}>
             {task.category}
@@ -286,6 +348,113 @@ const TaskDiscoveryScreen = ({ navigation }) => {
             </View>
           </>
         )}
+
+        {/* ONE-TAP EXTERNAL JOB APPLY MODAL */}
+        <Modal
+          visible={Boolean(selectedExternalJob)}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setSelectedExternalJob(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.modalHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalBadgeText, { color: '#2563EB' }]}>
+                    🌐 {selectedExternalJob?.companyName || 'External Opportunity'}
+                  </Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                    {selectedExternalJob?.title}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedExternalJob(null)} style={styles.modalCloseBtn}>
+                  <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+                <View style={[styles.noticeBox, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: '#BFDBFE' }]}>
+                  <Text style={{ fontSize: 12, color: isDarkMode ? '#93C5FD' : '#1D4ED8', lineHeight: 18 }}>
+                    ⚡ <Text style={{ fontWeight: '800' }}>One-Tap Apply via Fixam</Text>: We deliver your CV and application directly to the recruiter's inbox. Replies go straight to your email.
+                  </Text>
+                </View>
+
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Full Name</Text>
+                <TextInput
+                  value={extApplicantName}
+                  onChangeText={setExtApplicantName}
+                  style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                />
+
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Email Address (Recruiter Replies)</Text>
+                <TextInput
+                  value={extApplicantEmail}
+                  onChangeText={setExtApplicantEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                />
+
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Phone Number</Text>
+                <TextInput
+                  value={extApplicantPhone}
+                  onChangeText={setExtApplicantPhone}
+                  keyboardType="phone-pad"
+                  placeholder="+237 6..."
+                  placeholderTextColor={colors.placeholder}
+                  style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                />
+
+                <View style={[styles.cvAttachRow, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
+                  <MaterialCommunityIcons name="file-document-check" size={22} color="#10B981" />
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                      {user?.cvName || 'Profile CV / Resume'}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>
+                      ✓ Attached from your Fixam profile
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Cover Letter (Editable Draft)</Text>
+                <TextInput
+                  value={extCoverLetter}
+                  onChangeText={setExtCoverLetter}
+                  multiline
+                  numberOfLines={5}
+                  textAlignVertical="top"
+                  style={[styles.inputField, { height: 100, color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                />
+              </ScrollView>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  onPress={() => setSelectedExternalJob(null)}
+                  style={[styles.modalCancelBtn, { borderColor: colors.border }]}
+                >
+                  <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSendExternalApplication}
+                  disabled={isApplyingExternal}
+                  style={[styles.modalSubmitBtn, { opacity: isApplyingExternal ? 0.7 : 1 }]}
+                >
+                  {isApplyingExternal ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="send" size={16} color="#FFF" />
+                      <Text style={styles.modalSubmitText}>Send Application</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
       </SafeAreaView>
     </View>
   );
@@ -461,6 +630,116 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     minWidth: 60,
     textAlign: 'center'
+  },
+  externalBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+    marginBottom: 6
+  },
+  externalBadgeText: {
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'flex-end'
+  },
+  modalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 32,
+    maxHeight: '90%'
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14
+  },
+  modalBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 24
+  },
+  modalCloseBtn: {
+    padding: 6,
+    marginLeft: 8
+  },
+  noticeBox: {
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 14
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 10,
+    marginBottom: 6
+  },
+  inputField: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 6
+  },
+  cvAttachRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginVertical: 8
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  modalSubmitBtn: {
+    flex: 2,
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8
+  },
+  modalSubmitText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800'
   }
 });
 

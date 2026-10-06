@@ -188,6 +188,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [detailEditor, setDetailEditor] = useState(null);
   const [priority, setPriority] = useState('normal');
   const [isRemote, setIsRemote] = useState(false);
+  const [expiryDays, setExpiryDays] = useState(14);
   
   const [scheduledDate, setScheduledDate] = useState(new Date());
   const [scheduledTime, setScheduledTime] = useState(new Date());
@@ -582,6 +583,11 @@ const PostTaskScreen = ({ route, navigation }) => {
         providersNeeded: numProviders,
         category: selectedCat || deriveCategoryFromTitle(title) || 'OTHER',
         scheduledTime: scheduledDateTime.toISOString(),
+        expiryDate: (() => {
+          const d = new Date();
+          d.setDate(d.getDate() + (expiryDays || 14));
+          return d.toISOString();
+        })(),
         whatNeedsDone: whatNeedsDone || undefined,
         importantDetails: importantDetails || undefined,
         taskScope: taskScope || undefined,
@@ -1276,6 +1282,32 @@ const PostTaskScreen = ({ route, navigation }) => {
                 return (
                   <TouchableOpacity key={p} style={{ flex: 1, height: 44, borderRadius: 10, borderWidth: 1, borderColor: brd, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }} onPress={() => setPriority(p)}>
                     <Text style={{ color: txt, fontSize: 13, fontWeight: '800', textTransform: 'capitalize' }}>{t(`jobs.priority_${p}`, p)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.descriptionLabel, { color: colors.text, fontSize: 16 }]}>
+              {t('jobs.expiryDateTitle', 'Listing Expiry (Auto-Removal)')}
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 10 }}>
+              {t('jobs.expiryDateSubtitle', 'The job will stop showing to providers in feeds after this period.')}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 26 }}>
+              {[7, 14, 30].map(days => {
+                const isActive = expiryDays === days;
+                const bg = isActive ? (isDarkMode ? 'rgba(13, 148, 136, 0.1)' : '#F0FDFA') : (isDarkMode ? '#1F2937' : '#FFF');
+                const brd = isActive ? '#0D9488' : colors.border;
+                const txt = isActive ? '#0D9488' : colors.textSecondary;
+                return (
+                  <TouchableOpacity
+                    key={days}
+                    style={{ flex: 1, height: 44, borderRadius: 10, borderWidth: 1, borderColor: brd, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}
+                    onPress={() => setExpiryDays(days)}
+                  >
+                    <Text style={{ color: txt, fontSize: 13, fontWeight: '800' }}>
+                      {days} {t('common.days', 'Days')}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}

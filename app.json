@@ -160,9 +160,7 @@
         "projectId": "4d46468f-0fb1-40b9-85b2-7c61004d77b9"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.1.3",
     "updates": {
       "url": "https://u.expo.dev/4d46468f-0fb1-40b9-85b2-7c61004d77b9"
     }

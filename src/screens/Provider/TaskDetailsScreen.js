@@ -81,6 +81,15 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     ? { ...task, ...jobDetails }
     : (task || {});
 
+  const isExternalJob = Boolean(displayTask.isExternal || task.isExternal);
+  const [showExternalApplyModal, setShowExternalApplyModal] = useState(false);
+  const [extApplicantName, setExtApplicantName] = useState(user?.fullName || '');
+  const [extApplicantEmail, setExtApplicantEmail] = useState(user?.email || '');
+  const [extApplicantPhone, setExtApplicantPhone] = useState(user?.phone || '');
+  const [extCoverLetter, setExtCoverLetter] = useState('');
+  const [extCvLink, setExtCvLink] = useState('');
+  const [isApplyingExternal, setIsApplyingExternal] = useState(false);
+
   const clientObj = typeof displayTask.client === 'object' ? displayTask.client : (typeof task.client === 'object' ? task.client : null);
   const clientName = clientObj?.fullName || (typeof displayTask.client === 'string' ? displayTask.client : (typeof task.client === 'string' ? task.client : t('common.client')));
   const clientId = clientObj?.id || displayTask.clientId || task.clientId;
@@ -137,7 +146,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
 
   React.useEffect(() => {
-    if (currentTaskId) {
+    if (currentTaskId && !isExternalJob) {
       const endpoint = isBooking ? `/disputes?bookingId=${currentTaskId}` : `/disputes?jobId=${currentTaskId}`;
       api.get(endpoint)
         .then(res => {
@@ -147,19 +156,23 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         })
         .catch(() => {});
     }
-  }, [currentTaskId, isBooking]);
+  }, [currentTaskId, isBooking, isExternalJob]);
 
   React.useEffect(() => {
+    if (isExternalJob) return;
     const off = on('job:application-count', ({ jobId, applicationCount: count }) => {
       if (jobId === currentTaskId) setApplicationCount(count);
     });
     return () => off?.();
-  }, [on, currentTaskId]);
+  }, [on, currentTaskId, isExternalJob]);
 
   React.useEffect(() => {
     let active = true;
     const fetchDetails = async () => {
-      if (!currentTaskId) return;
+      if (!currentTaskId || isExternalJob) {
+        setFetching(false);
+        return;
+      }
       try {
         setFetching(true);
         const endpoint = isBooking ? `/bookings/${currentTaskId}` : `/jobs/${currentTaskId}`;
@@ -178,9 +191,55 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     };
     fetchDetails();
     return () => { active = false; };
-  }, [currentTaskId, isBooking]);
+  }, [currentTaskId, isBooking, isExternalJob]);
+
+  const handleSendExternalApplication = async () => {
+    if (!extApplicantName.trim() || !extApplicantEmail.trim()) {
+      Alert.alert('Required Fields', 'Please ensure your name and email are provided.');
+      return;
+    }
+
+    try {
+      setIsApplyingExternal(true);
+      const res = await api.post(`/external-jobs/${displayTask.id}/apply`, {
+        applicantName: extApplicantName.trim(),
+        applicantEmail: extApplicantEmail.trim(),
+        applicantPhone: extApplicantPhone.trim(),
+        coverLetter: extCoverLetter.trim(),
+        cvUrl: extCvLink.trim() || user?.cvUrl || null,
+        cvName: user?.cvName || 'Profile CV'
+      });
+
+      if (res.data?.success) {
+        setApplied(true);
+        Alert.alert(
+          'Application Sent! 🎉',
+          `Your application has been delivered directly to ${displayTask.companyName || 'the employer'}'s recruiter email. Replies will arrive directly at ${extApplicantEmail}.`,
+          [{ text: 'Great!', onPress: () => setShowExternalApplyModal(false) }]
+        );
+      } else {
+        Alert.alert('Error', res.data?.message || 'Could not send application.');
+      }
+    } catch (err) {
+      Alert.alert('Submission Failed', err.response?.data?.message || err.message || 'Error sending application');
+    } finally {
+      setIsApplyingExternal(false);
+    }
+  };
 
   const handleAccept = () => {
+    if (isExternalJob) {
+      setExtApplicantName(user?.fullName || '');
+      setExtApplicantEmail(user?.email || '');
+      setExtApplicantPhone(user?.phone || '');
+      setExtCvLink(user?.cvUrl || '');
+      setExtCoverLetter(
+        `Dear Hiring Team at ${displayTask.companyName || 'the organization'},\n\nI am writing to express my strong interest in the ${displayTask.title} position posted via Fixam. With my verified background and hands-on professional expertise, I am confident in delivering excellent results for your team.\n\nPlease find my resume attached from my Fixam verified profile. I welcome the opportunity to discuss how my experience aligns with your objectives.\n\nBest regards,\n${user?.fullName || 'Candidate'}`
+      );
+      setShowExternalApplyModal(true);
+      return;
+    }
+
     if (hasApplied) {
       if (isBooking) {
         Alert.alert(t('jobs.alreadyApplied'), t('jobs.alreadyAppliedBody'));
@@ -570,9 +629,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <Text style={styles.proposalTitle}>
-              {isBooking 
-                ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')) 
-                : (hasApplied ? t('jobs.applied', 'Applied') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
+              {isExternalJob
+                ? (hasApplied ? 'Applied via Fixam' : 'Apply via Fixam (1-Tap)')
+                : isBooking 
+                  ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')) 
+                  : (hasApplied ? t('jobs.applied', 'Applied') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
             </Text>
           )}
         </TouchableOpacity>
@@ -591,6 +652,122 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         message={verificationMessage || t('verification.jobRequired')}
         isProvider={true}
       />
+
+      {/* ONE-TAP EXTERNAL JOB APPLY MODAL */}
+      <Modal
+        visible={showExternalApplyModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowExternalApplyModal(false)}
+      >
+        <View style={styles.extModalOverlay}>
+          <View style={[styles.extModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.extModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.extModalBadgeText, { color: '#2563EB' }]}>
+                  🌐 {displayTask.companyName || 'External Opportunity'}
+                </Text>
+                <Text style={[styles.extModalTitle, { color: colors.text }]}>
+                  {displayTask.title}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowExternalApplyModal(false)} style={styles.extModalCloseBtn}>
+                <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              <View style={[styles.noticeBox, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: '#BFDBFE' }]}>
+                <Text style={{ fontSize: 12, color: isDarkMode ? '#93C5FD' : '#1D4ED8', lineHeight: 18 }}>
+                  ⚡ <Text style={{ fontWeight: '800' }}>One-Tap Apply via Fixam</Text>: We deliver your CV and application directly to the recruiter's inbox. Replies go straight to your email.
+                </Text>
+              </View>
+
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Full Name</Text>
+              <TextInput
+                value={extApplicantName}
+                onChangeText={setExtApplicantName}
+                style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Email Address (Recruiter Replies)</Text>
+              <TextInput
+                value={extApplicantEmail}
+                onChangeText={setExtApplicantEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Phone Number</Text>
+              <TextInput
+                value={extApplicantPhone}
+                onChangeText={setExtApplicantPhone}
+                keyboardType="phone-pad"
+                placeholder="+237 6..."
+                placeholderTextColor={colors.placeholder}
+                style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.text }]}>CV Document / Link (Google Sheets, Drive, or Profile CV)</Text>
+              <TextInput
+                value={extCvLink}
+                onChangeText={setExtCvLink}
+                placeholder="https://docs.google.com/spreadsheets/... or file link"
+                placeholderTextColor={colors.placeholder}
+                autoCapitalize="none"
+                style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              />
+
+              <View style={[styles.cvAttachRow, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
+                <MaterialCommunityIcons name="file-document-check" size={22} color="#10B981" />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                    {extCvLink ? (extCvLink.includes('docs.google.com/spreadsheets') ? 'Google Sheets Document' : 'Document Link Attached') : (user?.cvName || 'Profile CV / Resume')}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>
+                    ✓ Forwarded exactly as it is to the employer
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Cover Letter (Editable Draft)</Text>
+              <TextInput
+                value={extCoverLetter}
+                onChangeText={setExtCoverLetter}
+                multiline
+                numberOfLines={5}
+                textAlignVertical="top"
+                style={[styles.inputField, { height: 100, color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              />
+            </ScrollView>
+
+            <View style={styles.extModalActions}>
+              <TouchableOpacity
+                onPress={() => setShowExternalApplyModal(false)}
+                style={[styles.modalCancelBtn, { borderColor: colors.border }]}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSendExternalApplication}
+                disabled={isApplyingExternal}
+                style={[styles.modalSubmitBtn, { opacity: isApplyingExternal ? 0.7 : 1 }]}
+              >
+                {isApplyingExternal ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="send" size={16} color="#FFF" />
+                    <Text style={styles.modalSubmitText}>Send Application</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -733,6 +910,104 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  extModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  extModalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 32,
+    maxHeight: '90%',
+  },
+  extModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  extModalBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  extModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 24,
+  },
+  extModalCloseBtn: {
+    padding: 6,
+    marginLeft: 8,
+  },
+  noticeBox: {
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  inputField: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  cvAttachRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginVertical: 8,
+  },
+  extModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalSubmitBtn: {
+    flex: 2,
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  modalSubmitText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
 

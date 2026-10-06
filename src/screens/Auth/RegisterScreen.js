@@ -75,55 +75,69 @@ const RegisterScreen = ({ navigation, route }) => {
   const isValidPhone = (phone) => selectedCountry.regex.test(phone);
 
   // ── Password requirements ────────────────────────────────────────────────────
+  const isFr = locale === 'fr';
   const requirements = [
-    { label: 'At least 8 characters',                   met: formData.password.length >= 8 },
-    { label: 'Contains a number',                        met: /\d/.test(formData.password) },
-    { label: 'Contains a special character (!@#$...)',   met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password) },
-    { label: 'Contains uppercase letter',                met: /[A-Z]/.test(formData.password) },
+    { label: isFr ? 'Au moins 6 caractères' : 'At least 6 characters', met: formData.password.length >= 6 },
+    { label: isFr ? 'Contient une lettre majuscule (A-Z)' : 'Contains uppercase letter (A-Z)', met: /[A-Z]/.test(formData.password) },
+    { label: isFr ? 'Contient un chiffre (0-9)' : 'Contains a number (0-9)', met: /\d/.test(formData.password) },
   ];
   const metCount = requirements.filter(r => r.met).length;
-  const strength = metCount <= 1 ? 'weak' : metCount <= 2 ? 'fair' : metCount <= 3 ? 'good' : 'strong';
-  const strengthColor = { weak: '#EF4444', fair: '#F97316', good: '#EAB308', strong: '#22C55E' };
-  const strengthLabel = { weak: 'Weak', fair: 'Fair', good: 'Good', strong: 'Strong' };
-  const strengthWidth = ['0%', '25%', '50%', '75%', '100%'][metCount];
+  const strength = metCount <= 1 ? 'weak' : metCount === 2 ? 'fair' : 'strong';
+  const strengthColor = { weak: '#EF4444', fair: '#F97316', strong: '#22C55E' };
+  const strengthLabel = {
+    weak: isFr ? 'Faible' : 'Weak',
+    fair: isFr ? 'Moyen' : 'Fair',
+    strong: isFr ? 'Fort' : 'Strong',
+  };
+  const strengthWidth = ['0%', '33%', '66%', '100%'][metCount];
 
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.firstName.trim()) {
-      newErrors.firstName = t('validation.firstNameRequired', 'First name is required');
+      newErrors.firstName = t('validation.firstNameRequired', isFr ? 'Le prénom est requis' : 'First name is required');
     }
     if (!formData.lastName.trim()) {
-      newErrors.lastName = t('validation.lastNameRequired', 'Last name is required');
+      newErrors.lastName = t('validation.lastNameRequired', isFr ? 'Le nom est requis' : 'Last name is required');
     }
     if (!formData.email.trim()) {
-      newErrors.email = t('validation.emailRequired', 'A valid email address is required');
+      newErrors.email = t('validation.emailRequired', isFr ? 'Une adresse email valide est requise' : 'A valid email address is required');
     } else if (!isValidEmail(formData.email.trim())) {
-      newErrors.email = t('validation.emailRequired', 'A valid email address is required');
+      newErrors.email = t('validation.emailRequired', isFr ? 'Une adresse email valide est requise' : 'A valid email address is required');
     }
     if (!phoneDigits) {
-      newErrors.phone = t('validation.phoneRequired', 'A valid phone number is required');
+      newErrors.phone = t('validation.phoneRequired', isFr ? 'Un numéro de téléphone valide est requis' : 'A valid phone number is required');
     } else if (!isValidPhone(phoneDigits)) {
-      newErrors.phone = t('validation.phoneRequired', 'A valid phone number is required');
+      newErrors.phone = t('validation.phoneRequired', isFr ? 'Un numéro de téléphone valide est requis' : 'A valid phone number is required');
     }
     if (!formData.region.trim()) {
-      newErrors.region = t('validation.regionRequired', 'Region is required');
+      newErrors.region = t('validation.regionRequired', isFr ? 'La région est requise' : 'Region is required');
     }
     if (!formData.city.trim()) {
-      newErrors.city = t('validation.cityRequired', 'City is required');
+      newErrors.city = t('validation.cityRequired', isFr ? 'La ville est requise' : 'City is required');
     }
     if (!formData.password) {
-      newErrors.password = t('validation.passwordRequired', 'Password is required');
-    } else if (metCount < 3) {
-      newErrors.password = t('validation.passwordFormat', 'Password must be at least 8 characters and meet requirements');
+      newErrors.password = t('validation.passwordRequired', isFr ? 'Le mot de passe est requis' : 'Password is required');
+    } else if (formData.password.length < 6) {
+      newErrors.password = isFr
+        ? 'Le mot de passe doit comporter au moins 6 caractères'
+        : 'Password must be at least 6 characters long';
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newErrors.password = isFr
+        ? 'Veuillez ajouter au moins une lettre majuscule (A-Z)'
+        : 'Please add at least one uppercase capital letter (A-Z)';
+    } else if (!/\d/.test(formData.password)) {
+      newErrors.password = isFr
+        ? 'Veuillez ajouter au moins un chiffre (0-9)'
+        : 'Please add at least one number (0-9)';
     }
     if (!formData.repeatPassword) {
-      newErrors.repeatPassword = t('validation.repeatPasswordRequired', 'Please repeat your password');
+      newErrors.repeatPassword = t('validation.repeatPasswordRequired', isFr ? 'Veuillez confirmer votre mot de passe' : 'Please repeat your password');
     } else if (formData.password !== formData.repeatPassword) {
-      newErrors.repeatPassword = t('validation.passwordMismatch', 'Passwords do not match');
+      newErrors.repeatPassword = t('validation.passwordMismatch', isFr ? 'Les mots de passe ne correspondent pas' : 'Passwords do not match');
     }
     if (!agree) {
-      newErrors.agree = t('register.termsRequired', 'Please accept the Terms & Conditions and Privacy Policy');
+      newErrors.agree = t('register.termsRequired', isFr ? 'Veuillez accepter les Conditions générales' : 'Please accept the Terms & Conditions and Privacy Policy');
     }
 
     setErrors(newErrors);
@@ -201,7 +215,10 @@ const RegisterScreen = ({ navigation, route }) => {
             {/* First / Last name */}
             <View style={styles.row}>
               <View style={styles.half}>
-                <Text style={styles.label}>{t('register.firstName')}</Text>
+                <Text style={styles.label}>
+                  {t('register.firstName')}
+                  <Text style={styles.requiredStar}> *</Text>
+                </Text>
                 <TextInput
                   style={[styles.input, inputStyle, errors.firstName && styles.inputError]}
                   placeholder={t('register.firstName')}
@@ -213,7 +230,10 @@ const RegisterScreen = ({ navigation, route }) => {
                 {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
               </View>
               <View style={styles.half}>
-                <Text style={styles.label}>{t('register.lastName')}</Text>
+                <Text style={styles.label}>
+                  {t('register.lastName')}
+                  <Text style={styles.requiredStar}> *</Text>
+                </Text>
                 <TextInput
                   style={[styles.input, inputStyle, errors.lastName && styles.inputError]}
                   placeholder={t('register.lastName')}
@@ -227,7 +247,10 @@ const RegisterScreen = ({ navigation, route }) => {
             </View>
 
             {/* Email */}
-            <Text style={styles.label}>{t('register.email')}</Text>
+            <Text style={styles.label}>
+              {t('register.email')}
+              <Text style={styles.requiredStar}> *</Text>
+            </Text>
             <TextInput
               style={[styles.input, inputStyle, errors.email && styles.inputError]}
               placeholder={t('register.emailPlaceholder')}
@@ -242,7 +265,10 @@ const RegisterScreen = ({ navigation, route }) => {
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
             {/* Phone */}
-            <Text style={styles.label}>{t('register.phone')}</Text>
+            <Text style={styles.label}>
+              {t('register.phone')}
+              <Text style={styles.requiredStar}> *</Text>
+            </Text>
             <View style={[styles.phoneInputWrapper, inputStyle, errors.phone && styles.inputError]}>
               <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
                 <Text style={styles.flagText}>{selectedCountry.flag}</Text>
@@ -263,10 +289,13 @@ const RegisterScreen = ({ navigation, route }) => {
             {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
             {/* Referral */}
-            <Text style={styles.label}>{t('register.referral')}</Text>
+            <Text style={styles.label}>
+              {t('register.referral')}
+              <Text style={styles.optionalBadge}> ({isFr ? 'Optionnel' : 'Optional'})</Text>
+            </Text>
             <TextInput
               style={[styles.input, inputStyle]}
-              placeholder={t('register.referralPlaceholder')}
+              placeholder={isFr ? 'Entrez le code de parrainage' : 'Enter referral code'}
               placeholderTextColor="rgba(255,255,255,0.66)"
               value={formData.referral}
               onChangeText={(v) => setField('referral', v)}
@@ -274,7 +303,10 @@ const RegisterScreen = ({ navigation, route }) => {
             />
 
             {/* Location */}
-            <Text style={styles.label}>{t('register.location')}</Text>
+            <Text style={styles.label}>
+              {t('register.location')}
+              <Text style={styles.requiredStar}> *</Text>
+            </Text>
             <View style={styles.row}>
               <View style={styles.half}>
                 <TouchableOpacity 
@@ -301,7 +333,10 @@ const RegisterScreen = ({ navigation, route }) => {
               </View>
             </View>
             {/* Password */}
-            <Text style={styles.label}>{t('register.password')}</Text>
+            <Text style={styles.label}>
+              {t('register.password')}
+              <Text style={styles.requiredStar}> *</Text>
+            </Text>
             <View style={[styles.inputWrapper, inputStyle, errors.password && styles.inputError]}>
               <TextInput
                 style={styles.flexInput}
@@ -360,7 +395,10 @@ const RegisterScreen = ({ navigation, route }) => {
             )}
 
             {/* Repeat password */}
-            <Text style={styles.label}>{t('register.repeatPassword')}</Text>
+            <Text style={styles.label}>
+              {t('register.repeatPassword')}
+              <Text style={styles.requiredStar}> *</Text>
+            </Text>
             <View style={[styles.inputWrapper, inputStyle, errors.repeatPassword && styles.inputError]}>
               <TextInput
                 style={styles.flexInput}
@@ -516,6 +554,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   label: { color: '#FFF', fontSize: 13, fontWeight: '900', marginBottom: 9, marginTop: 12 },
+  requiredStar: { color: '#EF4444', fontSize: 14, fontWeight: '900' },
+  optionalBadge: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 'normal' },
   input: { height: 54, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, fontSize: 15, fontWeight: '600' },
   inputWrapper: { height: 54, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
   phoneInputWrapper: { height: 54, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },

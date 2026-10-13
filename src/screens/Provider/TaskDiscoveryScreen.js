@@ -10,7 +10,8 @@ import { getCurrencyForUser } from '../../constants/countries';
 
 const TaskDiscoveryScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, locale, language } = useLanguage();
+  const isFr = (locale || language || '')?.startsWith('fr');
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
@@ -77,7 +78,9 @@ const TaskDiscoveryScreen = ({ navigation }) => {
       setExtApplicantEmail(user?.email || '');
       setExtApplicantPhone(user?.phone || '');
       setExtCoverLetter(
-        `Dear Hiring Team at ${task.companyName || 'the Organization'},\n\nI am writing to express my interest in the ${task.title} position.\n\nWith my background in ${task.category || 'this domain'}, I am confident in delivering quality results.\n\nPlease find my contact details and attached CV for your consideration.\n\nThank you,\n${user?.fullName || ''}`
+        isFr
+          ? `Madame, Monsieur l'équipe de recrutement chez ${task.companyName || "l'organisation"},\n\nJe vous adresse ma candidature pour le poste de ${task.title}.\n\nFort de mes compétences dans le domaine de ${task.category || 'cette spécialité'}, je suis convaincu de pouvoir réaliser une mission de haute qualité.\n\nVous trouverez ci-joint mes coordonnées et mon CV pour examen de mon profil.\n\nJe vous remercie pour votre attention.\n\nCordialement,\n${user?.fullName || ''}`
+          : `Dear Hiring Team at ${task.companyName || 'the Organization'},\n\nI am writing to express my interest in the ${task.title} position.\n\nWith my background in ${task.category || 'this domain'}, I am confident in delivering quality results.\n\nPlease find my contact details and attached CV for your consideration.\n\nThank you,\n${user?.fullName || ''}`
       );
       return;
     }
@@ -86,7 +89,10 @@ const TaskDiscoveryScreen = ({ navigation }) => {
 
   const handleSendExternalApplication = async () => {
     if (!extApplicantEmail.trim()) {
-      Alert.alert(t('common.error', 'Required'), 'Please enter your email address so recruiters can reach you.');
+      Alert.alert(
+        t('common.error', isFr ? 'Obligatoire' : 'Required'),
+        isFr ? 'Veuillez saisir votre adresse e-mail pour que les recruteurs puissent vous contacter.' : 'Please enter your email address so recruiters can reach you.'
+      );
       return;
     }
     try {
@@ -95,18 +101,25 @@ const TaskDiscoveryScreen = ({ navigation }) => {
         applicantName: extApplicantName.trim(),
         applicantEmail: extApplicantEmail.trim(),
         applicantPhone: extApplicantPhone.trim(),
-        coverLetter: extCoverLetter.trim()
+        coverLetter: extCoverLetter.trim(),
+        cvUrl: user?.cvUrl || null,
+        cvName: user?.cvName || 'Profile CV'
       });
       if (res.data?.success) {
         Alert.alert(
-          '🎉 ' + (t('jobs.applicationSent', 'Application Sent!')),
-          `Your application has been delivered to ${selectedExternalJob.companyName}. Recruiter replies will arrive in your email inbox at ${extApplicantEmail}.`
+          '🎉 ' + (isFr ? 'Candidature envoyée !' : t('jobs.applicationSent', 'Application Sent!')),
+          isFr
+            ? `Votre candidature a été transmise à ${selectedExternalJob.companyName}. Les réponses du recruteur arriveront directement dans votre boîte e-mail à ${extApplicantEmail}.`
+            : `Your application has been delivered to ${selectedExternalJob.companyName}. Recruiter replies will arrive in your email inbox at ${extApplicantEmail}.`
         );
         setSelectedExternalJob(null);
         setTasks(prev => prev.filter(t => t.id !== selectedExternalJob.id));
       }
     } catch (err) {
-      Alert.alert(t('common.error', 'Error'), err.response?.data?.message || 'Failed to send application. Please try again.');
+      Alert.alert(
+        t('common.error', isFr ? 'Erreur' : 'Error'),
+        err.response?.data?.message || (isFr ? 'Échec de l\'envoi de la candidature. Veuillez réessayer.' : 'Failed to send application. Please try again.')
+      );
     } finally {
       setIsApplyingExternal(false);
     }
@@ -361,7 +374,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
               <View style={styles.modalHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.modalBadgeText, { color: '#2563EB' }]}>
-                    🌐 {selectedExternalJob?.companyName || 'External Opportunity'}
+                    {selectedExternalJob?.companyName || (isFr ? 'Offre externe' : 'External Opportunity')}
                   </Text>
                   <Text style={[styles.modalTitle, { color: colors.text }]}>
                     {selectedExternalJob?.title}
@@ -375,18 +388,20 @@ const TaskDiscoveryScreen = ({ navigation }) => {
               <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
                 <View style={[styles.noticeBox, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: '#BFDBFE' }]}>
                   <Text style={{ fontSize: 12, color: isDarkMode ? '#93C5FD' : '#1D4ED8', lineHeight: 18 }}>
-                    ⚡ <Text style={{ fontWeight: '800' }}>One-Tap Apply via Fixam</Text>: We deliver your CV and application directly to the recruiter's inbox. Replies go straight to your email.
+                    <Text style={{ fontWeight: '800' }}>{isFr ? 'Postuler via Fixam' : 'One-Tap Apply via Fixam'}</Text>: {isFr
+                      ? 'Votre CV et votre candidature sont transmis directement au recruteur. Les réponses arrivent directement sur votre e-mail.'
+                      : 'We deliver your CV and application directly to the recruiter\'s inbox. Replies go straight to your email.'}
                   </Text>
                 </View>
 
-                <Text style={[styles.inputLabel, { color: colors.text }]}>Full Name</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Nom complet' : 'Full Name'}</Text>
                 <TextInput
                   value={extApplicantName}
                   onChangeText={setExtApplicantName}
                   style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                 />
 
-                <Text style={[styles.inputLabel, { color: colors.text }]}>Email Address (Recruiter Replies)</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Adresse e-mail (Réponses directes)' : 'Email Address (Recruiter Replies)'}</Text>
                 <TextInput
                   value={extApplicantEmail}
                   onChangeText={setExtApplicantEmail}
@@ -395,7 +410,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
                   style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                 />
 
-                <Text style={[styles.inputLabel, { color: colors.text }]}>Phone Number</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Numéro de téléphone' : 'Phone Number'}</Text>
                 <TextInput
                   value={extApplicantPhone}
                   onChangeText={setExtApplicantPhone}
@@ -409,15 +424,15 @@ const TaskDiscoveryScreen = ({ navigation }) => {
                   <MaterialCommunityIcons name="file-document-check" size={22} color="#10B981" />
                   <View style={{ flex: 1, marginLeft: 8 }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
-                      {user?.cvName || 'Profile CV / Resume'}
+                      {user?.cvName || (isFr ? 'CV du profil Fixam' : 'Profile CV / Resume')}
                     </Text>
                     <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>
-                      ✓ Attached from your Fixam profile
+                      {isFr ? '✓ Joint depuis votre profil certifié Fixam' : '✓ Attached from your Fixam profile'}
                     </Text>
                   </View>
                 </View>
 
-                <Text style={[styles.inputLabel, { color: colors.text }]}>Cover Letter (Editable Draft)</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Message au recruteur (Brouillon modifiable)' : 'Cover Letter (Editable Draft)'}</Text>
                 <TextInput
                   value={extCoverLetter}
                   onChangeText={setExtCoverLetter}
@@ -433,7 +448,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
                   onPress={() => setSelectedExternalJob(null)}
                   style={[styles.modalCancelBtn, { borderColor: colors.border }]}
                 >
-                  <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+                  <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{isFr ? 'Annuler' : 'Cancel'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -446,7 +461,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
                   ) : (
                     <>
                       <MaterialCommunityIcons name="send" size={16} color="#FFF" />
-                      <Text style={styles.modalSubmitText}>Send Application</Text>
+                      <Text style={styles.modalSubmitText}>{isFr ? 'Envoyer la candidature' : 'Send Application'}</Text>
                     </>
                   )}
                 </TouchableOpacity>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, StatusBar, Modal, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, StatusBar, Modal, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,8 +21,9 @@ const CATEGORIES = [
 
 const FindJobsScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useTheme();
-  const { jobs, visibleJobs, hiddenJobIds, favoriteJobIds, toggleFavoriteJob, hideJob, showJob } = useAppContext();
-  const { t } = useLanguage();
+  const { jobs, visibleJobs, hiddenJobIds, favoriteJobIds, toggleFavoriteJob, hideJob, showJob, fetchAppData } = useAppContext();
+  const { t, locale, language } = useLanguage();
+  const isFr = (locale || language || '')?.startsWith('fr');
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'most_recent', 'remote_only', 'favorites' or 'rejected'
@@ -35,6 +36,7 @@ const FindJobsScreen = ({ navigation }) => {
   const [filterUrgency, setFilterUrgency] = useState('all'); // 'all', 'normal', 'urgent', 'emergency'
 
   const [externalJobs, setExternalJobs] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedExternalJob, setSelectedExternalJob] = useState(null);
   const [extApplicantName, setExtApplicantName] = useState('');
   const [extApplicantEmail, setExtApplicantEmail] = useState('');
@@ -43,23 +45,37 @@ const FindJobsScreen = ({ navigation }) => {
   const [extCvLink, setExtCvLink] = useState('');
   const [isApplyingExternal, setIsApplyingExternal] = useState(false);
 
-  useEffect(() => {
-    api.get('/external-jobs')
-      .then(res => {
-        if (res.data?.success && Array.isArray(res.data.data)) {
-          setExternalJobs(res.data.data.map(item => ({
-            ...item,
-            isExternal: true,
-            status: 'PENDING',
-            approvalStatus: 'APPROVED',
-            category: item.requirements || 'General Opportunity',
-            budget: 0,
-            location: item.location || 'Remote / Verified Partner'
-          })));
-        }
-      })
-      .catch(() => {});
+  const fetchExternalJobs = useCallback(async () => {
+    try {
+      const res = await api.get('/external-jobs');
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setExternalJobs(res.data.data.map(item => ({
+          ...item,
+          isExternal: true,
+          status: 'PENDING',
+          approvalStatus: 'APPROVED',
+          category: item.category || 'General Service',
+          budget: item.salary || item.budget || 0,
+          location: item.location || (item.isRemote ? 'Remote' : 'Verified Partner')
+        })));
+      }
+    } catch (_) {}
   }, []);
+
+  useEffect(() => {
+    fetchExternalJobs();
+    const unsub = navigation.addListener('focus', fetchExternalJobs);
+    return unsub;
+  }, [navigation, fetchExternalJobs]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.allSettled([
+      fetchExternalJobs(),
+      fetchAppData ? fetchAppData(true) : Promise.resolve()
+    ]);
+    setRefreshing(false);
+  };
 
   const handleOpenExternalJob = (job) => {
     setSelectedExternalJob(job);
@@ -68,13 +84,18 @@ const FindJobsScreen = ({ navigation }) => {
     setExtApplicantPhone(user?.phone || '');
     setExtCvLink(user?.cvUrl || '');
     setExtCoverLetter(
-      `Dear Hiring Team at ${job.companyName || 'the organization'},\n\nI am writing to express my strong interest in the ${job.title} position posted via Fixam. With my verified background and hands-on professional expertise, I am confident in delivering excellent results for your team.\n\nPlease find my resume attached from my Fixam verified profile. I welcome the opportunity to discuss how my experience aligns with your objectives.\n\nBest regards,\n${user?.fullName || 'Candidate'}`
+      isFr
+        ? `Madame, Monsieur l'équipe de recrutement chez ${job.companyName || "l'organisation"},\n\nJe vous adresse ma candidature pour le poste de ${job.title} publié via Fixam. Fort de mon expérience professionnelle vérifiée, je suis convaincu de pouvoir apporter une réelle valeur ajoutée à votre équipe.\n\nVous trouverez ci-joint mon CV issu de mon profil certifié Fixam. Je reste à votre entière disposition pour tout échange complémentaire.\n\nCordialement,\n${user?.fullName || 'Candidat'}`
+        : `Dear Hiring Team at ${job.companyName || 'the organization'},\n\nI am writing to express my strong interest in the ${job.title} position posted via Fixam. With my verified background and hands-on professional expertise, I am confident in delivering excellent results for your team.\n\nPlease find my resume attached from my Fixam verified profile. I welcome the opportunity to discuss how my experience aligns with your objectives.\n\nBest regards,\n${user?.fullName || 'Candidate'}`
     );
   };
 
   const handleSendExternalApplication = async () => {
     if (!extApplicantName.trim() || !extApplicantEmail.trim()) {
-      Alert.alert('Required Fields', 'Please ensure your name and email are provided.');
+      Alert.alert(
+        isFr ? 'Champs obligatoires' : 'Required Fields',
+        isFr ? 'Veuillez renseigner votre nom et votre adresse e-mail.' : 'Please ensure your name and email are provided.'
+      );
       return;
     }
 
@@ -91,15 +112,17 @@ const FindJobsScreen = ({ navigation }) => {
 
       if (res.data?.success) {
         Alert.alert(
-          'Application Sent! 🎉',
-          `Your application has been delivered directly to ${selectedExternalJob.companyName || 'the employer'}'s recruiter email. Replies will arrive directly at ${extApplicantEmail}.`,
-          [{ text: 'Great!', onPress: () => setSelectedExternalJob(null) }]
+          isFr ? 'Candidature envoyée ! 🎉' : 'Application Sent! 🎉',
+          isFr
+            ? `Votre candidature a été directement transmise à l'adresse de recrutement de ${selectedExternalJob.companyName || "l'employeur"}. Les réponses arriveront directement à ${extApplicantEmail}.`
+            : `Your application has been delivered directly to ${selectedExternalJob.companyName || 'the employer'}'s recruiter email. Replies will arrive directly at ${extApplicantEmail}.`,
+          [{ text: isFr ? 'Parfait !' : 'Great!', onPress: () => setSelectedExternalJob(null) }]
         );
       } else {
-        Alert.alert('Error', res.data?.message || 'Could not send application.');
+        Alert.alert(isFr ? 'Erreur' : 'Error', res.data?.message || (isFr ? 'Impossible d\'envoyer la candidature.' : 'Could not send application.'));
       }
     } catch (err) {
-      Alert.alert('Submission Failed', err.response?.data?.message || err.message || 'Error sending application');
+      Alert.alert(isFr ? 'Échec de l\'envoi' : 'Submission Failed', err.response?.data?.message || err.message || (isFr ? 'Erreur lors de l\'envoi de la candidature' : 'Error sending application'));
     } finally {
       setIsApplyingExternal(false);
     }
@@ -367,7 +390,18 @@ const FindJobsScreen = ({ navigation }) => {
       </View>
 
       {/* List */}
-      <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.listContent} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            colors={['#0D9488']} 
+            tintColor="#0D9488" 
+          />
+        }
+      >
 
         {filteredJobs.length === 0 ? (
           <View style={styles.empty}>
@@ -404,13 +438,13 @@ const FindJobsScreen = ({ navigation }) => {
                 {job.isExternal ? (
                   <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF', borderColor: '#BFDBFE' }]}>
                     <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#93C5FD' : '#2563EB' }]}>
-                      🌐 External Opportunity • {job.companyName || 'Verified Partner'}
+                      {isFr ? 'Offre externe' : 'External Opportunity'} • {job.companyName || (isFr ? 'Partenaire vérifié' : 'Verified Partner')}
                     </Text>
                   </View>
                 ) : (
                   <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#ECFDF5', borderColor: '#A7F3D0' }]}>
                     <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#A7F3D0' : '#047857' }]}>
-                      ⚡ Fixam Direct Job
+                      {isFr ? 'Mission directe Fixam' : 'Fixam Direct Job'}
                     </Text>
                   </View>
                 )}
@@ -436,9 +470,21 @@ const FindJobsScreen = ({ navigation }) => {
                 </View>
 
                 {/* Subtitle */}
-                <Text style={[styles.jobSubtitle, { color: colors.textSecondary }]}>
-                  {t('home.fixedPrice')} - {translateService(job.category || t('home.work')).toUpperCase()} - {t('home.estimatedBudget')}: {job.budget ? job.budget.toLocaleString() : '25,000'} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
-                </Text>
+                {job.isExternal ? (
+                  <Text style={[styles.jobSubtitle, { color: colors.textSecondary }]}>
+                    {translateService(job.category || 'General Service').toUpperCase()} • {
+                      job.salary && String(job.salary).trim()
+                        ? (isFr && String(job.salary).toLowerCase().includes('negotiable') ? 'Négociable' : isFr && String(job.salary).toLowerCase().includes('undisclosed') ? 'Non divulgué' : job.salary)
+                        : typeof job.budget === 'number' && job.budget > 0
+                          ? `${job.budget.toLocaleString()} ${getCurrencyForUser(job.country || user?.country || 'Cameroon')}`
+                          : (isFr ? 'Salaire non divulgué / Négociable' : 'Salary Undisclosed / Negotiable')
+                    }
+                  </Text>
+                ) : (
+                  <Text style={[styles.jobSubtitle, { color: colors.textSecondary }]}>
+                    {t('home.fixedPrice')} - {translateService(job.category || t('home.work')).toUpperCase()} - {t('home.estimatedBudget')}: {job.budget ? job.budget.toLocaleString() : '25,000'} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
+                  </Text>
+                )}
 
                 {/* Description */}
                 <Text style={[styles.jobDesc, { color: colors.textSecondary }]} numberOfLines={2}>
@@ -616,7 +662,7 @@ const FindJobsScreen = ({ navigation }) => {
             <View style={styles.extModalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.extModalBadgeText, { color: '#2563EB' }]}>
-                  🌐 {selectedExternalJob?.companyName || 'External Opportunity'}
+                  {selectedExternalJob?.companyName || (isFr ? 'Offre externe' : 'External Opportunity')}
                 </Text>
                 <Text style={[styles.extModalTitle, { color: colors.text }]}>
                   {selectedExternalJob?.title}
@@ -630,18 +676,20 @@ const FindJobsScreen = ({ navigation }) => {
             <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
               <View style={[styles.noticeBox, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: '#BFDBFE' }]}>
                 <Text style={{ fontSize: 12, color: isDarkMode ? '#93C5FD' : '#1D4ED8', lineHeight: 18 }}>
-                  ⚡ <Text style={{ fontWeight: '800' }}>One-Tap Apply via Fixam</Text>: We deliver your CV and application directly to the recruiter's inbox. Replies go straight to your email.
+                  <Text style={{ fontWeight: '800' }}>{isFr ? 'Postuler via Fixam' : 'One-Tap Apply via Fixam'}</Text>: {isFr
+                    ? 'Nous transmettons directement votre CV et votre candidature sur la boîte mail du recruteur. Les réponses arrivent directement sur votre e-mail.'
+                    : 'We deliver your CV and application directly to the recruiter\'s inbox. Replies go straight to your email.'}
                 </Text>
               </View>
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Full Name</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Nom complet' : 'Full Name'}</Text>
               <TextInput
                 value={extApplicantName}
                 onChangeText={setExtApplicantName}
                 style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
               />
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Email Address (Recruiter Replies)</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Adresse e-mail (Réponses directes)' : 'Email Address (Recruiter Replies)'}</Text>
               <TextInput
                 value={extApplicantEmail}
                 onChangeText={setExtApplicantEmail}
@@ -650,7 +698,7 @@ const FindJobsScreen = ({ navigation }) => {
                 style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
               />
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Phone Number</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Numéro de téléphone' : 'Phone Number'}</Text>
               <TextInput
                 value={extApplicantPhone}
                 onChangeText={setExtApplicantPhone}
@@ -660,11 +708,11 @@ const FindJobsScreen = ({ navigation }) => {
                 style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
               />
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>CV Document / Link (Google Sheets, Drive, or Profile CV)</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Document CV / Lien (Google Drive, Sheets ou Profil)' : 'CV Document / Link (Google Sheets, Drive, or Profile CV)'}</Text>
               <TextInput
                 value={extCvLink}
                 onChangeText={setExtCvLink}
-                placeholder="https://docs.google.com/spreadsheets/... or file link"
+                placeholder={isFr ? 'Lien Google Drive / Sheets ou CV...' : 'https://docs.google.com/spreadsheets/... or file link'}
                 placeholderTextColor={colors.placeholder}
                 autoCapitalize="none"
                 style={[styles.inputField, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
@@ -674,15 +722,15 @@ const FindJobsScreen = ({ navigation }) => {
                 <MaterialCommunityIcons name="file-document-check" size={22} color="#10B981" />
                 <View style={{ flex: 1, marginLeft: 8 }}>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
-                    {extCvLink ? (extCvLink.includes('docs.google.com/spreadsheets') ? 'Google Sheets Document' : 'Document Link Attached') : (user?.cvName || 'Profile CV / Resume')}
+                    {extCvLink ? (extCvLink.includes('docs.google.com/spreadsheets') ? (isFr ? 'Document Google Sheets' : 'Google Sheets Document') : (isFr ? 'Lien du document joint' : 'Document Link Attached')) : (user?.cvName || (isFr ? 'CV du profil Fixam' : 'Profile CV / Resume'))}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>
-                    ✓ Forwarded exactly as it is to the employer
+                    {isFr ? '✓ Transmis directement au recruteur' : '✓ Forwarded exactly as it is to the employer'}
                   </Text>
                 </View>
               </View>
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Cover Letter (Editable Draft)</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Message au recruteur (Brouillon modifiable)' : 'Cover Letter (Editable Draft)'}</Text>
               <TextInput
                 value={extCoverLetter}
                 onChangeText={setExtCoverLetter}
@@ -698,7 +746,7 @@ const FindJobsScreen = ({ navigation }) => {
                 onPress={() => setSelectedExternalJob(null)}
                 style={[styles.modalCancelBtn, { borderColor: colors.border }]}
               >
-                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{isFr ? 'Annuler' : 'Cancel'}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -711,7 +759,7 @@ const FindJobsScreen = ({ navigation }) => {
                 ) : (
                   <>
                     <MaterialCommunityIcons name="send" size={16} color="#FFF" />
-                    <Text style={styles.modalSubmitText}>Send Application</Text>
+                    <Text style={styles.modalSubmitText}>{isFr ? 'Envoyer la candidature' : 'Send Application'}</Text>
                   </>
                 )}
               </TouchableOpacity>

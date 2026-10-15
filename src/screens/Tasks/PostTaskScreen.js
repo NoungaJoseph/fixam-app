@@ -156,6 +156,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const { t, locale } = useLanguage();
   const { user } = useAuth();
   const currency = getCurrencyForUser(user);
+  const isFr = (locale || '')?.startsWith('fr');
   
   const [step, setStep] = useState('details'); // 'details', 'review', 'success'
   const [taskMode, setTaskMode] = useState(route?.params?.startOnPost ? 'post' : 'tasks');
@@ -197,6 +198,9 @@ const PostTaskScreen = ({ route, navigation }) => {
 
   const [materialsList, setMaterialsList] = useState([]);
   const [requiresDiagnosis, setRequiresDiagnosis] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [forwardToEmail, setForwardToEmail] = useState(false);
+  const [hiringEmail, setHiringEmail] = useState(user?.email || '');
 
   // Load draft from AsyncStorage on mount
   useEffect(() => {
@@ -340,6 +344,9 @@ const PostTaskScreen = ({ route, navigation }) => {
     setIsRemote(false);
     setMaterialsList([]);
     setRequiresDiagnosis(false);
+    setIsPinned(false);
+    setForwardToEmail(false);
+    setHiringEmail(user?.email || '');
     setScheduledDate(new Date());
     setScheduledTime(new Date());
     setHasRestoredDraft(false);
@@ -596,6 +603,9 @@ const PostTaskScreen = ({ route, navigation }) => {
         isRemote: Boolean(isRemote),
         materialsList: cleanedMaterialsList,
         requiresDiagnosis: Boolean(requiresDiagnosis),
+        isPinned: Boolean(isPinned),
+        forwardToEmail: Boolean(forwardToEmail),
+        hiringEmail: forwardToEmail && hiringEmail ? hiringEmail.trim() : undefined,
       };
       if (editingJob) {
         await api.put(`/jobs/${editingJob.id}`, payload);
@@ -1458,6 +1468,154 @@ const PostTaskScreen = ({ route, navigation }) => {
                 <MaterialCommunityIcons name="information-outline" size={20} color={colors.accent} />
                 <Text style={[styles.infoText, { color: colors.accent }]}>{t('jobs.taskApprovalNotification')}</Text>
               </View>
+            </View>
+
+            {/* Boost & Delivery Options Card */}
+            <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 16, padding: 16, marginVertical: 14 }}>
+              <View style={{ marginBottom: 4 }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text }}>
+                  {isFr ? 'Options de mise en avant & réception' : 'Boost & Delivery Options'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>
+                {isFr ? 'Options facultatives pour accélérer vos recrutements' : 'Optional upgrades to accelerate your hiring'}
+              </Text>
+
+              {/* Pin Job Option (5 Coins) */}
+              <TouchableOpacity
+                onPress={() => setIsPinned(!isPinned)}
+                activeOpacity={0.8}
+                style={{
+                  padding: 14,
+                  borderRadius: 12,
+                  borderWidth: 1.5,
+                  borderColor: isPinned ? '#EAB308' : colors.border,
+                  backgroundColor: isPinned ? (isDarkMode ? '#3A2E05' : '#FEFCE8') : (isDarkMode ? '#1E293B' : '#F8FAFC'),
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  marginBottom: 10
+                }}
+              >
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    borderWidth: 2,
+                    borderColor: isPinned ? '#CA8A04' : '#94A3B8',
+                    backgroundColor: isPinned ? '#EAB308' : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: 2
+                  }}
+                >
+                  {isPinned && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text }}>
+                      {isFr ? 'Épingler en haut (7 jours)' : 'Pin Job at Top (7 Days)'}
+                    </Text>
+                    <View style={{ backgroundColor: '#FEF08A', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#854D0E' }}>
+                        5 {isFr ? 'Pièces' : 'Coins'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 3, lineHeight: 15 }}>
+                    {isFr
+                      ? "Votre offre restera en tête de liste avec le badge 'EN VEDETTE' pour tous les prestataires."
+                      : "Your listing stays pinned at the very top of provider feeds with a 'FEATURED' badge for 7 days."}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Email Forwarding Option (3 Coins) */}
+              <TouchableOpacity
+                onPress={() => setForwardToEmail(!forwardToEmail)}
+                activeOpacity={0.8}
+                style={{
+                  padding: 14,
+                  borderRadius: 12,
+                  borderWidth: 1.5,
+                  borderColor: forwardToEmail ? '#0D9488' : colors.border,
+                  backgroundColor: forwardToEmail ? (isDarkMode ? '#064E3B22' : '#F0FDFA') : (isDarkMode ? '#1E293B' : '#F8FAFC'),
+                  gap: 8
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      borderWidth: 2,
+                      borderColor: forwardToEmail ? '#0D9488' : '#94A3B8',
+                      backgroundColor: forwardToEmail ? '#0D9488' : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginTop: 2
+                    }}
+                  >
+                    {forwardToEmail && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text }}>
+                        {isFr ? 'Transférer vers ma boîte mail' : 'Direct Email Forwarding'}
+                      </Text>
+                      <View style={{ backgroundColor: '#CCFBF1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: '#115E59' }}>
+                          3 {isFr ? 'Pièces' : 'Coins'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 3, lineHeight: 15 }}>
+                      {isFr
+                        ? "Recevez instantanément chaque CV et profil de candidat directement dans votre boîte mail."
+                        : "Instantly receive candidate resumes and full profiles directly into your recruitment email."}
+                    </Text>
+                  </View>
+                </View>
+
+                {forwardToEmail && (
+                  <View style={{ marginTop: 8, paddingLeft: 34 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textSecondary, marginBottom: 4 }}>
+                      {isFr ? 'Adresse e-mail de réception :' : 'Recruiter / Hiring Email:'}
+                    </Text>
+                    <TextInput
+                      value={hiringEmail}
+                      onChangeText={setHiringEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      placeholder="recruitment@yourcompany.com"
+                      placeholderTextColor={colors.placeholder}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        paddingVertical: 8,
+                        fontSize: 12,
+                        color: colors.text,
+                        backgroundColor: colors.background
+                      }}
+                    />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {(isPinned || forwardToEmail) && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                    {isFr ? 'Frais d\'options supplémentaires :' : 'Extra Options Fee:'}
+                  </Text>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent }}>
+                    {(isPinned ? 5 : 0) + (forwardToEmail ? 3 : 0)} Fixam Coins
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.buttonRow}>

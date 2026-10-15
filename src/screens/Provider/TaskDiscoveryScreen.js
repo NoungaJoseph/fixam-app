@@ -29,6 +29,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
   const [extApplicantEmail, setExtApplicantEmail] = useState(user?.email || '');
   const [extApplicantPhone, setExtApplicantPhone] = useState(user?.phone || '');
   const [extCoverLetter, setExtCoverLetter] = useState('');
+  const [isPriorityExternal, setIsPriorityExternal] = useState(false);
   const [isApplyingExternal, setIsApplyingExternal] = useState(false);
 
   const ITEMS_PER_PAGE = 10;
@@ -74,6 +75,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
   const handleTaskPress = (task) => {
     if (task.isExternal) {
       setSelectedExternalJob(task);
+      setIsPriorityExternal(false);
       setExtApplicantName(user?.fullName || '');
       setExtApplicantEmail(user?.email || '');
       setExtApplicantPhone(user?.phone || '');
@@ -103,7 +105,8 @@ const TaskDiscoveryScreen = ({ navigation }) => {
         applicantPhone: extApplicantPhone.trim(),
         coverLetter: extCoverLetter.trim(),
         cvUrl: user?.cvUrl || null,
-        cvName: user?.cvName || 'Profile CV'
+        cvName: user?.cvName || 'Profile CV',
+        isPriority: isPriorityExternal
       });
       if (res.data?.success) {
         Alert.alert(
@@ -152,7 +155,14 @@ const TaskDiscoveryScreen = ({ navigation }) => {
     >
       <View style={styles.taskHeader}>
         <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
+            {task.isPinned && (
+              <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#78350F' : '#FEFCE8', borderColor: '#FDE047' }]}>
+                <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#FDE047' : '#854D0E', fontWeight: '800' }]}>
+                  {isFr ? 'EN VEDETTE' : 'FEATURED'}
+                </Text>
+              </View>
+            )}
             {task.isExternal ? (
               <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF', borderColor: '#93C5FD' }]}>
                 <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#BFDBFE' : '#1D4ED8' }]}>
@@ -441,6 +451,76 @@ const TaskDiscoveryScreen = ({ navigation }) => {
                   textAlignVertical="top"
                   style={[styles.inputField, { height: 100, color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                 />
+
+                {/* Priority Application Boost Option */}
+                <TouchableOpacity
+                  onPress={() => setIsPriorityExternal(!isPriorityExternal)}
+                  activeOpacity={0.8}
+                  style={{
+                    marginVertical: 10,
+                    padding: 12,
+                    borderRadius: 12,
+                    borderWidth: 1.5,
+                    borderColor: isPriorityExternal ? '#EAB308' : (isDarkMode ? '#334155' : '#E2E8F0'),
+                    backgroundColor: isPriorityExternal ? (isDarkMode ? '#3A2E05' : '#FEFCE8') : (isDarkMode ? '#1E293B' : '#F8FAFC'),
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      borderWidth: 2,
+                      borderColor: isPriorityExternal ? '#CA8A04' : '#94A3B8',
+                      backgroundColor: isPriorityExternal ? '#EAB308' : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {isPriorityExternal && (
+                      <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text }}>
+                        {isFr ? 'Candidature Prioritaire' : 'Priority Application Boost'}
+                      </Text>
+                      <View style={{ backgroundColor: '#FEF08A', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: '#854D0E' }}>
+                          2 {isFr ? 'Pièces' : 'Coins'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2, lineHeight: 15 }}>
+                      {isFr
+                        ? "Bannière dorée 'Candidat Recommandé Fixam' et mention prioritaire dans l'e-mail du recruteur."
+                        : "Gold 'Fixam Recommended Candidate' banner and priority subject line in recruiter's inbox."}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Live Tracking Information */}
+                <View
+                  style={{
+                    marginBottom: 12,
+                    padding: 10,
+                    borderRadius: 8,
+                    backgroundColor: isDarkMode ? '#1E3A8A22' : '#EFF6FF',
+                    borderWidth: 1,
+                    borderColor: isDarkMode ? '#1E3A8A' : '#BFDBFE'
+                  }}
+                >
+                  <Text style={{ fontSize: 11, color: isDarkMode ? '#93C5FD' : '#1D4ED8', lineHeight: 16 }}>
+                    <Text style={{ fontWeight: '700' }}>{isFr ? 'Suivi en direct : ' : 'Live tracking: '}</Text>
+                    {isFr
+                      ? "Vous recevrez une notification push et un e-mail dès que le recruteur consultera votre CV."
+                      : "You'll receive a push notification & email the instant the employer opens your CV."}
+                  </Text>
+                </View>
               </ScrollView>
 
               <View style={styles.modalActions}>

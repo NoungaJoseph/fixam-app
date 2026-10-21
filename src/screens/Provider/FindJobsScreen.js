@@ -84,11 +84,11 @@ const FindJobsScreen = ({ navigation }) => {
     setExtApplicantName(user?.fullName || '');
     setExtApplicantEmail(user?.email || '');
     setExtApplicantPhone(user?.phone || '');
-    setExtCvLink(user?.cvUrl || '');
+    setExtCvLink('');
     setExtCoverLetter(
       isFr
         ? `Madame, Monsieur l'équipe de recrutement chez ${job.companyName || "l'organisation"},\n\nJe vous adresse ma candidature pour le poste de ${job.title} publié via Fixam. Fort de mon expérience professionnelle vérifiée, je suis convaincu de pouvoir apporter une réelle valeur ajoutée à votre équipe.\n\nVous trouverez ci-joint mon CV issu de mon profil certifié Fixam. Je reste à votre entière disposition pour tout échange complémentaire.\n\nCordialement,\n${user?.fullName || 'Candidat'}`
-        : `Dear Hiring Team at ${job.companyName || 'the organization'},\n\nI am writing to express my strong interest in the ${job.title} position posted via Fixam. With my verified background and hands-on professional expertise, I am confident in delivering excellent results for your team.\n\nPlease find my resume attached from my Fixam verified profile. I welcome the opportunity to discuss how my experience aligns with your objectives.\n\nBest regards,\n${user?.fullName || 'Candidate'}`
+        : `Dear Hiring Team at ${job.companyName || 'the organization'},\n\nI am writing to express my strong interest in the ${job.title} position posted via Fixam. With my verified background and hands-on professional expertise, I am confident in delivering excellent results for your team.\n\nI welcome the opportunity to discuss how my experience aligns with your objectives.\n\nBest regards,\n${user?.fullName || 'Candidate'}`
     );
   };
 
@@ -108,8 +108,8 @@ const FindJobsScreen = ({ navigation }) => {
         applicantEmail: extApplicantEmail.trim(),
         applicantPhone: extApplicantPhone.trim(),
         coverLetter: extCoverLetter.trim(),
-        cvUrl: extCvLink.trim() || user?.cvUrl || null,
-        cvName: user?.cvName || 'Profile CV',
+        cvUrl: extCvLink.trim() || null,
+        cvName: extCvLink.trim() ? (user?.cvName || 'CV document') : null,
         isPriority: isPriorityExternal
       });
 
@@ -140,7 +140,9 @@ const FindJobsScreen = ({ navigation }) => {
       if (hasAcceptedAssignment) return false;
       return true;
     });
-    return [...externalJobs, ...regular];
+    // The dashboard response can already contain external jobs. De-duplicate the
+    // merged feeds so one listing never appears twice.
+    return Array.from(new Map([...regular, ...externalJobs].map(job => [job.id, job])).values());
   }, [jobs, externalJobs, user?.id]);
 
   const favoritesCount = useMemo(() => {
@@ -429,10 +431,6 @@ const FindJobsScreen = ({ navigation }) => {
                 key={job.id}
                 style={[styles.jobCard, { backgroundColor: colors.background, borderBottomColor: colors.border }]}
                 onPress={() => {
-                  if (job.isExternal) {
-                    handleOpenExternalJob(job);
-                    return;
-                  }
                   navigation.navigate('TaskDetails', { task: job, taskId: job.id });
                 }}
                 activeOpacity={0.84}
@@ -448,14 +446,14 @@ const FindJobsScreen = ({ navigation }) => {
                   )}
                   {job.isExternal ? (
                     <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF', borderColor: '#BFDBFE', marginBottom: 0 }]}>
-                      <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#93C5FD' : '#2563EB' }]}>
-                        {isFr ? 'Offre externe' : 'External Opportunity'} • {job.companyName || (isFr ? 'Partenaire vérifié' : 'Verified Partner')}
+                      <Text style={[styles.externalBadgeText, { color: colors.accent }]}>
+                        {job.companyName || (isFr ? 'Partenaire vérifié' : 'Verified Partner')}
                       </Text>
                     </View>
                   ) : (
                     <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#ECFDF5', borderColor: '#A7F3D0', marginBottom: 0 }]}>
                       <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#A7F3D0' : '#047857' }]}>
-                        {isFr ? 'Mission directe Fixam' : 'Fixam Direct Job'}
+                        {job.category || (isFr ? 'Mission' : 'Job')}
                       </Text>
                     </View>
                   )}
@@ -529,7 +527,7 @@ const FindJobsScreen = ({ navigation }) => {
                     <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.textSecondary} />
                     <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{job.location || '4.1070, 9.7619'}</Text>
                   </View>
-                  <TouchableOpacity style={styles.applyBtn} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
+                  <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.accent }]} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
                     <Text style={styles.applyBtnText}>{t('home.apply')}</Text>
                   </TouchableOpacity>
                 </View>
@@ -673,8 +671,8 @@ const FindJobsScreen = ({ navigation }) => {
           <View style={[styles.extModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.extModalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.extModalBadgeText, { color: '#2563EB' }]}>
-                  {selectedExternalJob?.companyName || (isFr ? 'Offre externe' : 'External Opportunity')}
+                <Text style={[styles.extModalBadgeText, { color: colors.accent }]}>
+                  {selectedExternalJob?.companyName || (isFr ? 'Entreprise vérifiée' : 'Verified company')}
                 </Text>
                 <Text style={[styles.extModalTitle, { color: colors.text }]}>
                   {selectedExternalJob?.title}
@@ -688,10 +686,21 @@ const FindJobsScreen = ({ navigation }) => {
             <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
               <View style={[styles.noticeBox, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: '#BFDBFE' }]}>
                 <Text style={{ fontSize: 12, color: isDarkMode ? '#93C5FD' : '#1D4ED8', lineHeight: 18 }}>
-                  <Text style={{ fontWeight: '800' }}>{isFr ? 'Postuler via Fixam' : 'One-Tap Apply via Fixam'}</Text>: {isFr
+                  <Text style={{ fontWeight: '800' }}>{isFr ? 'Postuler maintenant' : 'Apply now'}</Text>: {isFr
                     ? 'Nous transmettons directement votre CV et votre candidature sur la boîte mail du recruteur. Les réponses arrivent directement sur votre e-mail.'
                     : 'We deliver your CV and application directly to the recruiter\'s inbox. Replies go straight to your email.'}
                 </Text>
+              </View>
+
+              <View style={{ marginBottom: 14 }}>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Aperçu du poste' : 'Job overview'}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20 }}>{selectedExternalJob?.description}</Text>
+                {Array.isArray(selectedExternalJob?.details) && selectedExternalJob.details.filter(detail => detail?.key !== 'description' && detail?.content).map(detail => (
+                  <View key={detail.key} style={{ marginTop: 12 }}>
+                    <Text style={[styles.inputLabel, { color: colors.text }]}>{detail.label}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20 }}>{detail.content}</Text>
+                  </View>
+                ))}
               </View>
 
               <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Nom complet' : 'Full Name'}</Text>
@@ -992,7 +1001,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   moreText: {
-    color: '#2563EB',
+    color: '#0D9488',
     fontWeight: '800',
   },
   tagsRow: {
@@ -1062,7 +1071,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   applyBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
@@ -1280,7 +1289,7 @@ const styles = StyleSheet.create({
   },
   modalSubmitBtn: {
     flex: 2,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingVertical: 14,
     borderRadius: 12,
     flexDirection: 'row',

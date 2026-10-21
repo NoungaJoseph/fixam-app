@@ -114,6 +114,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const taskMaterialsProvider = displayTask.materialsProvider || task.materialsProvider;
   const rawDescription = displayTask.notes || displayTask.description || task.notes || task.description || '';
   const taskDescription = rawDescription.replace(/\[(?:Workforce Required|Effectif requis)[^\]]*\]/gi, '').trim();
+  const externalDetails = isExternalJob && Array.isArray(displayTask.details)
+    ? displayTask.details.filter((detail) => detail && detail.key !== 'description' && detail.content)
+    : [];
   const providersNeeded = Number(displayTask.providersNeeded || task.providersNeeded || 1);
 
   const photos = displayTask.photos?.length ? displayTask.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : (task.photos?.length ? task.photos.map((photo) => (typeof photo === 'string' ? { uri: getMediaUrl(photo) } : photo)) : []);
@@ -206,8 +209,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         applicantEmail: extApplicantEmail.trim(),
         applicantPhone: extApplicantPhone.trim(),
         coverLetter: extCoverLetter.trim(),
-        cvUrl: extCvLink.trim() || user?.cvUrl || null,
-        cvName: user?.cvName || 'Profile CV'
+        cvUrl: extCvLink.trim() || null,
+        cvName: extCvLink.trim() ? (user?.cvName || 'CV document') : null
       });
 
       if (res.data?.success) {
@@ -232,9 +235,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
       setExtApplicantName(user?.fullName || '');
       setExtApplicantEmail(user?.email || '');
       setExtApplicantPhone(user?.phone || '');
-      setExtCvLink(user?.cvUrl || '');
+      setExtCvLink('');
       setExtCoverLetter(
-        `Dear Hiring Team at ${displayTask.companyName || 'the organization'},\n\nI am writing to express my strong interest in the ${displayTask.title} position posted via Fixam. With my verified background and hands-on professional expertise, I am confident in delivering excellent results for your team.\n\nPlease find my resume attached from my Fixam verified profile. I welcome the opportunity to discuss how my experience aligns with your objectives.\n\nBest regards,\n${user?.fullName || 'Candidate'}`
+        `Dear Hiring Team at ${displayTask.companyName || 'the organization'},\n\nI am writing to express my strong interest in the ${displayTask.title} position posted via Fixam. With my verified background and hands-on professional expertise, I am confident in delivering excellent results for your team.\n\nI welcome the opportunity to discuss how my experience aligns with your objectives.\n\nBest regards,\n${user?.fullName || 'Candidate'}`
       );
       setShowExternalApplyModal(true);
       return;
@@ -515,6 +518,13 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             </>
           ) : null}
 
+          {externalDetails.map((detail) => (
+            <React.Fragment key={detail.key}>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{detail.label}</Text>
+              <Text style={[styles.longText, { color: colors.textSecondary }]}>{detail.content}</Text>
+            </React.Fragment>
+          ))}
+
           {(jobDetails.whatNeedsDone || task.whatNeedsDone) ? (
             <>
               <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{t('jobs.whatNeedsDone')}</Text>
@@ -528,6 +538,15 @@ const TaskDetailsScreen = ({ route, navigation }) => {
               <Text style={[styles.longText, { color: colors.textSecondary }]}>{jobDetails.importantDetails || task.importantDetails}</Text>
             </>
           ) : null}
+
+          {(Array.isArray(jobDetails.details) ? jobDetails.details : Array.isArray(task.details) ? task.details : []).map((detail, index) => (
+            detail?.content ? (
+              <React.Fragment key={`${detail.key || detail.label || 'detail'}-${index}`}>
+                <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 18 }]}>{detail.label}</Text>
+                <Text style={[styles.longText, { color: colors.textSecondary }]}>{detail.content}</Text>
+              </React.Fragment>
+            ) : null
+          ))}
 
           <MaterialsListDisplay
             materialsList={displayTask.materialsList || task.materialsList}
@@ -630,7 +649,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
           ) : (
             <Text style={styles.proposalTitle}>
               {isExternalJob
-                ? (hasApplied ? 'Applied via Fixam' : 'Apply via Fixam (1-Tap)')
+                ? (hasApplied ? 'Applied' : 'Apply now')
                 : isBooking 
                   ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')) 
                   : (hasApplied ? t('jobs.applied', 'Applied') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
@@ -665,7 +684,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             <View style={styles.extModalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.extModalBadgeText, { color: '#2563EB' }]}>
-                  🌐 {displayTask.companyName || 'External Opportunity'}
+                  {displayTask.companyName || 'Verified company'}
                 </Text>
                 <Text style={[styles.extModalTitle, { color: colors.text }]}>
                   {displayTask.title}
@@ -679,7 +698,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
               <View style={[styles.noticeBox, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: '#BFDBFE' }]}>
                 <Text style={{ fontSize: 12, color: isDarkMode ? '#93C5FD' : '#1D4ED8', lineHeight: 18 }}>
-                  ⚡ <Text style={{ fontWeight: '800' }}>One-Tap Apply via Fixam</Text>: We deliver your CV and application directly to the recruiter's inbox. Replies go straight to your email.
+                  Your CV and application are delivered directly to the recruiter's inbox. Replies go straight to your email.
                 </Text>
               </View>
 

@@ -1,6 +1,8 @@
 {
   "project": {
     "sendProposal": "Send Proposal",
+    "requestThisService": "Request this service",
+    "quoteRequestHint": "The provider will send clear terms for your review.",
     "buyExactProject": "Buy / Request this exact project",
     "buyExactSub": "Proceed with the features and deliverables described in this project",
     "requestSimilarService": "Request a custom service similar to this project",

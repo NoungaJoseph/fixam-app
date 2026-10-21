@@ -581,9 +581,7 @@ const ProviderProfileScreen = ({ route, navigation }) => {
         {/* About Me Section */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.sectionTitle, { color: isDarkMode ? '#FFF' : '#0F172A' }]}>{t('profile.aboutMe')}</Text>
-          <View style={[styles.aboutCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}>
-            <Text style={[styles.aboutText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>{bio}</Text>
-          </View>
+          <Text style={[styles.aboutText, styles.aboutTextEditorial, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>{bio}</Text>
         </View>
 
 
@@ -1352,6 +1350,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.02,
     shadowRadius: 4,
     elevation: 1,
+  },
+  aboutTextEditorial: {
+    paddingVertical: 2,
+    paddingHorizontal: 0,
+    borderLeftWidth: 0,
   },
   aboutText: {
     fontSize: 14,

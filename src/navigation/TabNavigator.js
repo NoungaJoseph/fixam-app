@@ -60,6 +60,7 @@ import CoinPaymentFormScreen from '../screens/Wallet/CoinPaymentFormScreen';
 import CoinPaymentSuccessScreen from '../screens/Wallet/CoinPaymentSuccessScreen';
 import CoinPaymentFailedScreen from '../screens/Wallet/CoinPaymentFailedScreen';
 import BookingFormScreen from '../screens/Bookings/BookingFormScreen';
+import RevisedQuoteScreen from '../screens/Bookings/RevisedQuoteScreen';
 import TaskDetailsScreen from '../screens/Provider/TaskDetailsScreen';
 import ProposalDetailScreen from '../screens/Tasks/ProposalDetailScreen';
 
@@ -353,6 +354,7 @@ const TabNavigator = () => {
       <Drawer.Screen name="FavoriteProviders" component={FavoriteProvidersScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="PopularServices" component={PopularServicesScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="BookingForm" component={BookingFormScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="RevisedQuote" component={RevisedQuoteScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Rating" component={RatingScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="UserProfile" component={DashboardScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfileEditItem" component={ProviderProfileEditItemScreen} options={{ drawerItemStyle: { display: 'none' } }} />

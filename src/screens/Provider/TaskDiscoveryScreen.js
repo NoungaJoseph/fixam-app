@@ -55,7 +55,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
       ]);
       const direct = res.status === 'fulfilled' ? (res.value.data?.data || []) : [];
       const external = extRes.status === 'fulfilled' ? (extRes.value.data?.data || []) : [];
-      setTasks([...direct, ...external]);
+      setTasks(Array.from(new Map([...direct, ...external].map(task => [task.id, task])).values()));
       setCurrentPage(res.status === 'fulfilled' ? (res.value.data?.pagination?.page || 1) : 1);
       setTotalPages(res.status === 'fulfilled' ? (res.value.data?.pagination?.pages || 1) : 1);
     } catch (error) {
@@ -104,8 +104,8 @@ const TaskDiscoveryScreen = ({ navigation }) => {
         applicantEmail: extApplicantEmail.trim(),
         applicantPhone: extApplicantPhone.trim(),
         coverLetter: extCoverLetter.trim(),
-        cvUrl: user?.cvUrl || null,
-        cvName: user?.cvName || 'Profile CV',
+        cvUrl: null,
+        cvName: null,
         isPriority: isPriorityExternal
       });
       if (res.data?.success) {
@@ -166,7 +166,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
             {task.isExternal ? (
               <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF', borderColor: '#93C5FD' }]}>
                 <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#BFDBFE' : '#1D4ED8' }]}>
-                  🌐 {task.companyName ? `${task.companyName} • External` : 'External Opportunity'}
+                  {task.companyName || (isFr ? 'Entreprise vérifiée' : 'Verified company')}
                 </Text>
               </View>
             ) : (
@@ -384,7 +384,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
               <View style={styles.modalHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.modalBadgeText, { color: '#2563EB' }]}>
-                    {selectedExternalJob?.companyName || (isFr ? 'Offre externe' : 'External Opportunity')}
+                    {selectedExternalJob?.companyName || (isFr ? 'Entreprise vérifiée' : 'Verified company')}
                   </Text>
                   <Text style={[styles.modalTitle, { color: colors.text }]}>
                     {selectedExternalJob?.title}
@@ -398,10 +398,21 @@ const TaskDiscoveryScreen = ({ navigation }) => {
               <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
                 <View style={[styles.noticeBox, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: '#BFDBFE' }]}>
                   <Text style={{ fontSize: 12, color: isDarkMode ? '#93C5FD' : '#1D4ED8', lineHeight: 18 }}>
-                    <Text style={{ fontWeight: '800' }}>{isFr ? 'Postuler via Fixam' : 'One-Tap Apply via Fixam'}</Text>: {isFr
+                    <Text style={{ fontWeight: '800' }}>{isFr ? 'Postuler maintenant' : 'Apply now'}</Text>: {isFr
                       ? 'Votre CV et votre candidature sont transmis directement au recruteur. Les réponses arrivent directement sur votre e-mail.'
                       : 'We deliver your CV and application directly to the recruiter\'s inbox. Replies go straight to your email.'}
                   </Text>
+                </View>
+
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Aperçu du poste' : 'Job overview'}</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20 }}>{selectedExternalJob?.description}</Text>
+                  {Array.isArray(selectedExternalJob?.details) && selectedExternalJob.details.filter(detail => detail?.key !== 'description' && detail?.content).map(detail => (
+                    <View key={detail.key} style={{ marginTop: 12 }}>
+                      <Text style={[styles.inputLabel, { color: colors.text }]}>{detail.label}</Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20 }}>{detail.content}</Text>
+                    </View>
+                  ))}
                 </View>
 
                 <Text style={[styles.inputLabel, { color: colors.text }]}>{isFr ? 'Nom complet' : 'Full Name'}</Text>

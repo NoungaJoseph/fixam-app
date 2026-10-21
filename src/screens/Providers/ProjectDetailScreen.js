@@ -252,7 +252,9 @@ const ProjectDetailScreen = ({ route, navigation }) => {
       Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
       return;
     }
-    if (!isIdentityVerified(user)) {
+    // A client should be able to continue to the project-request form.
+    // Verification is only required when a provider account is booking work.
+    if (user?.role === 'PROVIDER' && !isIdentityVerified(user)) {
       setVerificationMessage(t(getVerificationMessageKey(user, 'booking')));
       setShowVerificationModal(true);
       return;
@@ -392,7 +394,7 @@ const ProjectDetailScreen = ({ route, navigation }) => {
         {/* Provider Profile Info Row (Client view only) */}
         {!isOwner && (
           <TouchableOpacity
-            style={[styles.providerHeaderCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: isDarkMode ? '#1F2937' : '#F1F5F9' }]}
+            style={[styles.providerHeaderCard, { backgroundColor: 'transparent', borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
             onPress={() => navigation.navigate('ProviderProfile', { provider })}
             activeOpacity={0.8}
           >
@@ -450,7 +452,7 @@ const ProjectDetailScreen = ({ route, navigation }) => {
           </View>
 
           {/* Active Tier Details Card */}
-          <View style={[styles.tierDetailCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: isDarkMode ? '#1F2937' : '#E2E8F0' }]}>
+          <View style={[styles.tierDetailCard, { backgroundColor: 'transparent', borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}>
             <Text style={[styles.tierTitleText, { color: isDarkMode ? '#FFFFFF' : '#0F172A' }]}>
               {tierNameTranslated}
             </Text>
@@ -512,7 +514,7 @@ const ProjectDetailScreen = ({ route, navigation }) => {
                 onPress={handleBook}
               >
                 <Text style={styles.continueBtnText}>
-                  {t('common.continue', 'Continue')} ({currencyStr} {finalPrice})
+                  {t('project.requestThisService', 'Request this service')} · {currencyStr} {finalPrice}
                 </Text>
               </TouchableOpacity>
             )}
@@ -804,8 +806,9 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 10,
     padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
   },
   providerNameText: {
     fontSize: 15,
@@ -871,9 +874,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   tierDetailCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 18,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 2,
   },
   tierTitleText: {
     fontSize: 14,

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { Alert, AppState, Linking, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { INACTIVITY_TIMEOUT } from './src/context/AuthContext';
 import * as Sentry from '@sentry/react-native';
 import axios from 'axios';
+import Constants from 'expo-constants';
 import MaintenanceScreen from './src/screens/MaintenanceScreen';
 import notificationService from './src/services/notificationService';
 import AnimatedSplashScreen from './src/screens/Auth/AnimatedSplashScreen';
@@ -91,6 +92,47 @@ const useMaintenanceCheck = () => {
   return { appReady, maintenance, maintenanceMsg };
 };
 
+const compareVersions = (left, right) => {
+  const a = String(left || '0').split('.').map(part => Number.parseInt(part, 10) || 0);
+  const b = String(right || '0').split('.').map(part => Number.parseInt(part, 10) || 0);
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index += 1) {
+    if ((a[index] || 0) > (b[index] || 0)) return 1;
+    if ((a[index] || 0) < (b[index] || 0)) return -1;
+  }
+  return 0;
+};
+
+const useAppUpdateCheck = () => {
+  const shownForVersion = useRef(null);
+  const checkForUpdate = React.useCallback(async () => {
+    try {
+      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.usefixam.com/api';
+      const response = await axios.get(`${API_URL}/system/status`, { timeout: 10000 });
+      const update = response.data?.appUpdate;
+      const installedVersion = Constants.expoConfig?.version || '0.0.0';
+      const availableVersion = update?.latestVersion;
+      if (!availableVersion || compareVersions(availableVersion, installedVersion) <= 0 || shownForVersion.current === availableVersion) return;
+      shownForVersion.current = availableVersion;
+      const forceUpdate = Boolean(update.required) || (update.minimumVersion && compareVersions(installedVersion, update.minimumVersion) < 0);
+      const storeUrl = Platform.OS === 'ios' ? update.iosUrl : update.androidUrl;
+      const openStore = async () => {
+        try { await Linking.openURL(storeUrl); } catch (_) { Alert.alert('Update available', 'Please visit your app store to update Fixam.'); }
+      };
+      Alert.alert('Update available', update.message || `Fixam ${availableVersion} is available.`, forceUpdate
+        ? [{ text: 'Update now', onPress: openStore }]
+        : [{ text: 'Later', style: 'cancel' }, { text: 'Update now', onPress: openStore }]);
+    } catch (_) {
+      // A version check must never prevent a user from opening Fixam.
+    }
+  }, []);
+  React.useEffect(() => {
+    checkForUpdate();
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') checkForUpdate(); });
+    return () => subscription.remove();
+  }, [checkForUpdate]);
+};
+
 const AppChrome = () => {
   const { isDarkMode, colors } = useTheme();
   const { user, token, isRestoring, logout } = useAuth();
@@ -98,6 +140,7 @@ const AppChrome = () => {
   const [locked, setLocked] = useState(false);
   const backgroundAtRef = useRef(null);
   const initialLockCheckedRef = useRef(false);
+  useAppUpdateCheck();
 
   useEffect(() => {
     if (user && token) {

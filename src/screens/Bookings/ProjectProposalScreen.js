@@ -31,6 +31,8 @@ const ProjectProposalScreen = ({ route, navigation }) => {
   const providerUserId = provider?.user?.id || provider?.userId || provider?.id;
 
   const [proposalType, setProposalType] = useState('EXACT'); // EXACT or SIMILAR
+  const [budgetType, setBudgetType] = useState('FIXED_BUDGET');
+  const [paymentPreference, setPaymentPreference] = useState('AGREE_WITH_PROVIDER');
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState(String(project.price || provider.rate || 50));
   const [days, setDays] = useState('5');
@@ -47,7 +49,9 @@ const ProjectProposalScreen = ({ route, navigation }) => {
       Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
       return;
     }
-    if (!isIdentityVerified(user)) {
+    // Client accounts can request a project without provider verification.
+    // Provider accounts retain the verification requirement enforced by the API.
+    if (user?.role === 'PROVIDER' && !isIdentityVerified(user)) {
       setVerificationMessage(t(getVerificationMessageKey(user, 'booking')));
       setShowVerificationModal(true);
       return;
@@ -75,7 +79,7 @@ const ProjectProposalScreen = ({ route, navigation }) => {
       await api.post('/bookings', {
         providerId: providerUserId,
         isProposal: true,
-        budget: proposalBudget,
+        budget: budgetType === 'REQUEST_QUOTE' ? 0 : Number(budget),
         bookingDate: new Date().toISOString(),
         bookingTime: '09:00',
         bookingDuration: 'DAY',
@@ -83,6 +87,8 @@ const ProjectProposalScreen = ({ route, navigation }) => {
         location: `Project: ${project.title || 'Custom Service'} (${project.selectedTier?.name || 'Package'})`,
         materialsList: cleanedMaterialsList,
         requiresDiagnosis,
+        budgetType,
+        paymentPreference,
       });
 
       // 2. Fetch or create conversation
@@ -90,7 +96,8 @@ const ProjectProposalScreen = ({ route, navigation }) => {
       const conversation = convRes.data.data;
 
       // 3. Send proposal message into conversation
-      const proposalText = `📋 *PROPOSAL FOR PROJECT*: ${project.title || 'Custom Service'}\nType: ${proposalType === 'EXACT' ? 'Buy Exact Project' : 'Similar Custom Service'}\nPackage: ${project.selectedTier?.name || 'STANDARD'}\nOffered Price: ${currencyStr} ${budget}\nTimeline: ${days} Days\n\nRequirements:\n${description.trim()}`;
+      const priceText = budgetType === 'REQUEST_QUOTE' ? 'Quote requested' : `${currencyStr} ${budget}`;
+      const proposalText = `PROJECT PROPOSAL: ${project.title || 'Custom Service'}\nType: ${proposalType === 'EXACT' ? 'Buy Exact Project' : 'Similar Custom Service'}\nPackage: ${project.selectedTier?.name || 'STANDARD'}\nBudget: ${priceText}\nTimeline: ${days} Days\nPayment: ${paymentPreference}\n\nRequirements:\n${description.trim()}`;
       await api.post(`/chat/conversations/${conversation.id}/messages`, { content: proposalText, type: 'TEXT' });
 
       Alert.alert(
@@ -137,7 +144,7 @@ const ProjectProposalScreen = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         {/* Project & Provider Banner */}
-        <View style={[styles.projectBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.projectBanner, { borderColor: colors.border }]}>
           <Text style={[styles.bannerTitle, { color: colors.text }]} numberOfLines={2}>
             {project.title || 'Project Proposal'}
           </Text>
@@ -149,13 +156,17 @@ const ProjectProposalScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        <Text style={[styles.directPaymentNote, { color: colors.textSecondary, borderTopColor: colors.border }]}>
+          {t('booking.bookings.directPaymentNotice', 'Fixam does not collect or hold service payments. You agree and pay directly.')}
+        </Text>
+
         {/* Proposal Intent Radio Group */}
         <Text style={[styles.fieldLabel, { color: colors.text, marginTop: 14 }]}>{t('project.proposalTypeLabel', 'Select Proposal Type')}</Text>
         <TouchableOpacity
           style={[
             styles.radioOption,
             {
-              backgroundColor: colors.card,
+              backgroundColor: colors.background,
               borderColor: proposalType === 'EXACT' ? colors.accent : colors.border
             }
           ]}
@@ -177,7 +188,7 @@ const ProjectProposalScreen = ({ route, navigation }) => {
           style={[
             styles.radioOption,
             {
-              backgroundColor: colors.card,
+              backgroundColor: colors.background,
               borderColor: proposalType === 'SIMILAR' ? colors.accent : colors.border
             }
           ]}
@@ -199,7 +210,7 @@ const ProjectProposalScreen = ({ route, navigation }) => {
         <View style={styles.fieldGroup}>
           <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.requirementsLabel', 'Proposal Description / Requirements')} *</Text>
           <TextInput
-            style={[styles.input, styles.multiInput, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+            style={[styles.input, styles.multiInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
             placeholder={t('project.requirementsPlaceholder', 'Describe your project requirements, scope, and specific instructions...')}
             placeholderTextColor={colors.placeholder}
             multiline
@@ -216,28 +227,40 @@ const ProjectProposalScreen = ({ route, navigation }) => {
           onToggleDiagnosis={setRequiresDiagnosis}
         />
 
-        {/* Offered Price & Timeline */}
+        {/* Budget, payment and timeline */}
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('booking.bookings.budget', 'Budget')}</Text>
+        <View style={styles.intentRow}>
+          {[['FIXED_BUDGET', t('booking.bookings.myBudget', 'My budget')], ['REQUEST_QUOTE', t('booking.bookings.requestQuote', 'Request a quote')]].map(([value, label]) => (
+            <TouchableOpacity key={value} onPress={() => setBudgetType(value)} style={[styles.intentChip, { borderColor: budgetType === value ? colors.accent : colors.border, backgroundColor: budgetType === value ? `${colors.accent}14` : colors.background }]}><Text style={{ color: budgetType === value ? colors.accent : colors.text, fontWeight: '800' }}>{label}</Text></TouchableOpacity>
+          ))}
+        </View>
         <View style={styles.rowTwo}>
-          <View style={{ flex: 1 }}>
+          {budgetType === 'FIXED_BUDGET' ? <View style={{ flex: 1 }}>
             <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.offeredBudget', 'Offered Budget')} ({currencyStr})</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
               placeholder="50"
               keyboardType="numeric"
               value={budget}
               onChangeText={setBudget}
             />
-          </View>
+          </View> : <View style={{ flex: 1 }}><Text style={[styles.quoteHint, { color: colors.textSecondary }]}>{t('booking.bookings.requestQuote', 'Request a quote')}</Text><Text style={[styles.quoteSub, { color: colors.textSecondary }]}>{t('project.quoteRequestHint', 'The provider will send clear terms for your review.')}</Text></View>}
           <View style={{ flex: 1 }}>
             <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.timelineDays', 'Expected Days')}</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
               placeholder="5"
               keyboardType="numeric"
               value={days}
               onChangeText={setDays}
             />
           </View>
+        </View>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('booking.bookings.paymentPreference', 'Payment preference')}</Text>
+        <View style={styles.intentRow}>
+          {[
+            ['CASH', t('booking.bookings.cash', 'Cash')], ['MOBILE_MONEY', t('booking.bookings.mobileMoney', 'Mobile Money')], ['AGREE_WITH_PROVIDER', t('booking.bookings.agreeWithProvider', 'Agree with provider')],
+          ].map(([value, label]) => <TouchableOpacity key={value} onPress={() => setPaymentPreference(value)} style={[styles.intentChip, { borderColor: paymentPreference === value ? colors.accent : colors.border, backgroundColor: paymentPreference === value ? `${colors.accent}14` : colors.background }]}><Text style={{ color: paymentPreference === value ? colors.accent : colors.text, fontWeight: '800', fontSize: 12 }}>{label}</Text></TouchableOpacity>)}
         </View>
 
         {/* Submit Proposal Button */}
@@ -271,29 +294,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 18,
     borderBottomWidth: 1,
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '900' },
+  headerTitle: { fontSize: 19, fontWeight: '900', letterSpacing: -0.2 },
 
-  projectBanner: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 16,
-  },
-  bannerTitle: { fontSize: 16, fontWeight: '900', marginBottom: 8 },
+  projectBanner: { borderBottomWidth: 1, paddingBottom: 18, marginBottom: 22 },
+  directPaymentNote: { borderTopWidth: 1, paddingTop: 14, marginBottom: 8, fontSize: 13, lineHeight: 20 },
+  bannerTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.25, marginBottom: 8 },
   providerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   providerName: { fontSize: 13, fontWeight: '700' },
 
-  fieldGroup: { marginTop: 16, marginBottom: 16 },
-  fieldLabel: { fontSize: 14, fontWeight: '800', marginBottom: 8 },
+  fieldGroup: { marginTop: 20, marginBottom: 4, paddingBottom: 20, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#DCE4EE' },
+  fieldLabel: { fontSize: 15, fontWeight: '900', marginBottom: 8 },
   input: {
     height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    paddingHorizontal: 0,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -305,7 +325,7 @@ const styles = StyleSheet.create({
   radioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
     padding: 14,
     marginBottom: 10,
@@ -313,10 +333,14 @@ const styles = StyleSheet.create({
   radioTitle: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
   radioSub: { fontSize: 11, lineHeight: 16, fontWeight: '500' },
   rowTwo: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  intentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  intentChip: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  quoteHint: { fontSize: 15, fontWeight: '900', paddingTop: 2 },
+  quoteSub: { fontSize: 12, lineHeight: 18, marginTop: 5 },
 
   submitBtn: {
     height: 52,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,

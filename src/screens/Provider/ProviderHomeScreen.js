@@ -47,7 +47,7 @@ const LEARN_CARDS = [
     title: 'Accept booked\nservices',
     desc: 'Review the date, place,\nand agreed budget',
     image: require('../../../assets/onboarding/learn_step2.png'),
-    colors: ['#2563EB', '#2563EB']
+    colors: ['#063B68', '#0D9488']
   },
   {
     id: '3',
@@ -55,7 +55,7 @@ const LEARN_CARDS = [
     title: 'Agree and\ndeliver',
     desc: 'Confirm expectations,\nthen complete the work',
     image: require('../../../assets/onboarding/learn_step3.png'),
-    colors: ['#8B5CF6', '#A78BFA']
+    colors: ['#0B5278', '#14B8A6']
   },
   {
     id: '4',
@@ -63,9 +63,19 @@ const LEARN_CARDS = [
     title: 'Pay on delivery\nworkflow',
     desc: 'Clients pay when the\nservice is completed',
     image: require('../../../assets/onboarding/learn_tips.png'),
-    colors: ['#F59E0B', '#FBBF24']
+    colors: ['#06213E', '#0D9488']
   }
 ];
+
+const PROVIDER_BILLBOARDS = [
+  { id: 'jobs', image: require('../../../assets/provider-billboard/show-work.jpg'), eyebrow: 'NEW OPPORTUNITIES', title: 'Find work that fits your skills', body: 'Explore verified jobs and grow your client base.', action: 'Explore jobs', route: 'TaskDiscovery' },
+  { id: 'work', image: require('../../../assets/provider-billboard/find-work.jpg'), eyebrow: 'YOUR PORTFOLIO', title: 'Show your best work', body: 'Share completed jobs so clients can see your quality.', action: 'Post a project', route: 'PostProject' },
+  { id: 'profile', image: require('../../../assets/provider-billboard/profile.jpg'), eyebrow: 'BUILD TRUST', title: 'Complete your professional profile', body: 'A complete profile helps the right clients find you.', action: 'Complete profile', route: 'UserProfile' },
+  { id: 'bookings', image: require('../../../assets/provider-billboard/bookings.jpg'), eyebrow: 'STAY ORGANIZED', title: 'Keep your bookings on track', body: 'Review upcoming work and respond to clients quickly.', action: 'View bookings', route: 'BookingsList' },
+  { id: 'reputation', image: require('../../../assets/provider-billboard/reputation.jpg'), eyebrow: 'YOUR REPUTATION', title: 'Build trust with every job', body: 'Great service earns reviews that bring more opportunities.', action: 'View your stats', route: 'Stats' },
+];
+
+const PROVIDER_HEADER_PHRASES = ['For professionals', 'Find your next job', 'Show your best work', 'Build your reputation', 'Grow with Fixam'];
 
 const ProviderHomeScreen = ({ navigation }) => {
   const {
@@ -82,6 +92,10 @@ const ProviderHomeScreen = ({ navigation }) => {
   const [now, setNow] = useState(Date.now());
   const [slideIndex, setSlideIndex] = useState(0);
   const learnScrollRef = useRef(null);
+  const [billboardIndex, setBillboardIndex] = useState(0);
+  const [headerPhraseIndex, setHeaderPhraseIndex] = useState(0);
+  const [typedHeaderText, setTypedHeaderText] = useState('');
+  const billboardScrollRef = useRef(null);
 
   const [rankModalVisible, setRankModalVisible] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -152,6 +166,30 @@ const ProviderHomeScreen = ({ navigation }) => {
     } catch (e) {
       console.log('Failed to fetch my jobs for level progress', e);
     }
+  }, []);
+
+  useEffect(() => {
+    const phrase = PROVIDER_HEADER_PHRASES[headerPhraseIndex];
+    let character = 0;
+    setTypedHeaderText('');
+    const typing = setInterval(() => {
+      character += 1;
+      setTypedHeaderText(phrase.slice(0, character));
+      if (character >= phrase.length) clearInterval(typing);
+    }, 46);
+    const rotate = setTimeout(() => setHeaderPhraseIndex((current) => (current + 1) % PROVIDER_HEADER_PHRASES.length), 3100);
+    return () => { clearInterval(typing); clearTimeout(rotate); };
+  }, [headerPhraseIndex]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBillboardIndex((current) => {
+        const next = (current + 1) % PROVIDER_BILLBOARDS.length;
+        billboardScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
+        return next;
+      });
+    }, 5500);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -249,11 +287,11 @@ const ProviderHomeScreen = ({ navigation }) => {
   const rankStyle = {
     Newcomer: { bg: '#F1F5F9', color: '#64748B', icon: 'account-outline' },
     Beginner: { bg: '#ECFDF5', color: '#059669', icon: 'leaf' },
-    'Rising Star': { bg: '#EFF6FF', color: '#2563EB', icon: 'star-outline' },
-    Skilled: { bg: '#F3E8FF', color: '#7C3AED', icon: 'shield-check' },
-    Expert: { bg: '#FFF7ED', color: '#EA580C', icon: 'medal-outline' },
-    Master: { bg: '#FEF2F2', color: '#DC2626', icon: 'trophy-outline' },
-    Elite: { bg: '#FEF3C7', color: '#B45309', icon: 'crown-outline' },
+    'Rising Star': { bg: '#E6F7F4', color: '#0D9488', icon: 'star-outline' },
+    Skilled: { bg: '#EAF4FA', color: '#063B68', icon: 'shield-check' },
+    Expert: { bg: '#E6F7F4', color: '#0D9488', icon: 'medal-outline' },
+    Master: { bg: '#EAF4FA', color: '#063B68', icon: 'trophy-outline' },
+    Elite: { bg: '#E6F7F4', color: '#0D9488', icon: 'crown-outline' },
   }[skillRank] || { bg: '#F1F5F9', color: '#64748B', icon: 'account-outline' };
   const localizedLearnCards = LEARN_CARDS.map((card) => {
     const copy = {
@@ -470,8 +508,6 @@ const ProviderHomeScreen = ({ navigation }) => {
     );
   }
 
-
-
   return (
     <>
       <StatusBar style={isDarkMode ? "light" : "dark"} backgroundColor={colors.background} />
@@ -488,6 +524,11 @@ const ProviderHomeScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* Profile & Greeting Section */}
+          <View style={styles.brandHeaderCenter}>
+            <Image source={require('../../../assets/fixam.png')} style={styles.brandHeaderLogo} resizeMode="contain" />
+            <Text style={[styles.brandHeaderPhrase, { color: colors.textSecondary }]} numberOfLines={1}>{typedHeaderText}<Text style={{ color: '#0D9488' }}>|</Text></Text>
+          </View>
+          {false && <>
           <View style={styles.profileSection}>
             <View style={styles.profileInfo}>
               <Text style={[styles.greetingText, { color: colors.textSecondary }]}>{greeting} 👋</Text>
@@ -504,6 +545,7 @@ const ProviderHomeScreen = ({ navigation }) => {
             </View>
           </View>
 
+          </>}
           {/* Bell Icon with badge */}
           <TouchableOpacity style={[styles.bellBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('Notifications')}>
             <MaterialCommunityIcons name="bell-outline" size={20} color={colors.text} />
@@ -516,6 +558,27 @@ const ProviderHomeScreen = ({ navigation }) => {
         </View>
 
         {/* ÔöÇÔöÇ 2. SUB-HEADER PILLS ROW ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
+        <View style={styles.providerNewsTicker}>
+          <NewsTicker />
+        </View>
+
+        <View style={styles.billboardSection}>
+          <ScrollView ref={billboardScrollRef} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => setBillboardIndex(Math.round(event.nativeEvent.contentOffset.x / (width - 32)))}>
+            {PROVIDER_BILLBOARDS.map((slide) => <Image key={slide.id} source={slide.image} style={styles.billboardImage} resizeMode="cover" />)}
+          </ScrollView>
+          <LinearGradient colors={['rgba(3, 20, 47, 0.84)', 'rgba(3, 20, 47, 0.14)', 'rgba(3, 20, 47, 0.76)']} locations={[0, 0.5, 1]} style={styles.billboardOverlay} pointerEvents="none" />
+          <View pointerEvents="box-none" style={styles.billboardContent}>
+            <Text style={styles.billboardEyebrow}>{PROVIDER_BILLBOARDS[billboardIndex].eyebrow}</Text>
+            <Text style={styles.billboardTitle}>{PROVIDER_BILLBOARDS[billboardIndex].title}</Text>
+            <Text style={styles.billboardBody}>{PROVIDER_BILLBOARDS[billboardIndex].body}</Text>
+            <TouchableOpacity style={styles.billboardAction} onPress={() => handleSafeNavigate(PROVIDER_BILLBOARDS[billboardIndex].route)}>
+              <Text style={styles.billboardActionText}>{PROVIDER_BILLBOARDS[billboardIndex].action}</Text><MaterialCommunityIcons name="arrow-right" size={17} color="#06213E" />
+            </TouchableOpacity>
+            <View style={styles.billboardDots}>{PROVIDER_BILLBOARDS.map((slide, index) => <View key={slide.id} style={[styles.billboardDot, index === billboardIndex && styles.billboardDotActive]} />)}</View>
+          </View>
+        </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -549,9 +612,9 @@ const ProviderHomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
 
-        <View style={{ marginBottom: 16, marginTop: -6, zIndex: -1 }}>
+        {false && <View style={{ marginBottom: 16, marginTop: -6, zIndex: -1 }}>
           <NewsTicker />
-        </View>
+        </View>}
 
         {/* ÔöÇÔöÇ 3. PREMIUM BALANCE STATS CARD ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
         <LinearGradient
@@ -705,8 +768,8 @@ const ProviderHomeScreen = ({ navigation }) => {
 
             {/* Messages */}
             <TouchableOpacity ref={myJobsRef} style={styles.quickNavCard} onPress={() => handleSafeNavigate('Messages')}>
-              <View style={[styles.quickNavIconWrap, { backgroundColor: '#F3E8FF' }]}>
-                <MaterialCommunityIcons name="message-text" size={24} color="#7C3AED" />
+              <View style={[styles.quickNavIconWrap, { backgroundColor: '#EAF4FA' }]}>
+                <MaterialCommunityIcons name="message-text" size={24} color="#063B68" />
                 {unreadCount > 0 && (
                   <View style={styles.quickNavBadge}>
                     <Text style={styles.quickNavBadgeText}>{unreadCount}</Text>
@@ -723,16 +786,16 @@ const ProviderHomeScreen = ({ navigation }) => {
               navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' });
               setTimeout(() => { isNavigatingRef.current = false; }, 500);
             }}>
-              <View style={[styles.quickNavIconWrap, { backgroundColor: '#FEF3C7' }]}>
-                <MaterialCommunityIcons name="wallet" size={24} color="#D97706" />
+              <View style={[styles.quickNavIconWrap, { backgroundColor: '#E6F7F4' }]}>
+                <MaterialCommunityIcons name="wallet" size={24} color="#0D9488" />
               </View>
               <Text style={[styles.quickNavCardLabel, { color: colors.text }]}>{t('home.wallet')}</Text>
             </TouchableOpacity>
 
             {/* My Stats */}
             <TouchableOpacity style={styles.quickNavCard} onPress={() => handleSafeNavigate('Stats')}>
-              <View style={[styles.quickNavIconWrap, { backgroundColor: '#DBEAFE' }]}>
-                <MaterialCommunityIcons name="chart-bar" size={24} color="#2563EB" />
+              <View style={[styles.quickNavIconWrap, { backgroundColor: '#EAF4FA' }]}>
+                <MaterialCommunityIcons name="chart-bar" size={24} color="#063B68" />
               </View>
               <Text style={[styles.quickNavCardLabel, { color: colors.text }]}>{t('home.myStats')}</Text>
             </TouchableOpacity>
@@ -740,6 +803,15 @@ const ProviderHomeScreen = ({ navigation }) => {
         </View>
 
         {/* ÔöÇÔöÇ 5. "LEARN FIXAM" SLIDER SECTION ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
+        <TouchableOpacity style={[styles.showWorkSection, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handleSafeNavigate('PostProject')}>
+          <View style={styles.showWorkIcon}><MaterialCommunityIcons name="folder-plus-outline" size={23} color="#0D9488" /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.showWorkTitle, { color: colors.text }]}>Show your work</Text>
+            <Text style={[styles.showWorkBody, { color: colors.textSecondary }]}>Share a completed job and help clients choose you.</Text>
+          </View>
+          <MaterialCommunityIcons name="arrow-right" size={22} color="#0D9488" />
+        </TouchableOpacity>
+
         <View style={styles.learnHeader}>
           <Text style={[styles.learnTitle, { color: colors.text }]}>{t('home.learnFixam')}</Text>
         </View>
@@ -851,6 +923,15 @@ const ProviderHomeScreen = ({ navigation }) => {
           prioritizedJobs.slice(0, 5).map(item => <JobCard key={item.id} item={item} />)
         )}
 
+        <TouchableOpacity style={styles.inviteSection} onPress={() => handleSafeNavigate('Invitation')}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.inviteEyebrow}>GROW THE NETWORK</Text>
+            <Text style={styles.inviteTitle}>Know a great professional?</Text>
+            <Text style={styles.inviteBody}>Invite them to Fixam and build a trusted local network.</Text>
+          </View>
+          <View style={styles.inviteAction}><Text style={styles.inviteActionText}>Invite</Text><MaterialCommunityIcons name="arrow-right" size={16} color="#06213E" /></View>
+        </TouchableOpacity>
+
         {/* Space at the bottom to avoid tabbar overlap */}
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -932,6 +1013,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  brandHeaderCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: 10, gap: 7 },
+  brandHeaderLogo: { width: 30, height: 30, borderRadius: 8 },
+  brandHeaderPhrase: { fontSize: 12, fontWeight: '800', letterSpacing: -0.1, maxWidth: 176 },
+  providerNewsTicker: { marginBottom: 12, marginTop: -3 },
+  billboardSection: { height: 360, marginHorizontal: 16, marginBottom: 22, borderRadius: 24, overflow: 'hidden', backgroundColor: '#06213E' },
+  billboardImage: { width: width - 32, height: 360 },
+  billboardOverlay: { ...StyleSheet.absoluteFillObject },
+  billboardContent: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 24 },
+  billboardEyebrow: { color: '#99F6E4', fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginBottom: 8 },
+  billboardTitle: { color: '#FFFFFF', fontSize: 29, lineHeight: 34, fontWeight: '900', letterSpacing: -0.8, maxWidth: '92%' },
+  billboardBody: { color: '#E2E8F0', fontSize: 13, lineHeight: 19, marginTop: 9, maxWidth: '86%' },
+  billboardAction: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 18, paddingHorizontal: 15, paddingVertical: 11, borderRadius: 10, backgroundColor: '#E6FFFA' },
+  billboardActionText: { color: '#06213E', fontSize: 13, fontWeight: '900' },
+  billboardDots: { position: 'absolute', right: 22, bottom: 23, flexDirection: 'row', gap: 5 },
+  billboardDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.45)' },
+  billboardDotActive: { width: 18, backgroundColor: '#99F6E4' },
   greetingText: {
     fontSize: 13,
     color: '#64748B',
@@ -1285,6 +1382,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 12,
   },
+  showWorkSection: { marginHorizontal: 16, marginTop: 20, marginBottom: 24, borderWidth: 1, borderRadius: 18, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 13 },
+  showWorkIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: '#E6F7F4', alignItems: 'center', justifyContent: 'center' },
+  showWorkTitle: { fontSize: 16, fontWeight: '900' },
+  showWorkBody: { fontSize: 12, lineHeight: 17, marginTop: 4 },
+  inviteSection: { marginHorizontal: 16, marginTop: 26, borderRadius: 20, padding: 20, backgroundColor: '#06213E', flexDirection: 'row', alignItems: 'center', gap: 14 },
+  inviteEyebrow: { color: '#99F6E4', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+  inviteTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', marginTop: 6 },
+  inviteBody: { color: '#CBD5E1', fontSize: 12, lineHeight: 18, marginTop: 5, maxWidth: 220 },
+  inviteAction: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#E6FFFA' },
+  inviteActionText: { color: '#06213E', fontSize: 12, fontWeight: '900' },
   learnTitle: {
     fontSize: 18,
     fontWeight: '900',

@@ -19,6 +19,7 @@ const statusMeta = {
   REJECTED: { icon: 'close-circle-outline', color: '#EF4444', label: 'Rejected' },
   CANCELLED: { icon: 'close-circle-outline', color: '#EF4444', label: 'Cancelled' },
   COUNTER_PROPOSED: { icon: 'cash-multiple', color: '#8B5CF6', label: 'Counter proposed' },
+  REVISED_QUOTE_PENDING: { icon: 'file-document-edit-outline', color: '#0D9488', label: 'Revised quote sent' },
 };
 
 const hasUserReviewed = (booking, userId) => {
@@ -42,12 +43,7 @@ const BookingsScreen = ({ navigation }) => {
   const [counterNotes, setCounterNotes] = useState('');
   const [submittingCounter, setSubmittingCounter] = useState(false);
 
-  const handleOpenCounterModal = (booking) => {
-    setSelectedBooking(booking);
-    setCounterBudget(String(booking.budget || ''));
-    setCounterNotes('');
-    setCounterModalVisible(true);
-  };
+  const handleOpenCounterModal = (booking) => navigation.navigate('RevisedQuote', { booking, mode: 'provider' });
 
   const submitCounterOffer = async () => {
     if (!counterBudget || isNaN(Number(counterBudget)) || Number(counterBudget) <= 0) {
@@ -206,11 +202,11 @@ const BookingsScreen = ({ navigation }) => {
           <Detail icon="cash" label={budgetLabel} colors={colors} />
         </View>
 
-        {status === 'COUNTER_PROPOSED' && (
+        {['COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(status) && (
           <View style={[styles.counterDetails, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF', borderColor: colors.border, borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 12 }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <MaterialCommunityIcons name="cash-multiple" size={16} color="#8B5CF6" />
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#8B5CF6' }}>{t('booking.bookings.yourProposedCounter', 'Your Proposed Counter:')}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent }}>{status === 'REVISED_QUOTE_PENDING' ? t('booking.bookings.revisedQuote', 'Revised quote') : t('booking.bookings.yourProposedCounter', 'Your Proposed Counter:')}</Text>
             </View>
             <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, marginTop: 4 }}>
               {Number(item.counterBudget || 0).toLocaleString()} {getCurrencyForUser(item.country || user?.country || 'Cameroon')}
@@ -224,7 +220,7 @@ const BookingsScreen = ({ navigation }) => {
         )}
 
         <View style={[styles.actions, { borderTopColor: colors.border }]}>
-          {['ACCEPTED', 'IN_PROGRESS', 'COUNTER_PROPOSED'].includes(status) ? (
+          {['ACCEPTED', 'IN_PROGRESS', 'COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(status) ? (
             <TouchableOpacity
               style={[styles.secondaryBtn, { borderColor: colors.border }]}
               onPress={() => navigation.navigate('Chat', {

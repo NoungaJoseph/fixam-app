@@ -455,12 +455,12 @@ const JobStatusScreen = ({ route, navigation }) => {
             ) : null}
           </View>
 
-          {user?.role === 'CLIENT' && isBooking && normalizedStatus === 'COUNTER_PROPOSED' && (
+          {user?.role === 'CLIENT' && isBooking && ['COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(normalizedStatus) && (
             <View style={[styles.counterCard, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF', borderColor: '#8B5CF6' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <MaterialCommunityIcons name="cash-multiple" size={24} color="#8B5CF6" />
                 <Text style={{ fontSize: 16, fontWeight: '900', color: '#8B5CF6' }}>
-                  {t('booking.bookings.counterOfferReceived', 'Counter-Offer Received!')}
+                  {t('booking.bookings.revisedQuoteReceived', 'Revised quote received')}
                 </Text>
               </View>
               
@@ -477,24 +477,24 @@ const JobStatusScreen = ({ route, navigation }) => {
               <View style={styles.counterActionRow}>
                 <TouchableOpacity
                   style={[styles.counterDeclineBtn, { borderColor: '#EF4444' }]}
-                  onPress={() => updateStatus('REJECTED')}
+                  onPress={() => navigation.navigate('RevisedQuote', { booking: job, mode: 'client' })}
                   disabled={updatingStatus}
                 >
                   <Text style={{ color: '#EF4444', fontWeight: '800', fontSize: 13 }}>
-                    {t('common.decline', 'Decline')}
+                    {t('booking.bookings.revisedTerms', 'Review terms')}
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.counterAcceptBtn, { backgroundColor: '#8B5CF6' }]}
-                  onPress={() => updateStatus('ACCEPTED')}
+                  onPress={() => navigation.navigate('RevisedQuote', { booking: job, mode: 'client' })}
                   disabled={updatingStatus}
                 >
                   {updatingStatus ? (
                     <ActivityIndicator size="small" color="#FFF" />
                   ) : (
                     <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>
-                      {t('common.accept', 'Accept')}
+                      {t('booking.bookings.acceptRevisedQuote', 'Review revised quote')}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -502,12 +502,12 @@ const JobStatusScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {user?.role === 'PROVIDER' && isBooking && normalizedStatus === 'COUNTER_PROPOSED' && (
+          {user?.role === 'PROVIDER' && isBooking && ['COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(normalizedStatus) && (
             <View style={[styles.counterCard, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF', borderColor: '#8B5CF6' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <MaterialCommunityIcons name="cash-multiple" size={24} color="#8B5CF6" />
                 <Text style={{ fontSize: 16, fontWeight: '900', color: '#8B5CF6' }}>
-                  {t('booking.bookings.yourProposedCounter', 'Your Proposed Counter:')}
+                  {t('booking.bookings.yourRevisedQuote', 'Your revised quote')}
                 </Text>
               </View>
               

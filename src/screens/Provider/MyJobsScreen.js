@@ -1,25 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, Image, StatusBar, Platform, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
-import api from '../../services/api';
 import { useAppContext } from '../../context/AppContext';
-import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { getCurrencyForUser } from '../../constants/countries';
-import { translateApiError } from '../../utils/eligibilityMessages';
-
-const TABS = [
-  { key: 'All Jobs', label: 'All Jobs', icon: 'all-inclusive' },
-  { key: 'Booked', label: 'Booked Jobs', icon: 'calendar-clock' },
-  { key: 'Active', label: 'In Progress', icon: 'progress-clock' },
-  { key: 'Requests', label: 'Pending', icon: 'clock-outline' },
-  { key: 'Completed', label: 'Completed', icon: 'check-circle-outline' },
-  { key: 'Cancelled', label: 'Cancelled', icon: 'close-circle-outline' },
-];
 
 const STATUS_CONFIG = {
   Requests:  { label: 'Pending',     color: '#F59E0B', bg: '#FFFBEB', icon: 'clock-outline' },
@@ -29,41 +16,21 @@ const STATUS_CONFIG = {
   Cancelled: { label: 'Cancelled',   color: '#EF4444', bg: '#FEF2F2', icon: 'close-circle-outline' },
 };
 
-const CATEGORY_ICONS = {
-  PLUMBING: 'pipe-wrench',
-  ELECTRICAL: 'lightning-bolt-circle',
-  CLEANING: 'broom',
-  PAINTING: 'format-paint',
-  CARPENTRY: 'hammer',
-  GARDENING: 'flower',
-  MOVING: 'truck-outline',
-  APPLIANCE: 'fridge-outline',
-  REPAIR: 'wrench',
-  BOOKING: 'calendar-check-outline',
-};
-
-const hasUserReviewed = (item, userId) => {
-  if (!userId) return false;
-  return (item.rawJob?.reviews || []).some((review) => review.reviewerId === userId);
-};
-
 const MyJobsScreen = ({ navigation }) => {
   const { isDarkMode, colors } = useTheme();
-  const { transactions, notificationCount, myTasksList, myBookingsList } = useAppContext();
-  const { on } = useSocket();
+  const { transactions = [], myTasksList, myBookingsList, fetchAppData } = useAppContext();
   const { t, locale } = useLanguage();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('All Jobs');
-  const [loadingJobId, setLoadingJobId] = useState(null);
+  const [showOverview, setShowOverview] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [reviewedJobIds, setReviewedJobIds] = useState([]);
-
-  const { fetchAppData } = useAppContext();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchAppData(true);
-    setRefreshing(false);
+    try {
+      await fetchAppData(true);
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchAppData]);
 
   const jobs = (myTasksList || []).filter(job => 
@@ -135,24 +102,6 @@ const MyJobsScreen = ({ navigation }) => {
     .filter(t => ['CREDIT', 'EARNING'].includes(t.type?.toUpperCase()))
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-  const filtered = activeTab === 'All Jobs' ? mapped : mapped.filter(j => j.status === activeTab);
-
-  const handleUpdateStatus = async (jobId, status, isBooking = false) => {
-    setLoadingJobId(jobId);
-    try {
-      if (isBooking) {
-        await api.patch(`/bookings/${jobId}/status`, { status });
-      } else {
-        await api.put(`/jobs/${jobId}/status`, { status });
-      }
-      // AppContext handles the real-time sync
-    } catch (error) {
-      Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.updateFailed'));
-    } finally {
-      setLoadingJobId(null);
-    }
-  };
-
   const StatCard = ({ icon, value, label, sub, color, bg }) => {
     // Use a dark-mode-aware icon background
     const iconBg = isDarkMode ? 'rgba(255,255,255,0.08)' : (bg || '#F0FDFA');
@@ -172,26 +121,13 @@ const MyJobsScreen = ({ navigation }) => {
     const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.Requests;
     const statusLabel = t(`jobs.statusLabels.${item.status}`);
     const darkBg = isDarkMode ? 'rgba(255,255,255,0.06)' : cfg.bg;
-    const canChat = ['Booked', 'Active'].includes(item.status);
-    const reviewed = hasUserReviewed(item, user?.id) || reviewedJobIds.includes(item.id);
     return (
-      <View style={[styles.jobCard, { backgroundColor: colors.card, borderBottomColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}>
+      <View style={[styles.jobCard, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: isDarkMode ? 'transparent' : '#000' }]}>
         <TouchableOpacity
           onPress={() => navigation.navigate('TaskDetails', { task: item.rawJob, isBooking: item.isBooking })}
           activeOpacity={0.85}
         >
           <View style={styles.jobRow}>
-            {item.image ? (
-              <Image source={{ uri: item.image }} style={styles.jobImg} />
-            ) : (
-              <View style={[styles.jobImgFallback, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.16)' : '#E6FDF3' }]}>
-                <MaterialCommunityIcons
-                  name={CATEGORY_ICONS[String(item.category || '').toUpperCase()] || 'briefcase-outline'}
-                  size={42}
-                  color={colors.accent}
-                />
-              </View>
-            )}
             <View style={styles.jobContent}>
               <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
               <View style={styles.metaRow}>
@@ -221,76 +157,6 @@ const MyJobsScreen = ({ navigation }) => {
           </View>
         </TouchableOpacity>
 
-        <View style={[styles.actionRow, { borderTopColor: colors.border }]}>
-          {canChat ? (
-            <TouchableOpacity
-              style={[styles.chatBtn, { borderColor: colors.border }]}
-                onPress={() => navigation.navigate('Chat', {
-                receiverId: item.isBooking ? item.rawJob.clientId : item.rawJob.clientId,
-                userName: item.client,
-                avatar: item.avatar,
-                phone: item.rawJob?.client?.phone || item.rawJob?.client?.phoneNumber || '',
-                task: item.rawJob,
-              })}
-            >
-              <MaterialCommunityIcons name="message-text-outline" size={16} color={colors.accent} />
-              <Text style={[styles.chatBtnText, { color: colors.accent }]}>{t('tabs.messages')}</Text>
-            </TouchableOpacity>
-          ) : null}
-
-          {item.status === 'Requests' && (
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              onPress={() => item.isBooking ? handleUpdateStatus(item.rawJob.id, 'ACCEPTED', true) : navigation.navigate('TaskDetails', { task: item.rawJob })}
-              disabled={loadingJobId === item.id}
-            >
-              {loadingJobId === item.id ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryBtnText}>{item.isBooking ? t('jobs.accept') : t('jobs.review')}</Text>}
-            </TouchableOpacity>
-          )}
-          {item.status === 'Booked' && (
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              onPress={() => Alert.alert(t('jobs.startJob'), t('jobs.startJobBody'), [
-                { text: t('common.cancel'), style: 'cancel' },
-                { text: t('jobs.start'), onPress: () => handleUpdateStatus(item.rawJob.id, 'IN_PROGRESS', item.isBooking) },
-              ])}
-              disabled={loadingJobId === item.rawJob.id}
-            >
-              {loadingJobId === item.rawJob.id ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryBtnText}>{t('jobs.startJob')}</Text>}
-            </TouchableOpacity>
-          )}
-          {item.status === 'Active' && (
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: '#22C55E' }]}
-              onPress={() => Alert.alert(t('jobs.markComplete'), t('jobs.markCompleteBody'), [
-                { text: t('common.cancel'), style: 'cancel' },
-                { text: t('jobs.complete'), onPress: () => handleUpdateStatus(item.rawJob.id, 'COMPLETED', item.isBooking) },
-              ])}
-              disabled={loadingJobId === item.rawJob.id}
-            >
-              {loadingJobId === item.rawJob.id ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryBtnText}>{t('jobs.markCompleted')}</Text>}
-            </TouchableOpacity>
-          )}
-          {item.status === 'Completed' && !reviewed && (
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-              onPress={() => navigation.navigate('ReviewTask', { 
-                task: item.rawJob, 
-                provider: { id: item.rawJob.clientId, fullName: item.client },
-                onReviewSubmitted: (jobId) => setReviewedJobIds(prev => [...prev, jobId])
-              })}
-            >
-              <MaterialCommunityIcons name="star-outline" size={13} color="#FFF" />
-              <Text style={styles.primaryBtnText}>{t('jobs.rateClient')}</Text>
-            </TouchableOpacity>
-          )}
-          {item.status === 'Completed' && reviewed && (
-            <View style={[styles.reviewedPill, { backgroundColor: isDarkMode ? 'rgba(34,197,94,0.14)' : '#F0FDF4' }]}>
-              <MaterialCommunityIcons name="star-check" size={14} color="#16A34A" />
-              <Text style={styles.reviewedText}>{t('jobs.reviewSubmitted', 'Review submitted')}</Text>
-            </View>
-          )}
-        </View>
       </View>
     );
   };
@@ -311,11 +177,13 @@ const MyJobsScreen = ({ navigation }) => {
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('jobs.myJobs')}</Text>
           <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('jobs.manageJobsSubtitle')}</Text>
         </View>
-
+        <TouchableOpacity style={[styles.overviewBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setShowOverview(value => !value)} accessibilityLabel="Toggle job overview">
+          <MaterialCommunityIcons name={showOverview ? 'chevron-up' : 'view-dashboard-outline'} size={23} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       {/* Stat Cards Grid (2-row grid for balance and breathing room) */}
-      <View style={styles.statsContainer}>
+      {showOverview && <View style={styles.statsContainer}>
         <View style={styles.statsRow}>
           <StatCard icon="clipboard-check" value={totalJobs}    label={t('jobs.totalJobs')}    sub={t('jobs.allTime')}  color="#22C55E" bg="#E6FDF3" />
           <StatCard icon="calendar-clock"  value={bookedCount}   label={t('jobs.statusLabels.Booked')}        sub={t('jobs.scheduled')} color="#8B5CF6" bg="#F5F3FF" />
@@ -325,46 +193,10 @@ const MyJobsScreen = ({ navigation }) => {
           <StatCard icon="check-decagram"  value={completed}    label={t('jobs.statusLabels.Completed')}    sub={t('jobs.allTime')}  color="#F59E0B" bg="#FFFBEB" />
           <StatCard icon="wallet"          value={liveEarned.toLocaleString()} label={t('home.totalEarnings')} sub={getCurrencyForUser(user)} color="#0D9488" bg="#E6FDF3" />
         </View>
-      </View>
-
-      {/* Tabs Row */}
-      <View style={[styles.tabsContainer, { borderBottomColor: colors.border }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
-          {TABS.map(tab => {
-            const active = activeTab === tab.key;
-            if (active) {
-              return (
-                <TouchableOpacity
-                  key={tab.key}
-                  style={[styles.tabActive, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#E6FDF3' }]}
-                  onPress={() => setActiveTab(tab.key)}
-                >
-                  <View style={styles.tabContent}>
-                    <MaterialCommunityIcons name={tab.icon} size={14} color="#0D9488" />
-                    <Text style={styles.tabTextActive}>{t(`jobs.tabs.${tab.key}`)}</Text>
-                  </View>
-                  <View style={styles.tabIndicator} />
-                </TouchableOpacity>
-              );
-            }
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                style={[styles.tab, { backgroundColor: colors.card, borderColor: colors.border }]}
-                onPress={() => setActiveTab(tab.key)}
-              >
-                <View style={styles.tabContent}>
-                  <MaterialCommunityIcons name={tab.icon} size={14} color={colors.textSecondary} />
-                  <Text style={[styles.tabText, { color: colors.textSecondary }]}>{t(`jobs.tabs.${tab.key}`)}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+      </View>}
 
       <FlatList
-        data={filtered}
+        data={mapped}
         keyExtractor={i => i.id}
         renderItem={renderJob}
         contentContainerStyle={styles.listContent}
@@ -408,6 +240,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  overviewBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   titleArea: {
     flex: 1,
     marginLeft: 15,
@@ -476,19 +309,17 @@ const styles = StyleSheet.create({
 
   // Jobs
   listContent: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 110 },
-  jobCard: { borderRadius: 0, marginBottom: 0, overflow: 'hidden', shadowOpacity: 0, shadowRadius: 0, elevation: 0, borderBottomWidth: 1 },
-  jobRow: { flexDirection: 'row' },
-  jobImg: { width: 110, height: 130 },
-  jobImgFallback: { width: 110, height: 130, alignItems: 'center', justifyContent: 'center' },
-  jobContent: { flex: 1, padding: 12 },
-  jobTitle: { fontSize: 14, fontWeight: '800', marginBottom: 6 },
+  jobCard: { borderRadius: 16, marginHorizontal: 16, marginBottom: 12, overflow: 'hidden', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1 },
+  jobRow: { minHeight: 152 },
+  jobContent: { flex: 1, padding: 18, justifyContent: 'space-between' },
+  jobTitle: { fontSize: 17, fontWeight: '800', marginBottom: 10 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
-  metaText: { fontSize: 12, flex: 1 },
+  metaText: { fontSize: 13, flex: 1 },
   jobFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 },
   budgetBox: { borderRadius: 0, padding: 6, alignItems: 'center' },
   budgetText: { fontSize: 13, fontWeight: '800' },
   estimatedText: { fontSize: 10, fontWeight: '500', marginTop: 1 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 0 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
   statusText: { fontSize: 10, fontWeight: '800' },
   statusSub: { fontSize: 10, textAlign: 'right', marginTop: 2 },
   actionRow: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1 },

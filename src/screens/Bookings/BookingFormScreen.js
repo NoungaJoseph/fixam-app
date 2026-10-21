@@ -56,6 +56,8 @@ const BookingFormScreen = ({ route, navigation }) => {
     urgencyLevel: 'NORMAL',
     materialsList: task?.materialsList || [],
     requiresDiagnosis: task?.requiresDiagnosis || false,
+    budgetType: task?.budget ? 'FIXED_BUDGET' : 'REQUEST_QUOTE',
+    paymentPreference: 'AGREE_WITH_PROVIDER',
   });
   const [submitting, setSubmitting] = useState(false);
   const { walletBalance } = useAppContext();
@@ -175,7 +177,9 @@ const BookingFormScreen = ({ route, navigation }) => {
       Alert.alert(t('common.error'), t('eligibility.accountBlocked'));
       return;
     }
-    if (!isIdentityVerified(user)) {
+    // Client accounts can make a normal booking; provider verification is only
+    // needed when a provider account is booking another provider.
+    if (user?.role === 'PROVIDER' && !isIdentityVerified(user)) {
       Alert.alert(t('verification.required'), t(getVerificationMessageKey(user, 'booking')));
       return;
     }
@@ -237,6 +241,8 @@ const BookingFormScreen = ({ route, navigation }) => {
         notes: form.notes || '',
         requiresDiagnosis: form.requiresDiagnosis,
         materialsList: cleanedMaterialsList,
+        budgetType: form.budgetType,
+        paymentPreference: form.paymentPreference,
       });
       Alert.alert(t('bookings.sent'), t('bookings.sentBody'));
       handleSafeGoBack();
@@ -274,6 +280,7 @@ const BookingFormScreen = ({ route, navigation }) => {
           >
             {/* SECTION 1 — Booking Duration */}
             <View style={styles.field}>
+              <Text style={styles.eyebrow}>SERVICE DETAILS</Text>
               <Text style={[styles.label, { color: colors.text }]}>{t('bookings.bookingDuration', 'How long do you need this service?')}</Text>
               <View style={styles.durationRow}>
                 {['DAY', 'WEEK', 'MONTH'].map((dur) => {
@@ -326,7 +333,7 @@ const BookingFormScreen = ({ route, navigation }) => {
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.text }]}>{t('bookings.date')}</Text>
               <TouchableOpacity
-                style={[styles.selectorInput, { borderColor: colors.border, backgroundColor: colors.card }]}
+                style={[styles.selectorInput, { borderColor: colors.border, backgroundColor: colors.background }]}
                 onPress={() => setShowDatePicker(true)}
               >
                 <Text style={{ color: form.bookingDate ? colors.text : colors.placeholder, fontSize: 15, fontWeight: '600', flex: 1 }}>
@@ -339,7 +346,7 @@ const BookingFormScreen = ({ route, navigation }) => {
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.text }]}>{t('bookings.time')}</Text>
               <TouchableOpacity
-                style={[styles.selectorInput, { borderColor: colors.border, backgroundColor: colors.card }]}
+                style={[styles.selectorInput, { borderColor: colors.border, backgroundColor: colors.background }]}
                 onPress={() => setShowTimePicker(true)}
               >
                 <Text style={{ color: form.bookingTime ? colors.text : colors.placeholder, fontSize: 15, fontWeight: '600', flex: 1 }}>
@@ -357,7 +364,7 @@ const BookingFormScreen = ({ route, navigation }) => {
                   value={form.location}
                   onChangeText={(location) => setForm({ ...form, location })}
                   placeholderTextColor={colors.placeholder}
-                  style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.card }]}
+                  style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                 />
                 <TouchableOpacity
                   style={[styles.locationDetectBtn, { backgroundColor: colors.accent }]}
@@ -403,7 +410,22 @@ const BookingFormScreen = ({ route, navigation }) => {
               </ScrollView>
             </View>
 
-            <Input label={t('bookings.budget')} placeholder="15000" value={form.budget} onChangeText={(budget) => setForm({ ...form, budget })} keyboardType="numeric" colors={colors} />
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.text }]}>{t('bookings.budget')}</Text>
+              <View style={styles.durationRow}>
+                {['FIXED_BUDGET', 'REQUEST_QUOTE'].map((type) => <TouchableOpacity key={type} onPress={() => setForm({ ...form, budgetType: type, budget: type === 'REQUEST_QUOTE' ? '0' : form.budget })} style={[styles.durationCard, { backgroundColor: form.budgetType === type ? colors.accent + '20' : colors.card, borderColor: form.budgetType === type ? colors.accent : colors.border }]}><Text style={{ color: form.budgetType === type ? colors.accent : colors.text, fontWeight: '800' }}>{type === 'FIXED_BUDGET' ? (t('bookings.myBudget', 'My budget')) : (t('bookings.requestQuote', 'Request a quote'))}</Text></TouchableOpacity>)}
+              </View>
+              {form.budgetType === 'FIXED_BUDGET' && <Input label="" placeholder="15000" value={form.budget} onChangeText={(budget) => setForm({ ...form, budget })} keyboardType="numeric" colors={colors} />}
+              <Text style={[styles.label, { color: colors.text, marginTop: 12 }]}>{t('bookings.paymentPreference', 'Payment preference')}</Text>
+              <View style={styles.durationRow}>
+                {[
+                  { key: 'CASH', label: t('bookings.cash', 'Cash') },
+                  { key: 'MOBILE_MONEY', label: t('bookings.mobileMoney', 'Mobile Money') },
+                  { key: 'AGREE_WITH_PROVIDER', label: t('bookings.agreeWithProvider', 'Agree with provider') },
+                ].map((option) => <TouchableOpacity key={option.key} onPress={() => setForm({ ...form, paymentPreference: option.key })} style={[styles.durationCard, { backgroundColor: form.paymentPreference === option.key ? colors.accent + '20' : colors.card, borderColor: form.paymentPreference === option.key ? colors.accent : colors.border }]}><Text style={{ color: form.paymentPreference === option.key ? colors.accent : colors.text, fontWeight: '800', fontSize: 12 }}>{option.label}</Text></TouchableOpacity>)}
+              </View>
+              <Text style={[styles.urgencyDesc, { color: colors.textSecondary }]}>{t('bookings.directPaymentNotice', 'Fixam does not collect or hold service payments. You agree and pay directly.')}</Text>
+            </View>
             <Input label={t('bookings.details')} placeholder={t('bookings.detailsPlaceholder')} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} multiline colors={colors} />
 
             <MaterialsListEditor
@@ -413,7 +435,7 @@ const BookingFormScreen = ({ route, navigation }) => {
               onToggleDiagnosis={(val) => setForm(prev => ({ ...prev, requiresDiagnosis: val }))}
             />
 
-            <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.summaryCard, { backgroundColor: isDarkMode ? '#172033' : '#F7F1EE', borderColor: isDarkMode ? '#334155' : '#F0D8CF' }]}>
               <Text style={[styles.summaryTitle, { color: colors.text }]}>{t('bookings.bookingSummary', 'Booking Summary')}</Text>
               <Text style={[styles.summaryText, { color: colors.textSecondary }]}>{t('bookings.durationLabel', 'Duration:')} {t(`bookings.${form.bookingDuration.toLowerCase()}Option`, form.bookingDuration)}</Text>
               <Text style={[styles.summaryText, { color: colors.textSecondary }]}>{t('bookings.priorityLabel', 'Priority:')} {form.urgencyLevel === 'HIGH_PRIORITY' ? t('bookings.highPriority', 'High Priority') : t('bookings.normalPriority', 'Standard')}</Text>
@@ -585,28 +607,29 @@ const Input = ({ label, colors, style, ...props }) => (
     <TextInput
       {...props}
       placeholderTextColor={colors.placeholder}
-      style={[styles.input, props.multiline && styles.textArea, { color: colors.text, borderColor: colors.border, backgroundColor: colors.card }, style]}
+      style={[styles.input, props.multiline && styles.textArea, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }, style]}
     />
   </View>
 );
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 14 },
-  backBtn: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: '900' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 18, borderBottomWidth: StyleSheet.hairlineWidth },
+  backBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 24, fontWeight: '900', letterSpacing: -0.4 },
   subtitle: { fontSize: 13, fontWeight: '700', marginTop: 2 },
-  content: { padding: 18, paddingBottom: 24, gap: 16 },
-  field: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '800' },
-  input: { minHeight: 52, borderWidth: 1, borderRadius: 8, paddingHorizontal: 14, fontSize: 15, fontWeight: '600' },
+  content: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 32, gap: 24 },
+  field: { gap: 8, paddingBottom: 18, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#DCE4EE' },
+  eyebrow: { color: '#D95E57', fontSize: 10, letterSpacing: 1.2, fontWeight: '900', marginBottom: 2 },
+  label: { fontSize: 15, fontWeight: '900', letterSpacing: -0.15 },
+  input: { minHeight: 52, borderWidth: 0, borderBottomWidth: 1, borderRadius: 0, paddingHorizontal: 0, fontSize: 15, fontWeight: '600' },
   textArea: { minHeight: 120, paddingTop: 14, textAlignVertical: 'top' },
-  submitBtn: { height: 54, borderRadius: 8, backgroundColor: '#0D9488', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  submitBtn: { height: 56, borderRadius: 15, backgroundColor: '#081B3A', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   submitText: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
   selectorInput: {
     minHeight: 52,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 0,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -620,7 +643,7 @@ const styles = StyleSheet.create({
   locationDetectBtn: {
     width: 52,
     height: 52,
-    borderRadius: 8,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -630,15 +653,15 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   durationRow: { flexDirection: 'row', gap: 10 },
-  durationCard: { flex: 1, borderWidth: 1, borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  durationCard: { flex: 1, borderWidth: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
   durationText: { fontSize: 14, fontWeight: '700' },
   urgencyContainer: { gap: 10 },
-  urgencyCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, padding: 14, gap: 10 },
+  urgencyCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14, padding: 15, gap: 10 },
   urgencyTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
   urgencyDesc: { fontSize: 13, fontWeight: '500' },
   coinBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
   coinBadgeText: { color: '#FFF', fontSize: 13, fontWeight: '800' },
-  summaryCard: { borderWidth: 1, borderRadius: 8, padding: 16, marginTop: 8 },
+  summaryCard: { borderWidth: 1, borderRadius: 18, padding: 18, marginTop: 0 },
   summaryTitle: { fontSize: 16, fontWeight: '800', marginBottom: 8 },
   summaryText: { fontSize: 14, fontWeight: '500', marginBottom: 4 },
   summaryCost: { fontSize: 14, fontWeight: '800', marginTop: 4 },

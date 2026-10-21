@@ -184,6 +184,12 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [providersNeeded, setProvidersNeeded] = useState('1');
   const [showProvidersPicker, setShowProvidersPicker] = useState(false);
   const [importantDetails, setImportantDetails] = useState('');
+  const [selectedDetailSections, setSelectedDetailSections] = useState({
+    responsibilities: false, requirements: false, skills: false, benefits: false, instructions: false,
+  });
+  const [sectionDetails, setSectionDetails] = useState({
+    requirements: '', skills: '', benefits: '',
+  });
   const [taskScope, setTaskScope] = useState('');
   const [selectedPreferences, setSelectedPreferences] = useState(['verified', 'fast', 'rated', 'today']);
   const [detailEditor, setDetailEditor] = useState(null);
@@ -231,6 +237,8 @@ const PostTaskScreen = ({ route, navigation }) => {
             if (draft.whatNeedsDone) setWhatNeedsDone(draft.whatNeedsDone);
             if (draft.providersNeeded) setProvidersNeeded(draft.providersNeeded);
             if (draft.importantDetails) setImportantDetails(draft.importantDetails);
+            if (draft.selectedDetailSections) setSelectedDetailSections(draft.selectedDetailSections);
+            if (draft.sectionDetails) setSectionDetails(draft.sectionDetails);
             if (draft.taskScope) setTaskScope(draft.taskScope);
             if (Array.isArray(draft.selectedPreferences)) setSelectedPreferences(draft.selectedPreferences);
             if (draft.priority) setPriority(draft.priority);
@@ -299,6 +307,8 @@ const PostTaskScreen = ({ route, navigation }) => {
         whatNeedsDone,
         providersNeeded,
         importantDetails,
+        selectedDetailSections,
+        sectionDetails,
         taskScope,
         selectedPreferences,
         priority,
@@ -317,6 +327,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     selectedCat, title, description, location, latitude, longitude,
     budget, budgetMin, budgetMax, budgetMode, categorySearch, whatNeedsDone,
     providersNeeded, importantDetails, taskScope, selectedPreferences,
+    selectedDetailSections, sectionDetails,
     priority, isRemote, materialsList, requiresDiagnosis, scheduledDate,
     scheduledTime, editingJob
   ]);
@@ -396,6 +407,19 @@ const PostTaskScreen = ({ route, navigation }) => {
     setWhatNeedsDone(job.whatNeedsDone || '');
     setProvidersNeeded(String(job.providersNeeded || 1));
     setImportantDetails(job.importantDetails || '');
+    const savedDetails = Array.isArray(job.details) ? job.details : [];
+    setSelectedDetailSections({
+      responsibilities: Boolean(savedDetails.find((item) => item.key === 'responsibilities')),
+      requirements: Boolean(savedDetails.find((item) => item.key === 'requirements')),
+      skills: Boolean(savedDetails.find((item) => item.key === 'skills')),
+      benefits: Boolean(savedDetails.find((item) => item.key === 'benefits')),
+      instructions: Boolean(savedDetails.find((item) => item.key === 'instructions')),
+    });
+    setSectionDetails({
+      requirements: savedDetails.find((item) => item.key === 'requirements')?.content || '',
+      skills: savedDetails.find((item) => item.key === 'skills')?.content || '',
+      benefits: savedDetails.find((item) => item.key === 'benefits')?.content || '',
+    });
     setTaskScope(job.taskScope || '');
     setSelectedPreferences(job.preferences || ['verified', 'fast', 'rated', 'today']);
     setDetailEditor(null);
@@ -597,6 +621,13 @@ const PostTaskScreen = ({ route, navigation }) => {
         })(),
         whatNeedsDone: whatNeedsDone || undefined,
         importantDetails: importantDetails || undefined,
+        details: [
+          selectedDetailSections.responsibilities && whatNeedsDone ? { key: 'responsibilities', label: t('jobs.responsibilities'), content: whatNeedsDone.trim() } : null,
+          selectedDetailSections.requirements && sectionDetails.requirements ? { key: 'requirements', label: t('jobs.requirements'), content: sectionDetails.requirements.trim() } : null,
+          selectedDetailSections.skills && sectionDetails.skills ? { key: 'skills', label: t('jobs.skillsNeeded'), content: sectionDetails.skills.trim() } : null,
+          selectedDetailSections.benefits && sectionDetails.benefits ? { key: 'benefits', label: t('jobs.benefitsMaterials'), content: sectionDetails.benefits.trim() } : null,
+          selectedDetailSections.instructions && importantDetails ? { key: 'instructions', label: t('jobs.additionalInstructions'), content: importantDetails.trim() } : null,
+        ].filter(Boolean),
         taskScope: taskScope || undefined,
         preferences: Array.isArray(selectedPreferences) ? selectedPreferences : [],
         priority: priority || 'NORMAL',
@@ -800,6 +831,22 @@ const PostTaskScreen = ({ route, navigation }) => {
       setter: setImportantDetails,
       placeholder: t('jobs.importantDetailsPlaceholder'),
     }
+    : detailEditor === 'deliverables'
+      ? {
+        title: t('jobs.whatNeedsDone'),
+        subtitle: t('jobs.whatNeedsDoneSub'),
+        value: whatNeedsDone,
+        setter: setWhatNeedsDone,
+        placeholder: t('jobs.whatNeedsDonePlaceholder'),
+      }
+    : detailEditor === 'requirements' || detailEditor === 'skills' || detailEditor === 'benefits'
+      ? {
+        title: detailEditor === 'requirements' ? t('jobs.requirements') : detailEditor === 'skills' ? t('jobs.skillsNeeded') : t('jobs.benefitsMaterials'),
+        subtitle: t('jobs.onePointPerLine'),
+        value: sectionDetails[detailEditor],
+        setter: (value) => setSectionDetails((current) => ({ ...current, [detailEditor]: value })),
+        placeholder: t('jobs.onePointPerLine'),
+      }
     : null;
 
   return (
@@ -1256,7 +1303,34 @@ const PostTaskScreen = ({ route, navigation }) => {
             </View>
             <Text style={styles.descriptionHint}>{t('jobs.descriptionHint')}</Text>
 
-            <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('important')}>
+            <View style={styles.sectionPickerWrap}>
+              <Text style={[styles.sectionPickerTitle, { color: colors.text }]}>{t('jobs.jobSections')}</Text>
+              <Text style={[styles.sectionPickerHint, { color: colors.textSecondary }]}>{t('jobs.jobSectionsHint')}</Text>
+              <View style={styles.sectionChips}>
+                {[
+                  ['responsibilities', 'jobs.responsibilities'], ['requirements', 'jobs.requirements'], ['skills', 'jobs.skillsNeeded'],
+                  ['benefits', 'jobs.benefitsMaterials'], ['instructions', 'jobs.additionalInstructions'],
+                ].map(([key, labelKey]) => (
+                  <TouchableOpacity key={key} onPress={() => setSelectedDetailSections((current) => ({ ...current, [key]: !current[key] }))}
+                    style={[styles.sectionChip, { borderColor: selectedDetailSections[key] ? '#0D9488' : colors.border, backgroundColor: selectedDetailSections[key] ? '#E6F7F4' : colors.card }]}>
+                    <MaterialCommunityIcons name={selectedDetailSections[key] ? 'check-circle' : 'plus-circle-outline'} size={16} color={selectedDetailSections[key] ? '#0D9488' : '#64748B'} />
+                    <Text style={[styles.sectionChipText, { color: selectedDetailSections[key] ? '#08766C' : colors.text }]}>{t(labelKey)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {selectedDetailSections.responsibilities && <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('deliverables')}>
+              <View>
+                <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.whatNeedsDone')}</Text>
+                <Text style={[styles.promptText, { color: colors.textSecondary }]} numberOfLines={2}>
+                  {whatNeedsDone || t('jobs.whatNeedsDoneExample')}
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#64748B" />
+            </TouchableOpacity>}
+
+            {selectedDetailSections.instructions && <TouchableOpacity style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor('important')}>
               <View>
                 <Text style={[styles.promptTitle, { color: colors.text }]}>{t('jobs.importantDetails')}</Text>
                 <Text style={[styles.promptText, { color: colors.textSecondary }]} numberOfLines={2}>
@@ -1264,7 +1338,17 @@ const PostTaskScreen = ({ route, navigation }) => {
                 </Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={24} color="#64748B" />
-            </TouchableOpacity>
+            </TouchableOpacity>}
+
+            {['requirements', 'skills', 'benefits'].filter((key) => selectedDetailSections[key]).map((key) => (
+              <TouchableOpacity key={key} style={[styles.descriptionPromptCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openDetailEditor(key)}>
+                <View>
+                  <Text style={[styles.promptTitle, { color: colors.text }]}>{key === 'requirements' ? t('jobs.requirements') : key === 'skills' ? t('jobs.skillsNeeded') : t('jobs.benefitsMaterials')}</Text>
+                  <Text style={[styles.promptText, { color: colors.textSecondary }]} numberOfLines={2}>{sectionDetails[key] || t('jobs.onePointPerLine')}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#64748B" />
+              </TouchableOpacity>
+            ))}
 
             <Text style={[styles.descriptionLabel, { color: colors.text, marginTop: 10, fontSize: 16 }]}>{t('jobs.scheduleTask', 'Schedule Task')}</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
@@ -1414,6 +1498,13 @@ const PostTaskScreen = ({ route, navigation }) => {
               </View>
               <Text style={[styles.reviewTitle, { color: colors.text }]}>{title}</Text>
               <Text style={[styles.reviewDescription, { color: colors.textSecondary }]}>{description}</Text>
+
+              {whatNeedsDone ? (
+                <View style={styles.reviewFullItem}>
+                  <Text style={[styles.reviewLabel, { color: colors.textSecondary }]}>{t('jobs.whatNeedsDone')}</Text>
+                  <Text style={[styles.reviewValue, { color: colors.text }]}>{whatNeedsDone}</Text>
+                </View>
+              ) : null}
 
               <View style={styles.reviewGrid}>
                 <View style={styles.reviewItem}>
@@ -2259,6 +2350,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 22,
   },
+  sectionPickerWrap: {
+    marginTop: 22,
+    marginBottom: 8,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  sectionPickerTitle: { fontSize: 16, fontWeight: '800' },
+  sectionPickerHint: { fontSize: 13, lineHeight: 19, marginTop: 4 },
+  sectionChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 13 },
+  sectionChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
+  sectionChipText: { fontSize: 12, fontWeight: '700' },
   descriptionPromptCard: {
     minHeight: 88,
     borderRadius: 12,

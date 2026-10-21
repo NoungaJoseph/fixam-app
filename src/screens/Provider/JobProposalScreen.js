@@ -244,7 +244,7 @@ const JobProposalScreen = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         {/* Task Summary Banner */}
-        <View style={[styles.taskCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.taskCard, { borderColor: colors.border }]}>
           <Text style={[styles.taskTitle, { color: colors.text }]} numberOfLines={2}>
             {task.title}
           </Text>
@@ -266,7 +266,7 @@ const JobProposalScreen = ({ route, navigation }) => {
             {t('jobs.yourProposedBudget', 'Your Proposed Price / Budget')} ({currencyStr})
           </Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+            style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
             placeholder={defaultBudget || "50000"}
             placeholderTextColor={colors.placeholder}
             keyboardType="numeric"
@@ -284,7 +284,7 @@ const JobProposalScreen = ({ route, navigation }) => {
             {t('jobs.coverLetterLabel', 'Cover Letter / Proposal Note')}
           </Text>
           <TextInput
-            style={[styles.input, styles.multiInput, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+            style={[styles.input, styles.multiInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
             placeholder={t('jobs.coverLetterPlaceholder', 'Explain why you are the best person for this task, your past experience, tools you will use, and availability...')}
             placeholderTextColor={colors.placeholder}
             multiline
@@ -364,7 +364,7 @@ const JobProposalScreen = ({ route, navigation }) => {
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <TextInput
-              style={[styles.boostInput, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+            style={[styles.boostInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
               placeholder="0"
               placeholderTextColor={colors.placeholder}
               keyboardType="numeric"
@@ -442,11 +442,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 18,
     borderBottomWidth: 1,
   },
   backBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 16, fontWeight: '900' },
+  headerTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.2 },
   freeBadge: {
     backgroundColor: '#10B981',
     paddingHorizontal: 8,
@@ -455,26 +455,22 @@ const styles = StyleSheet.create({
   },
   freeBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '900' },
 
-  taskCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 16,
-  },
-  taskTitle: { fontSize: 15, fontWeight: '800', marginBottom: 8 },
+  taskCard: { borderBottomWidth: 1, paddingBottom: 18, marginBottom: 24 },
+  taskTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.25, marginBottom: 8 },
   taskMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   pillText: { fontSize: 12, fontWeight: '700' },
   taskBudgetMeta: { fontSize: 12 },
 
-  fieldGroup: { marginBottom: 18 },
-  fieldLabel: { fontSize: 13, fontWeight: '800', marginBottom: 6 },
+  fieldGroup: { marginBottom: 24, paddingBottom: 20, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#DCE4EE' },
+  fieldLabel: { fontSize: 15, fontWeight: '900', marginBottom: 8 },
   fieldHint: { fontSize: 11, color: '#94A3B8', marginTop: 4 },
   input: {
     height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    paddingHorizontal: 0,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -489,7 +485,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 48,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderStyle: 'dashed',
     gap: 8,
@@ -506,9 +502,10 @@ const styles = StyleSheet.create({
   removeAttBtn: { padding: 4 },
 
   boostBox: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 0,
+    borderLeftWidth: 3,
     marginBottom: 20,
   },
   boostInput: {
@@ -523,7 +520,7 @@ const styles = StyleSheet.create({
 
   submitBtn: {
     height: 52,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,

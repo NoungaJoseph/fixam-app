@@ -632,7 +632,7 @@ const PostProjectScreen = ({ navigation, route }) => {
           enableOnAndroid
           extraScrollHeight={60}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+          contentContainerStyle={styles.formContent}
           showsVerticalScrollIndicator={false}
         >
           {/* In-Progress Draft Banner */}
@@ -684,10 +684,10 @@ const PostProjectScreen = ({ navigation, route }) => {
           )}
 
           {/* Project Title */}
-          <View style={styles.fieldGroup}>
+          <View style={[styles.fieldGroup, { borderBottomColor: colors.border }]}>
             <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.title', 'Project Title')} *</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+              style={[styles.input, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
               placeholder={t('project.titlePlaceholder', 'e.g. Custom Responsive Web Application Development')}
               placeholderTextColor={colors.placeholder}
               value={title}
@@ -696,10 +696,10 @@ const PostProjectScreen = ({ navigation, route }) => {
           </View>
 
           {/* Category Dropdown Picker */}
-          <View style={styles.fieldGroup}>
+          <View style={[styles.fieldGroup, { borderBottomColor: colors.border }]}>
             <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.category', 'Category')} *</Text>
             <TouchableOpacity
-              style={[styles.dropdownBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[styles.dropdownBtn, { backgroundColor: 'transparent', borderColor: colors.border }]}
               onPress={() => setShowCategoryModal(true)}
             >
               <Text style={[styles.dropdownBtnText, { color: colors.text }]}>
@@ -710,10 +710,10 @@ const PostProjectScreen = ({ navigation, route }) => {
           </View>
 
           {/* Project Description */}
-          <View style={styles.fieldGroup}>
+          <View style={[styles.fieldGroup, { borderBottomColor: colors.border }]}>
             <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.description', 'Project Description')} *</Text>
             <TextInput
-              style={[styles.input, styles.multiInput, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+              style={[styles.input, styles.multiInput, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
               placeholder={t('project.descPlaceholder', 'Describe what you deliver in this project, work process, and client requirements...')}
               placeholderTextColor={colors.placeholder}
               multiline
@@ -724,10 +724,10 @@ const PostProjectScreen = ({ navigation, route }) => {
           </View>
 
           {/* MEDIA UPLOADS FROM DEVICE */}
-          <View style={styles.fieldGroup}>
+          <View style={[styles.fieldGroup, { borderBottomColor: colors.border }]}>
             <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.uploadImages', 'Project Images (Upload from Device)')}</Text>
             <TouchableOpacity
-              style={[styles.mediaPickBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#F0FDFA', borderColor: colors.accent }]}
+            style={[styles.mediaPickBtn, { backgroundColor: 'transparent', borderColor: colors.accent }]}
               onPress={handlePickImages}
             >
               <MaterialCommunityIcons name="image-plus" size={24} color={colors.accent} />
@@ -752,10 +752,10 @@ const PostProjectScreen = ({ navigation, route }) => {
           </View>
 
           {/* Video Upload Section (Multiple Videos) */}
-          <View style={styles.fieldGroup}>
+          <View style={[styles.fieldGroup, { borderBottomColor: colors.border }]}>
             <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('project.uploadVideo', 'Demo Videos (Max 1 min duration each)')}</Text>
             <TouchableOpacity
-              style={[styles.mediaPickBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9', borderColor: colors.border }]}
+            style={[styles.mediaPickBtn, { backgroundColor: 'transparent', borderColor: colors.border }]}
               onPress={handlePickVideo}
             >
               <MaterialCommunityIcons name="video-plus" size={24} color={colors.accent} />
@@ -767,7 +767,7 @@ const PostProjectScreen = ({ navigation, route }) => {
             {videoUris.length > 0 && (
               <View style={{ gap: 8, marginTop: 10 }}>
                 {videoUris.map((vUri, idx) => (
-                  <View key={idx} style={[styles.videoBadgeRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View key={idx} style={[styles.videoBadgeRow, { backgroundColor: 'transparent', borderColor: colors.border }]}>
                     <MaterialCommunityIcons name="video" size={22} color={colors.accent} />
                     <Text style={[styles.videoBadgeText, { color: colors.text, flex: 1, marginLeft: 8 }]} numberOfLines={1}>
                       Video #{idx + 1} ({vUri.split('/').pop() || 'demo.mp4'})
@@ -809,7 +809,7 @@ const PostProjectScreen = ({ navigation, route }) => {
           </View>
 
           {/* Active Tier Form Card (Subtle Square Radius: 8) */}
-          <View style={[styles.tierCardSquare, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.tierCardSquare, { backgroundColor: 'transparent', borderColor: colors.border }]}>
             {/* Enable Toggle */}
             <TouchableOpacity
               style={styles.enableToggleRow}
@@ -834,7 +834,7 @@ const PostProjectScreen = ({ navigation, route }) => {
                   {t('project.packageSummary', 'Package Summary / Subtitle')}
                 </Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA', color: colors.text, borderColor: colors.border }]}
+                  style={[styles.input, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
                   placeholder="e.g. 3 MINUTE (up to 50GB footages)"
                   placeholderTextColor={colors.placeholder}
                   value={tierData[activeTierId].summary || ''}
@@ -846,7 +846,7 @@ const PostProjectScreen = ({ navigation, route }) => {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.subLabel, { color: colors.textSecondary }]}>{t('project.price', 'Price')} ({currencyStr})</Text>
                     <TextInput
-                      style={[styles.input, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA', color: colors.text, borderColor: colors.border }]}
+                      style={[styles.input, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
                       placeholder="50"
                       keyboardType="numeric"
                       value={tierData[activeTierId].price}
@@ -856,7 +856,7 @@ const PostProjectScreen = ({ navigation, route }) => {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.subLabel, { color: colors.textSecondary }]}>{t('project.days', 'Delivery Days')}</Text>
                     <TextInput
-                      style={[styles.input, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA', color: colors.text, borderColor: colors.border }]}
+                      style={[styles.input, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
                       placeholder="3"
                       keyboardType="numeric"
                       value={tierData[activeTierId].deliveryDays}
@@ -866,7 +866,7 @@ const PostProjectScreen = ({ navigation, route }) => {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.subLabel, { color: colors.textSecondary }]}>{t('project.revisions', 'Revisions')}</Text>
                     <TextInput
-                      style={[styles.input, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA', color: colors.text, borderColor: colors.border }]}
+                      style={[styles.input, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
                       placeholder="1"
                       keyboardType="numeric"
                       value={tierData[activeTierId].revisions}
@@ -898,7 +898,7 @@ const PostProjectScreen = ({ navigation, route }) => {
                           {t('project.expressDays', 'Express Days')}
                         </Text>
                         <TextInput
-                          style={[styles.input, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA', color: colors.text, borderColor: colors.border }]}
+                          style={[styles.input, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
                           placeholder="4"
                           placeholderTextColor={colors.placeholder}
                           keyboardType="numeric"
@@ -911,7 +911,7 @@ const PostProjectScreen = ({ navigation, route }) => {
                           {t('project.expressPrice', 'Add-on Price')} ({currencyStr})
                         </Text>
                         <TextInput
-                          style={[styles.input, { backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA', color: colors.text, borderColor: colors.border }]}
+                          style={[styles.input, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
                           placeholder="20"
                           placeholderTextColor={colors.placeholder}
                           keyboardType="numeric"
@@ -931,7 +931,7 @@ const PostProjectScreen = ({ navigation, route }) => {
                 {tierData[activeTierId].features.map((feat, fIdx) => (
                   <View key={fIdx} style={styles.featureInputRow}>
                     <TextInput
-                      style={[styles.input, { flex: 1, backgroundColor: isDarkMode ? '#0F172A' : '#FAFAFA', color: colors.text, borderColor: colors.border }]}
+                      style={[styles.input, { flex: 1, backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
                       placeholder={`Feature #${fIdx + 1}`}
                       placeholderTextColor={colors.placeholder}
                       value={feat}
@@ -1140,15 +1140,17 @@ const styles = StyleSheet.create({
   publishFirstBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
   publishFirstBtnText: { color: '#FFF', fontSize: 15, fontWeight: '900' },
 
-  // Form View Styles
-  fieldGroup: { marginBottom: 16 },
-  fieldLabel: { fontSize: 14, fontWeight: '800', marginBottom: 6 },
+  // Editorial form view: plain background, clear dividers, generous rhythm.
+  formContent: { paddingHorizontal: 22, paddingTop: 26, paddingBottom: 120 },
+  fieldGroup: { marginBottom: 24, paddingBottom: 20, borderBottomWidth: StyleSheet.hairlineWidth },
+  fieldLabel: { fontSize: 15, fontWeight: '900', marginBottom: 9 },
   input: {
     height: 48,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    fontSize: 14,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    paddingHorizontal: 0,
+    fontSize: 15,
     fontWeight: '600',
   },
   multiInput: {
@@ -1159,9 +1161,10 @@ const styles = StyleSheet.create({
 
   dropdownBtn: {
     height: 48,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 14,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    paddingHorizontal: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1174,8 +1177,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     height: 50,
-    borderRadius: 10,
-    borderWidth: 1.5,
+    borderRadius: 12,
+    borderWidth: 1,
     borderStyle: 'dashed',
   },
   mediaPickBtnText: { fontSize: 14, fontWeight: '800' },
@@ -1196,9 +1199,12 @@ const styles = StyleSheet.create({
   tierSegmentText: { fontSize: 12, fontWeight: '900' },
 
   tierCardSquare: {
-    borderRadius: 8, // Subtle square corner radius
-    borderWidth: 1,
-    padding: 14,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 0,
     marginBottom: 16,
   },
   enableToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },

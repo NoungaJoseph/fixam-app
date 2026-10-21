@@ -2,7 +2,7 @@
   "expo": {
     "name": "Fixam",
     "slug": "Fixam",
-    "version": "1.1.3",
+    "version": "1.1.7",
     "scheme": "fixam",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.fixam.app.iosapp",
       "googleServicesFile": "./firebase/GoogleService-Info.plist",
-      "buildNumber": "29",
+      "buildNumber": "33",
       "userInterfaceStyle": "automatic",
       "config": {
         "usesNonExemptEncryption": false
@@ -38,7 +38,7 @@
     "android": {
       "package": "com.fixam.app.android",
       "googleServicesFile": "./firebase/google-services.json",
-      "versionCode": 24,
+      "versionCode": 28,
       "userInterfaceStyle": "automatic",
       "softwareKeyboardLayoutMode": "resize",
       "blockedPermissions": [
@@ -122,6 +122,15 @@
     },
     "plugins": [
       "./plugins/withStripMediaPermissions",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ],
       "expo-dev-client",
       "expo-localization",
       "expo-local-authentication",
@@ -160,7 +169,7 @@
         "projectId": "4d46468f-0fb1-40b9-85b2-7c61004d77b9"
       }
     },
-    "runtimeVersion": "1.1.3",
+    "runtimeVersion": "1.1.7",
     "updates": {
       "url": "https://u.expo.dev/4d46468f-0fb1-40b9-85b2-7c61004d77b9"
     }

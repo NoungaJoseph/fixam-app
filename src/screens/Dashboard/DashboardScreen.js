@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, StatusBar,
 import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
@@ -27,6 +28,7 @@ const DashboardScreen = ({ navigation }) => {
   const [showSkillPicker, setShowSkillPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [reviews, setReviews] = useState([]);
+  const [uploadingCv, setUploadingCv] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -323,6 +325,31 @@ const DashboardScreen = ({ navigation }) => {
     );
   };
 
+  const handleCvUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+      const asset = result.assets?.[0];
+      if (result.canceled || !asset?.uri) return;
+      setUploadingCv(true);
+      const formData = new FormData();
+      formData.append('cv', {
+        uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
+        name: asset.name || 'fixam-cv.pdf',
+        type: asset.mimeType || 'application/pdf',
+      });
+      await api.post('/external-jobs/user/cv', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await refreshUser?.();
+      Alert.alert(t('common.success', 'Success'), i18n.language?.startsWith('fr') ? 'CV enregistrÃ© dans votre profil. Vous choisirez quand le joindre Ã  une candidature.' : 'CV saved to your profile. You choose when to attach it to an application.');
+    } catch (error) {
+      Alert.alert(t('common.error', 'Error'), error.response?.data?.message || (i18n.language?.startsWith('fr') ? 'Impossible d\'importer le CV.' : 'Unable to upload your CV.'));
+    } finally {
+      setUploadingCv(false);
+    }
+  };
+
   const toggleSkill = (skill) => {
     setForm(prev => ({
       ...prev,
@@ -500,6 +527,21 @@ const DashboardScreen = ({ navigation }) => {
             <TouchableOpacity onPress={() => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' })}>
               <Text style={[styles.moreText, { color: colors.accent }]}>{t('home.more')}</Text>
             </TouchableOpacity>
+          </Section>
+
+          <Section colors={colors} title={i18n.language?.startsWith('fr') ? 'CV professionnel' : 'Professional CV'}>
+            <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>
+              {user?.cvName
+                ? (i18n.language?.startsWith('fr') ? `${user.cvName} enregistrÃ©. Vous choisissez quand le joindre.` : `${user.cvName} saved. You choose when to attach it.`)
+                : (i18n.language?.startsWith('fr') ? 'Ajoutez un CV Ã  votre profil. Il ne sera jamais joint automatiquement.' : 'Keep a CV in your profile. It is never attached automatically.')}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14 }}>
+              <TouchableOpacity disabled={uploadingCv} onPress={handleCvUpload} style={[styles.cvUploadButton, { borderColor: colors.accent, opacity: uploadingCv ? 0.6 : 1 }]}>
+                {uploadingCv ? <ActivityIndicator size="small" color={colors.accent} /> : <MaterialCommunityIcons name="file-upload-outline" size={19} color={colors.accent} />}
+                <Text style={[styles.cvUploadText, { color: colors.accent }]}>{uploadingCv ? (i18n.language?.startsWith('fr') ? 'Importation...' : 'Uploading...') : (user?.cvName ? (i18n.language?.startsWith('fr') ? 'Remplacer le CV' : 'Replace CV') : (i18n.language?.startsWith('fr') ? 'Importer un CV' : 'Upload CV'))}</Text>
+              </TouchableOpacity>
+              <Text style={[styles.profileMeta, { color: colors.textSecondary }]}>{i18n.language?.startsWith('fr') ? 'CrÃ©er un CV â€” bientÃ´t disponible' : 'Create a CV — coming soon'}</Text>
+            </View>
           </Section>
 
           <Section colors={colors} title={t('profileDetail.portfolio')} actionIcon="plus-circle-outline" onAction={() => navigation.navigate('ProviderProfileEditItem', { type: 'project' })}>
@@ -1138,6 +1180,8 @@ const EmptyProfileBlock = ({ icon, title, action, colors, onActionPress }) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  cvUploadButton: { flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10 },
+  cvUploadText: { fontSize: 13, fontWeight: '800' },
   freelancerHeader: {
     minHeight: Platform.OS === 'ios' ? 100 : 76,
     paddingTop: Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight || 0),

@@ -371,41 +371,34 @@ const HomeScreen = ({ navigation }) => {
           </ScrollView>
         </LinearGradient>
 
-        {/* ═══ 2. WALLET BALANCE CARD ═══ */}
-        <TouchableOpacity
-          ref={topUpRef}
-          style={[styles.walletCard, { backgroundColor: isDarkMode ? '#134E4A' : '#0D9488' }]}
-          onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet')}
-          activeOpacity={0.85}
-        >
-          {/* Left Column: Wallet Balance & Top Up stacked */}
-          <View style={styles.walletLeftCol}>
-            <View style={styles.walletHeaderRow}>
-              <View style={styles.walletIconWrap}>
-                <MaterialCommunityIcons name="wallet" size={20} color="#FFF" />
+        {/* ═══ 2. SEE EXPERTS IN ACTION — replaces wallet/coin promotion ═══ */}
+        {projectShowcaseList.length > 0 && (
+          <View style={styles.actionShowcase}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.eyebrow}>REAL WORK FROM FIXAM PROFESSIONALS</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>See experts in action</Text>
               </View>
-              <Text style={styles.walletLabel}>{t('home.walletBalance')}</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('ProjectList')}>
+                <Text style={styles.viewAll}>{t('common.seeAll', 'See All')}</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.walletAmount} numberOfLines={1}>{(walletBalance || 0).toLocaleString()} {t('payments.coins')}</Text>
-            
-            <TouchableOpacity
-              style={styles.topUpBtn}
-              onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet')}
-            >
-              <Text style={styles.topUpText}>{t('home.topUp')}</Text>
-              <MaterialCommunityIcons name="plus" size={14} color="#0D9488" />
-            </TouchableOpacity>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
+              {projectShowcaseList.map((item, index) => {
+                const provider = item.provider || {};
+                const image = getMediaUrl(item.imageUrl || (Array.isArray(item.images) ? item.images[0] : null));
+                return <TouchableOpacity key={`${item.id || 'project'}_${index}`} style={[styles.actionProjectCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]} onPress={() => navigation.navigate('ProjectDetail', { project: item, provider })} activeOpacity={0.88}>
+                  {image ? <Image source={{ uri: image }} style={styles.actionProjectImage} /> : <View style={[styles.actionProjectImage, { backgroundColor: '#E8EEF5' }]} />}
+                  <View style={styles.actionProjectBody}>
+                    <Text style={[styles.actionProjectTitle, { color: colors.text }]} numberOfLines={1}>{item.title || t('profileDetail.project', 'Project')}</Text>
+                    <Text style={[styles.actionProjectMeta, { color: colors.textSecondary }]} numberOfLines={1}>{item.category || provider.skills?.[0] || t('home.expert', 'Professional service')} · {provider.user?.fullName || t('common.provider', 'Provider')}</Text>
+                    <View style={styles.actionProjectFooter}><Text style={styles.actionProjectLink}>View work</Text><MaterialCommunityIcons name="arrow-right" size={16} color="#D95E57" /></View>
+                  </View>
+                </TouchableOpacity>;
+              })}
+            </ScrollView>
           </View>
-
-          <View style={styles.walletDivider} />
-
-          {/* Right Column: Transactions */}
-          <View style={styles.walletRightCol}>
-            <Text style={styles.walletLabel}>{t('payments.transactions').toUpperCase()}</Text>
-            <Text style={styles.walletTxCount} numberOfLines={1}>{txCount}</Text>
-            <Text style={styles.walletSub}>{t('home.thisMonth')}</Text>
-          </View>
-        </TouchableOpacity>
+        )}
 
         {/* ═══ 3. PROGRESS CARD ═══ */}
         <LinearGradient
@@ -553,7 +546,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         {/* ═══ PROJECTS SHOWCASE SECTION (Matching Screenshots 2 & 3) ═══ */}
-        {projectShowcaseList.length > 0 && (
+        {false && projectShowcaseList.length > 0 && (
           <View style={{ marginBottom: 24 }}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profileDetail.portfolio', 'Projects')}</Text>
@@ -737,6 +730,15 @@ const HomeScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  actionShowcase: { marginTop: 22, marginBottom: 24 },
+  eyebrow: { color: '#D95E57', fontSize: 10, fontWeight: '900', letterSpacing: 1.2, marginBottom: 4 },
+  actionProjectCard: { width: 268, borderWidth: 1, borderRadius: 18, overflow: 'hidden' },
+  actionProjectImage: { width: '100%', height: 150, resizeMode: 'cover' },
+  actionProjectBody: { padding: 13 },
+  actionProjectTitle: { fontSize: 15, fontWeight: '900' },
+  actionProjectMeta: { marginTop: 5, fontSize: 11, fontWeight: '600' },
+  actionProjectFooter: { marginTop: 13, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E2E8F0', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  actionProjectLink: { color: '#D95E57', fontSize: 12, fontWeight: '900' },
   container: { flex: 1 },
   scroll: { paddingBottom: 110 },
 

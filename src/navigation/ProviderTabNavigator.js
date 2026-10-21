@@ -60,6 +60,7 @@ import CoinPaymentFormScreen from '../screens/Wallet/CoinPaymentFormScreen';
 import CoinPaymentSuccessScreen from '../screens/Wallet/CoinPaymentSuccessScreen';
 import CoinPaymentFailedScreen from '../screens/Wallet/CoinPaymentFailedScreen';
 import BookingFormScreen from '../screens/Bookings/BookingFormScreen';
+import RevisedQuoteScreen from '../screens/Bookings/RevisedQuoteScreen';
 import ProviderProfileScreen from '../screens/Providers/ProviderProfileScreen';
 import JobProposalScreen from '../screens/Provider/JobProposalScreen';
 
@@ -337,6 +338,7 @@ const ProviderTabNavigator = () => {
       <Drawer.Screen name="TaskDetails" component={TaskDetailsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="LiveTaskMap" component={LiveTaskMapScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="BookingForm" component={BookingFormScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="RevisedQuote" component={RevisedQuoteScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="BookingsList" component={BookingsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Chat" component={ChatScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ReviewTask" component={ReviewTaskScreen} options={{ drawerItemStyle: { display: 'none' } }} />

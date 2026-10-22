@@ -57,3 +57,33 @@ if (fs.existsSync(targetFile)) {
 } else {
   console.log('[patchImagePicker] Target file does not exist yet (node_modules not installed)');
 }
+
+// Patch subproject buildscripts to prevent downloading old standalone AGP plugins
+const subprojectsToPatch = [
+  {
+    path: path.join(__dirname, '..', 'node_modules', 'react-native-vector-icons', 'android', 'build.gradle'),
+    pattern: /repositories\s*\{\s*google\(\)\s*gradlePluginPortal\(\)\s*\}\s*dependencies\s*\{\s*classpath\(["']com\.android\.tools\.build:gradle:7\.0\.4["']\)\s*\}/,
+    replacement: `if (project == rootProject) {\n        repositories {\n            google()\n            gradlePluginPortal()\n        }\n        dependencies {\n            classpath("com.android.tools.build:gradle:7.0.4")\n        }\n    }`
+  },
+  {
+    path: path.join(__dirname, '..', 'node_modules', 'react-native-safe-area-context', 'android', 'build.gradle'),
+    pattern: /buildscript\s*\{([\s\S]*?)dependencies\s*\{[\s\S]*?com\.android\.tools\.build:gradle:7\.3\.1[\s\S]*?\}\s*\}/,
+    replacement: `buildscript {\n    if (project == rootProject) {\n        def kotlin_version = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : project.properties['RNSAC_kotlinVersion']\n        repositories { mavenCentral(); google() }\n        dependencies {\n            classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")\n            classpath("com.android.tools.build:gradle:7.3.1")\n            classpath("com.diffplug.spotless:spotless-plugin-gradle:6.11.0")\n        }\n    }\n}`
+  },
+  {
+    path: path.join(__dirname, '..', 'node_modules', 'react-native-webview', 'android', 'build.gradle'),
+    pattern: /repositories\s*\{\s*google\(\)\s*gradlePluginPortal\(\)\s*\}\s*dependencies\s*\{[\s\S]*?com\.android\.tools\.build:gradle:7\.0\.4["']\)\s*\}/,
+    replacement: `if (project == rootProject) {\n        repositories {\n            google()\n            gradlePluginPortal()\n        }\n        dependencies {\n            classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:\${safeExtGet('kotlinVersion')}")\n            classpath("com.android.tools.build:gradle:7.0.4")\n        }\n    }`
+  }
+];
+
+for (const sub of subprojectsToPatch) {
+  if (fs.existsSync(sub.path)) {
+    let raw = fs.readFileSync(sub.path, 'utf8');
+    if (sub.pattern.test(raw)) {
+      raw = raw.replace(sub.pattern, sub.replacement);
+      fs.writeFileSync(sub.path, raw, 'utf8');
+      console.log(`[patchBuildscripts] Patched ${path.basename(path.dirname(path.dirname(sub.path)))} build.gradle`);
+    }
+  }
+}

@@ -138,5 +138,6 @@
   "selectCategory": "Select Category",
   "draftAutoSaved": "In-progress draft auto-saved",
   "clearDraftTitle": "Discard Draft?",
-  "clearDraftBody": "Are you sure you want to clear your in-progress project draft?"
+  "clearDraftBody": "Are you sure you want to clear your in-progress project draft?",
+  "videoSizeLimit": "Each video must be 100 MB or smaller."
 }

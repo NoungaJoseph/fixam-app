@@ -104,19 +104,6 @@ const ProviderListScreen = ({ route, navigation }) => {
   const [activeFilter, setActiveFilter] = useState('Rating');
   const [pendingFilter, setPendingFilter] = useState('Rating');
   const [showFilters, setShowFilters] = useState(false);
-  const [topProviders, setTopProviders] = useState([]);
-
-  useEffect(() => {
-    if (!category || category === 'all') {
-      api.get('/providers/top-of-month')
-        .then(res => {
-          if (res.data?.success) {
-            setTopProviders(res.data.data);
-          }
-        })
-        .catch(err => console.log('Error fetching top providers:', err));
-    }
-  }, [category]);
 
   const applyFilter = () => {
     setActiveFilter(pendingFilter);
@@ -402,23 +389,6 @@ const ProviderListScreen = ({ route, navigation }) => {
         <FlatList
           data={filtered}
           keyExtractor={item => item.id}
-          ListHeaderComponent={(!category || category === 'all') && !search && !verifiedOnly && !favoritesOnly && topProviders.length > 0 ? (
-            <View style={styles.topProvidersSection}>
-              <Text style={[styles.topProvidersTitle, { color: colors.text }]}>{t('bookings.providersOfMonth')}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topProvidersScroll}>
-                {topProviders.map(item => (
-                  <TouchableOpacity key={`top-${item.id}`} style={[styles.topCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('ProviderProfile', { provider: item })}>
-                    <UserAvatar uri={getMediaUrl(item.image || item.avatar || item.user?.avatar)} name={item.user?.fullName} size={50} radius={25} style={styles.topAvatar} />
-                    <Text style={[styles.topProvName, { color: colors.text }]} numberOfLines={1}>{item.user?.fullName}</Text>
-                    <View style={styles.topRatingRow}>
-                      <MaterialCommunityIcons name="star" size={12} color="#F59E0B" />
-                      <Text style={styles.topRatingText}>{Number(item.rating || 0).toFixed(1)}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          ) : null}
           renderItem={renderProvider}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}

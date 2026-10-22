@@ -47,7 +47,15 @@
     "externalContactTitle": "Keep your conversation safe",
     "externalContactBody": "Moving this conversation outside Fixam means we can't help resolve disputes if something goes wrong. Send anyway?",
     "sendAnyway": "Send Anyway",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "delete": "Delete chat",
+    "deleteChat": "Delete conversation?",
+    "deleteChatQuestion": "This will remove your conversation with {{name}} from your inbox. It will not delete their copy.",
+    "deleteFailed": "The conversation could not be deleted. Please try again.",
+    "conversationCompleteTitle": "This booking is complete",
+    "conversationCompleteBody": "This conversation is now closed and remains available for your records.",
+    "viewBooking": "View booking",
+    "bookAgain": "Book this provider again"
   },
   "support": {
     "title": "Fixam Support",

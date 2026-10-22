@@ -2,6 +2,8 @@
   "bookings": {
     "revisedQuote": "Proposition révisée",
     "revisedQuoteReceived": "Proposition révisée reçue",
+    "reviewRevisedOffer": "Examiner l'offre révisée",
+    "revisionCoinNotice": "1 pièce est réservée lors de l'envoi de cette offre. Elle est remboursée si le client refuse ou annule.",
     "yourRevisedQuote": "Votre proposition révisée",
     "requestedTerms": "Conditions demandées",
     "revisedTerms": "Conditions révisées",

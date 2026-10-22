@@ -76,6 +76,11 @@ const ChatListScreen = ({ navigation }) => {
     loadArchived();
   }, [user?.id]);
 
+  useEffect(() => {
+    const serverArchived = conversations.filter(c => c.isArchived).map(c => c.id);
+    if (serverArchived.length) setArchivedIds(ids => Array.from(new Set([...ids, ...serverArchived])));
+  }, [conversations]);
+
   const toggleArchiveConversation = async (conversationId) => {
     if (!conversationId) return;
     const isArchived = archivedIds.includes(conversationId);
@@ -91,6 +96,44 @@ const ChatListScreen = ({ navigation }) => {
     if (user?.id) {
       await AsyncStorage.setItem(`fixam:archived-chats:${user.id}`, JSON.stringify(nextArchived));
     }
+    try {
+      await api.patch(`/chat/conversations/${conversationId}/archive`, { archived: !isArchived });
+      await fetchConversations();
+    } catch (err) {
+      console.log('Unable to sync archived chat:', err.message);
+    }
+  };
+
+  const deleteConversation = (conversationId, displayName) => {
+    Alert.alert(
+      t('messages.deleteChat'),
+      t('messages.deleteChatQuestion', { name: displayName }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('messages.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/chat/conversations/${conversationId}`);
+              setArchivedIds(ids => ids.filter(id => id !== conversationId));
+              await fetchConversations();
+            } catch (err) {
+              Alert.alert(t('common.error'), t('messages.deleteFailed'));
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const showConversationMenu = (item, displayName) => {
+    const isArchived = archivedIds.includes(item.id);
+    Alert.alert(t('messages.conversationOptions'), displayName, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: isArchived ? t('messages.moveToInbox') : t('messages.archiveConversation'), onPress: () => toggleArchiveConversation(item.id) },
+      { text: t('messages.delete'), style: 'destructive', onPress: () => deleteConversation(item.id, displayName) }
+    ]);
   };
 
   useFocusEffect(useCallback(() => { fetchConversations(); }, [fetchConversations]));
@@ -221,20 +264,7 @@ const ChatListScreen = ({ navigation }) => {
           isSupportConversation: isSupport || item.isSystem,
           task: item.activeTask || item.task || item.job || item.activeJob || item.booking,
         })}
-        onLongPress={() => {
-          const isArchived = archivedIds.includes(item.id);
-          Alert.alert(
-            t('messages.conversationOptions'),
-            t(isArchived ? 'messages.unarchiveQuestion' : 'messages.archiveQuestion', { name: displayName }),
-            [
-              { text: t('common.cancel'), style: 'cancel' },
-              {
-                text: isArchived ? t('messages.moveToInbox') : t('messages.archiveConversation'),
-                onPress: () => toggleArchiveConversation(item.id)
-              }
-            ]
-          );
-        }}
+        onLongPress={() => showConversationMenu(item, displayName)}
         activeOpacity={0.75}
       >
         {/* Avatar */}
@@ -255,25 +285,12 @@ const ChatListScreen = ({ navigation }) => {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={[styles.chatTime, { color: colors.placeholder }]}>{formatTime(item.lastMessage?.createdAt)}</Text>
               <TouchableOpacity
-                onPress={() => {
-                  const isArchived = archivedIds.includes(item.id);
-                  Alert.alert(
-                    isArchived ? t('messages.unarchiveChat') : t('messages.archiveChat'),
-                    t(isArchived ? 'messages.moveToInboxQuestion' : 'messages.moveToArchiveQuestion', { name: displayName }),
-                    [
-                      { text: t('common.cancel'), style: 'cancel' },
-                      {
-                        text: isArchived ? t('messages.moveToInbox') : t('messages.archive'),
-                        onPress: () => toggleArchiveConversation(item.id)
-                      }
-                    ]
-                  );
-                }}
+                onPress={() => showConversationMenu(item, displayName)}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <MaterialCommunityIcons
-                  name={archivedIds.includes(item.id) ? "archive-arrow-up-outline" : "archive-arrow-down-outline"}
-                  size={16}
+                  name="dots-vertical"
+                  size={20}
                   color={colors.accent}
                 />
               </TouchableOpacity>

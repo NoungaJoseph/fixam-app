@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView,
-  TextInput, Platform, Image, Dimensions, Switch, Modal, ActivityIndicator, Alert
+  TextInput, Platform, Image, ImageBackground, Dimensions, Switch, Modal, ActivityIndicator, Alert
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,8 +19,6 @@ import { translateService } from '../../i18n/translate';
 import WelcomeModal from '../../components/Common/WelcomeModal';
 import ProviderTour from '../../components/Common/ProviderTour';
 import NewsTicker from '../../components/NewsTicker';
-import * as ImagePicker from 'expo-image-picker';
-import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 
 const { width } = Dimensions.get('window');
 
@@ -68,14 +66,12 @@ const LEARN_CARDS = [
 ];
 
 const PROVIDER_BILLBOARDS = [
-  { id: 'jobs', image: require('../../../assets/provider-billboard/show-work.jpg'), eyebrow: 'NEW OPPORTUNITIES', title: 'Find work that fits your skills', body: 'Explore verified jobs and grow your client base.', action: 'Explore jobs', route: 'TaskDiscovery' },
-  { id: 'work', image: require('../../../assets/provider-billboard/find-work.jpg'), eyebrow: 'YOUR PORTFOLIO', title: 'Show your best work', body: 'Share completed jobs so clients can see your quality.', action: 'Post a project', route: 'PostProject' },
-  { id: 'profile', image: require('../../../assets/provider-billboard/profile.jpg'), eyebrow: 'BUILD TRUST', title: 'Complete your professional profile', body: 'A complete profile helps the right clients find you.', action: 'Complete profile', route: 'UserProfile' },
-  { id: 'bookings', image: require('../../../assets/provider-billboard/bookings.jpg'), eyebrow: 'STAY ORGANIZED', title: 'Keep your bookings on track', body: 'Review upcoming work and respond to clients quickly.', action: 'View bookings', route: 'BookingsList' },
-  { id: 'reputation', image: require('../../../assets/provider-billboard/reputation.jpg'), eyebrow: 'YOUR REPUTATION', title: 'Build trust with every job', body: 'Great service earns reviews that bring more opportunities.', action: 'View your stats', route: 'Stats' },
+  { id: 'jobs', image: require('../../../assets/provider-billboard/show-work.jpg'), route: 'TaskDiscovery' },
+  { id: 'work', image: require('../../../assets/provider-billboard/find-work.jpg'), route: 'PostProject' },
+  { id: 'profile', image: require('../../../assets/provider-billboard/profile.jpg'), route: 'UserProfile' },
+  { id: 'bookings', image: require('../../../assets/provider-billboard/bookings.jpg'), route: 'BookingsList' },
+  { id: 'reputation', image: require('../../../assets/provider-billboard/reputation.jpg'), route: 'Stats' },
 ];
-
-const PROVIDER_HEADER_PHRASES = ['For professionals', 'Find your next job', 'Show your best work', 'Build your reputation', 'Grow with Fixam'];
 
 const ProviderHomeScreen = ({ navigation }) => {
   const {
@@ -83,9 +79,9 @@ const ProviderHomeScreen = ({ navigation }) => {
     walletBalance, visibleJobs, notificationCount, unreadCount, isInitialLoad, myBookingsList,
     favoriteJobIds, toggleFavoriteJob, hideJob
   } = useAppContext();
-  const { user, isNewUser, clearNewUser, refreshUser, uploadFile, updateProfile } = useAuth();
+  const { user, isNewUser, clearNewUser } = useAuth();
   const { colors, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
 
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -96,6 +92,20 @@ const ProviderHomeScreen = ({ navigation }) => {
   const [headerPhraseIndex, setHeaderPhraseIndex] = useState(0);
   const [typedHeaderText, setTypedHeaderText] = useState('');
   const billboardScrollRef = useRef(null);
+  const providerHeaderPhrases = useMemo(() => [
+    t('home.providerHeader.forProfessionals'),
+    t('home.providerHeader.findNextJob'),
+    t('home.providerHeader.showBestWork'),
+    t('home.providerHeader.buildReputation'),
+    t('home.providerHeader.growWithFixam'),
+  ], [currentLanguage]);
+  const providerBillboards = useMemo(() => PROVIDER_BILLBOARDS.map((slide) => ({
+    ...slide,
+    eyebrow: t(`home.providerBillboards.${slide.id}.eyebrow`),
+    title: t(`home.providerBillboards.${slide.id}.title`),
+    body: t(`home.providerBillboards.${slide.id}.body`),
+    action: t(`home.providerBillboards.${slide.id}.action`),
+  })), [currentLanguage]);
 
   const [rankModalVisible, setRankModalVisible] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -169,7 +179,7 @@ const ProviderHomeScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    const phrase = PROVIDER_HEADER_PHRASES[headerPhraseIndex];
+    const phrase = providerHeaderPhrases[headerPhraseIndex];
     let character = 0;
     setTypedHeaderText('');
     const typing = setInterval(() => {
@@ -177,20 +187,20 @@ const ProviderHomeScreen = ({ navigation }) => {
       setTypedHeaderText(phrase.slice(0, character));
       if (character >= phrase.length) clearInterval(typing);
     }, 46);
-    const rotate = setTimeout(() => setHeaderPhraseIndex((current) => (current + 1) % PROVIDER_HEADER_PHRASES.length), 3100);
+    const rotate = setTimeout(() => setHeaderPhraseIndex((current) => (current + 1) % providerHeaderPhrases.length), 3100);
     return () => { clearInterval(typing); clearTimeout(rotate); };
-  }, [headerPhraseIndex]);
+  }, [headerPhraseIndex, providerHeaderPhrases]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setBillboardIndex((current) => {
-        const next = (current + 1) % PROVIDER_BILLBOARDS.length;
+        const next = (current + 1) % providerBillboards.length;
         billboardScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
         return next;
       });
     }, 5500);
     return () => clearInterval(timer);
-  }, []);
+  }, [providerBillboards.length]);
 
   useEffect(() => {
     const unsub = navigation.addListener('focus', fetchMyJobs);
@@ -303,113 +313,16 @@ const ProviderHomeScreen = ({ navigation }) => {
     return { ...card, step: copy[0], title: copy[1], desc: copy[2] };
   });
 
-  const [claimingBonus, setClaimingBonus] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  const handlePickAvatar = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (result.canceled || !result.assets || result.assets.length === 0) return;
-
-      setUploadingAvatar(true);
-      const rawUri = result.assets[0].uri;
-      const optimized = await optimizeImageForUpload(rawUri, { maxWidth: 800, quality: 0.7 });
-      const uri = optimized.uri;
-      const filename = uri.split('/').pop() || `avatar-${Date.now()}.jpg`;
-      const match = /\.(\w+)$/.exec(filename);
-      const ext = match ? match[1].toLowerCase() : 'jpg';
-      const type = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : (ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : `image/${ext}`));
-
-      const formData = new FormData();
-      formData.append('file', {
-        uri,
-        name: filename,
-        type,
-      });
-      formData.append('type', 'avatar');
-
-      const res = await uploadFile(formData, '/upload/profile', { timeout: 60000 });
-      const avatarUrl = res?.url || res?.data?.url;
-      if (avatarUrl) {
-        await updateProfile({ avatar: avatarUrl });
-        if (refreshUser) await refreshUser();
-        Alert.alert(t('common.success', 'Success'), t('profileDetail.pictureUpdated', 'Profile picture updated!'));
-      }
-    } catch (err) {
-      console.log('Avatar upload error:', err);
-      Alert.alert(t('common.error', 'Error'), err?.response?.data?.message || err.message || t('profileDetail.imageUploadFailed', 'Could not upload profile picture.'));
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const setupSteps = useMemo(() => [
-    {
-      key: 'avatar',
-      completed: Boolean(user?.avatar && user.avatar.trim().length > 0),
-      label: t('profileDetail.addProfilePicture', 'Add Profile Picture'),
-      action: handlePickAvatar
-    },
-    {
-      key: 'bio',
-      completed: Boolean(user?.providerProfile?.bio && user.providerProfile.bio.trim().length > 0),
-      label: t('profileDetail.addBio', 'Add Bio'),
-      action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'about' })
-    },
-    {
-      key: 'skills',
-      completed: Boolean(user?.providerProfile?.skills && user.providerProfile.skills.length > 0),
-      label: t('profileDetail.addSkills', 'Add Skills'),
-      action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'skills' })
-    },
-    {
-      key: 'serviceArea',
-      completed: Boolean(
-        user?.providerProfile?.serviceArea &&
-        user.providerProfile.serviceArea.trim().length > 0 &&
-        user.providerProfile.serviceArea.toLowerCase().trim() !== (user?.location || '').toLowerCase().trim()
-      ),
-      label: t('profileDetail.addServiceArea', 'Set Service Areas (Quarters)'),
-      action: () => navigation.navigate('ProviderProfileSectionEdit', { section: 'serviceArea' })
-    },
-    {
-      key: 'portfolio',
-      completed: Boolean((user?.providerProfile?.portfolio || []).length > 0),
-      label: t('profileDetail.addProject', 'Add Portfolio Project'),
-      action: () => navigation.navigate('ProviderProfileEditItem', { type: 'project' })
-    },
-    {
-      key: 'verification',
-      completed: user?.providerProfile?.verification === 'VERIFIED',
-      label: t('profileDetail.verifyId', 'Verify ID'),
-      action: () => navigation.navigate('Verification')
-    },
-  ], [user?.avatar, user?.providerProfile, navigation, t]);
-
-  const completedStepsCount = setupSteps.filter(s => s.completed).length;
-  const setupProgress = Math.round((completedStepsCount / setupSteps.length) * 100);
+  const setupChecks = [
+    Boolean(user?.avatar?.trim()),
+    Boolean(user?.providerProfile?.bio?.trim()),
+    Boolean(user?.providerProfile?.skills?.length),
+    Boolean(user?.providerProfile?.serviceArea?.trim() && user.providerProfile.serviceArea.toLowerCase().trim() !== (user?.location || '').toLowerCase().trim()),
+    Boolean(user?.providerProfile?.portfolio?.length),
+    user?.providerProfile?.verification === 'VERIFIED',
+  ];
+  const setupProgress = Math.round((setupChecks.filter(Boolean).length / setupChecks.length) * 100);
   const showSetupWidget = !user?.providerProfile?.setupBonusClaimed || setupProgress < 100;
-
-  const handleClaimSetupBonus = async () => {
-    if (claimingBonus) return;
-    try {
-      setClaimingBonus(true);
-      const res = await api.post('/providers/claim-setup-bonus');
-      if (res.data?.success) {
-        Alert.alert(t('profile.success', 'Success'), res.data.message || t('profile.bonusClaimed', 'Bonus claimed successfully!'));
-        if (refreshUser) await refreshUser();
-      }
-    } catch (err) {
-      Alert.alert(t('common.error', 'Error'), err.response?.data?.message || t('profile.bonusError', 'Could not claim bonus.'));
-    } finally {
-      setClaimingBonus(false);
-    }
-  };
 
   const handleScroll = (event) => {
     const slide = Math.round(event.nativeEvent.contentOffset.x / (width - 60));
@@ -565,19 +478,30 @@ const ProviderHomeScreen = ({ navigation }) => {
         <View style={styles.billboardSection}>
           <ScrollView ref={billboardScrollRef} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(event) => setBillboardIndex(Math.round(event.nativeEvent.contentOffset.x / (width - 32)))}>
-            {PROVIDER_BILLBOARDS.map((slide) => <Image key={slide.id} source={slide.image} style={styles.billboardImage} resizeMode="cover" />)}
+            {providerBillboards.map((slide) => <Image key={slide.id} source={slide.image} style={styles.billboardImage} resizeMode="cover" />)}
           </ScrollView>
           <LinearGradient colors={['rgba(3, 20, 47, 0.84)', 'rgba(3, 20, 47, 0.14)', 'rgba(3, 20, 47, 0.76)']} locations={[0, 0.5, 1]} style={styles.billboardOverlay} pointerEvents="none" />
           <View pointerEvents="box-none" style={styles.billboardContent}>
-            <Text style={styles.billboardEyebrow}>{PROVIDER_BILLBOARDS[billboardIndex].eyebrow}</Text>
-            <Text style={styles.billboardTitle}>{PROVIDER_BILLBOARDS[billboardIndex].title}</Text>
-            <Text style={styles.billboardBody}>{PROVIDER_BILLBOARDS[billboardIndex].body}</Text>
-            <TouchableOpacity style={styles.billboardAction} onPress={() => handleSafeNavigate(PROVIDER_BILLBOARDS[billboardIndex].route)}>
-              <Text style={styles.billboardActionText}>{PROVIDER_BILLBOARDS[billboardIndex].action}</Text><MaterialCommunityIcons name="arrow-right" size={17} color="#06213E" />
+            <Text style={styles.billboardEyebrow}>{providerBillboards[billboardIndex].eyebrow}</Text>
+            <Text style={styles.billboardTitle}>{providerBillboards[billboardIndex].title}</Text>
+            <Text style={styles.billboardBody}>{providerBillboards[billboardIndex].body}</Text>
+            <TouchableOpacity style={styles.billboardAction} onPress={() => handleSafeNavigate(providerBillboards[billboardIndex].route)}>
+              <Text style={styles.billboardActionText}>{providerBillboards[billboardIndex].action}</Text><MaterialCommunityIcons name="arrow-right" size={17} color="#06213E" />
             </TouchableOpacity>
-            <View style={styles.billboardDots}>{PROVIDER_BILLBOARDS.map((slide, index) => <View key={slide.id} style={[styles.billboardDot, index === billboardIndex && styles.billboardDotActive]} />)}</View>
+            <View style={styles.billboardDots}>{providerBillboards.map((slide, index) => <View key={slide.id} style={[styles.billboardDot, index === billboardIndex && styles.billboardDotActive]} />)}</View>
           </View>
         </View>
+
+        <TouchableOpacity activeOpacity={0.9} onPress={() => handleSafeNavigate('PostProject')} style={styles.showWorkFeature}>
+          <ImageBackground source={require('../../../assets/provider-billboard/find-work.jpg')} style={styles.showWorkImage} imageStyle={styles.showWorkImageRadius}>
+            <LinearGradient colors={['rgba(3,20,47,0.94)', 'rgba(3,20,47,0.38)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.showWorkOverlay}>
+              <View style={styles.showWorkBadge}><MaterialCommunityIcons name="image-multiple-outline" size={15} color="#06213E" /><Text style={styles.showWorkBadgeText}>{t('home.showWorkFeature.badge')}</Text></View>
+              <Text style={styles.showWorkTitle}>{t('home.showWorkFeature.title')}</Text>
+              <Text style={styles.showWorkBody}>{t('home.showWorkFeature.body')}</Text>
+              <View style={styles.showWorkAction}><Text style={styles.showWorkActionText}>{t('home.showWorkFeature.action')}</Text><MaterialCommunityIcons name="arrow-right" size={19} color="#06213E" /></View>
+            </LinearGradient>
+          </ImageBackground>
+        </TouchableOpacity>
 
         <ScrollView
           horizontal
@@ -654,7 +578,7 @@ const ProviderHomeScreen = ({ navigation }) => {
 
         {/* ── COMPLETE PROFILE / SETUP PROGRESS WIDGET ── */}
         {showSetupWidget && (
-          <View style={[styles.setupWidget, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => handleSafeNavigate('UserProfile')} style={[styles.setupWidget, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
             <View style={styles.setupHeaderRow}>
               <MaterialCommunityIcons name="shield-account-outline" size={22} color="#0D9488" />
               <Text style={[styles.setupTitle, { color: colors.text }]}>
@@ -669,50 +593,8 @@ const ProviderHomeScreen = ({ navigation }) => {
               {setupProgress}% {t('common.completed', 'Completed')}
             </Text>
 
-            <View style={styles.setupStepsContainer}>
-              {setupSteps.map((step, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.setupStepRow}
-                  onPress={step.action}
-                  disabled={step.completed}
-                  activeOpacity={0.7}
-                >
-                  <MaterialCommunityIcons
-                    name={step.completed ? "check-circle" : "checkbox-blank-circle-outline"}
-                    size={20}
-                    color={step.completed ? "#10B981" : colors.textSecondary}
-                  />
-                  <Text style={[
-                    styles.setupStepLabel,
-                    {
-                      color: step.completed ? colors.textSecondary : colors.text,
-                      textDecorationLine: step.completed ? 'line-through' : 'none'
-                    }
-                  ]}>
-                    {step.label}
-                  </Text>
-                  {!step.completed && (
-                    <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {setupProgress === 100 && !user?.providerProfile?.setupBonusClaimed && (
-              <TouchableOpacity
-                style={[styles.claimBonusBtn, { backgroundColor: '#0D9488' }]}
-                onPress={handleClaimSetupBonus}
-                disabled={claimingBonus}
-              >
-                {claimingBonus ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={styles.claimBonusText}>{t('profile.claimBonus', 'Claim 1 Coin Bonus')}</Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
+            <Text style={[styles.setupOpenHint, { color: '#0D9488' }]}>{t('profile.viewCompletionTasks', 'View what is left')} →</Text>
+          </TouchableOpacity>
         )}
 
         {/* ÔöÇÔöÇ 4. UNIFIED AVAILABILITY & QUICK NAV CARD ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
@@ -925,11 +807,11 @@ const ProviderHomeScreen = ({ navigation }) => {
 
         <TouchableOpacity style={styles.inviteSection} onPress={() => handleSafeNavigate('Invitation')}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.inviteEyebrow}>GROW THE NETWORK</Text>
-            <Text style={styles.inviteTitle}>Know a great professional?</Text>
-            <Text style={styles.inviteBody}>Invite them to Fixam and build a trusted local network.</Text>
+            <Text style={styles.inviteEyebrow}>{t('home.invite.eyebrow')}</Text>
+            <Text style={styles.inviteTitle}>{t('home.invite.title')}</Text>
+            <Text style={styles.inviteBody}>{t('home.invite.body')}</Text>
           </View>
-          <View style={styles.inviteAction}><Text style={styles.inviteActionText}>Invite</Text><MaterialCommunityIcons name="arrow-right" size={16} color="#06213E" /></View>
+          <View style={styles.inviteAction}><Text style={styles.inviteActionText}>{t('home.invite.action')}</Text><MaterialCommunityIcons name="arrow-right" size={16} color="#06213E" /></View>
         </TouchableOpacity>
 
         {/* Space at the bottom to avoid tabbar overlap */}
@@ -1017,14 +899,14 @@ const styles = StyleSheet.create({
   brandHeaderLogo: { width: 30, height: 30, borderRadius: 8 },
   brandHeaderPhrase: { fontSize: 12, fontWeight: '800', letterSpacing: -0.1, maxWidth: 176 },
   providerNewsTicker: { marginBottom: 12, marginTop: -3 },
-  billboardSection: { height: 360, marginHorizontal: 16, marginBottom: 22, borderRadius: 24, overflow: 'hidden', backgroundColor: '#06213E' },
-  billboardImage: { width: width - 32, height: 360 },
+  billboardSection: { height: 270, marginHorizontal: 16, marginBottom: 22, borderRadius: 22, overflow: 'hidden', backgroundColor: '#06213E' },
+  billboardImage: { width: width - 32, height: 270 },
   billboardOverlay: { ...StyleSheet.absoluteFillObject },
-  billboardContent: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 24 },
+  billboardContent: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 20 },
   billboardEyebrow: { color: '#99F6E4', fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginBottom: 8 },
-  billboardTitle: { color: '#FFFFFF', fontSize: 29, lineHeight: 34, fontWeight: '900', letterSpacing: -0.8, maxWidth: '92%' },
-  billboardBody: { color: '#E2E8F0', fontSize: 13, lineHeight: 19, marginTop: 9, maxWidth: '86%' },
-  billboardAction: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 18, paddingHorizontal: 15, paddingVertical: 11, borderRadius: 10, backgroundColor: '#E6FFFA' },
+  billboardTitle: { color: '#FFFFFF', fontSize: 25, lineHeight: 29, fontWeight: '900', letterSpacing: -0.6, maxWidth: '90%' },
+  billboardBody: { color: '#E2E8F0', fontSize: 12, lineHeight: 17, marginTop: 6, maxWidth: '84%' },
+  billboardAction: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: '#E6FFFA' },
   billboardActionText: { color: '#06213E', fontSize: 13, fontWeight: '900' },
   billboardDots: { position: 'absolute', right: 22, bottom: 23, flexDirection: 'row', gap: 5 },
   billboardDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.45)' },
@@ -1658,7 +1540,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   applyBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
@@ -1696,6 +1578,16 @@ const styles = StyleSheet.create({
   },
 
   // Setup / Complete Profile Widget
+  showWorkFeature: { marginHorizontal: 16, marginBottom: 18, height: 210, borderRadius: 22, overflow: 'hidden', elevation: 7, shadowColor: '#06213E', shadowOpacity: 0.24, shadowRadius: 14, shadowOffset: { width: 0, height: 7 } },
+  showWorkImage: { flex: 1 },
+  showWorkImageRadius: { borderRadius: 22 },
+  showWorkOverlay: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'flex-start' },
+  showWorkBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#5EEAD4', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginBottom: 10 },
+  showWorkBadgeText: { color: '#06213E', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  showWorkTitle: { color: '#FFF', fontSize: 27, lineHeight: 31, fontWeight: '900', maxWidth: '78%' },
+  showWorkBody: { color: '#E2E8F0', fontSize: 13, lineHeight: 19, maxWidth: '75%', marginTop: 6 },
+  showWorkAction: { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22 },
+  showWorkActionText: { color: '#06213E', fontSize: 13, fontWeight: '900' },
   setupWidget: {
     marginHorizontal: 20,
     marginTop: 16,
@@ -1730,6 +1622,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 14,
+    textAlign: 'right',
+  },
+  setupOpenHint: {
+    fontSize: 13,
+    fontWeight: '800',
     textAlign: 'right',
   },
   setupStepsContainer: {

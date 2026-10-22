@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.fixam.app.iosapp",
       "googleServicesFile": "./firebase/GoogleService-Info.plist",
-      "buildNumber": "33",
+      "buildNumber": "34",
       "userInterfaceStyle": "automatic",
       "config": {
         "usesNonExemptEncryption": false
@@ -38,7 +38,7 @@
     "android": {
       "package": "com.fixam.app.android",
       "googleServicesFile": "./firebase/google-services.json",
-      "versionCode": 28,
+      "versionCode": 29,
       "userInterfaceStyle": "automatic",
       "softwareKeyboardLayoutMode": "resize",
       "blockedPermissions": [

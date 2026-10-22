@@ -47,7 +47,15 @@
     "externalContactTitle": "Protégez votre conversation",
     "externalContactBody": "Déplacer cette conversation hors de Fixam nous empêche de résoudre tout litige si quelque chose ne va pas. Envoyer quand même ?",
     "sendAnyway": "Envoyer quand même",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "delete": "Supprimer la conversation",
+    "deleteChat": "Supprimer la conversation ?",
+    "deleteChatQuestion": "Cette action retirera votre conversation avec {{name}} de votre boîte de réception, sans supprimer sa copie.",
+    "deleteFailed": "Impossible de supprimer la conversation. Veuillez réessayer.",
+    "conversationCompleteTitle": "Cette réservation est terminée",
+    "conversationCompleteBody": "Cette conversation est maintenant fermée et reste accessible dans votre historique.",
+    "viewBooking": "Voir la réservation",
+    "bookAgain": "Réserver à nouveau ce prestataire"
   },
   "support": {
     "title": "Assistance Fixam",

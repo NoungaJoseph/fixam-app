@@ -25,6 +25,7 @@ import api from '../../services/api';
 import { getCurrencyForUser } from '../../constants/countries';
 import { translateApiError } from '../../utils/eligibilityMessages';
 import { optimizeImageForUpload } from '../../utils/imageOptimizer';
+import ScreeningQuestionFields, { missingRequiredAnswer } from '../../components/ScreeningQuestionFields';
 
 const JobProposalScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useTheme();
@@ -40,10 +41,13 @@ const JobProposalScreen = ({ route, navigation }) => {
   const [proposedBudget, setProposedBudget] = useState(defaultBudget);
   const [coverLetter, setCoverLetter] = useState('');
   const [boostCoins, setBoostCoins] = useState(isBoostOnly ? '1' : '');
-  const [attachments, setAttachments] = useState([]); // [{ url, name, type, size }]
+  // A CV is attached only after the provider explicitly uploads one or chooses
+  // the copy saved on their profile. It is never inferred automatically.
+  const [selectedCv, setSelectedCv] = useState(null); // { url, name, type, source }
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showUploadPicker, setShowUploadPicker] = useState(false);
+  const [screeningAnswers, setScreeningAnswers] = useState({});
 
   const currencyStr = getCurrencyForUser(task.country || user?.country || 'Cameroon');
   const boostAmount = Math.max(0, parseInt(boostCoins, 10) || 0);
@@ -64,8 +68,9 @@ const JobProposalScreen = ({ route, navigation }) => {
         }
       }
 
-      const cleanFileName = fileName || (isImage ? `proposal_${Date.now()}.jpg` : `document_${Date.now()}.pdf`);
-      const cleanMimeType = mimeType || (cleanFileName.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+      const requestedName = fileName || (isImage ? `proposal_${Date.now()}.jpg` : `document_${Date.now()}.pdf`);
+      const cleanFileName = isImage ? `${requestedName.replace(/\.[^.]+$/, '') || `proposal_${Date.now()}`}.jpg` : requestedName;
+      const cleanMimeType = isImage ? 'image/jpeg' : (mimeType || 'application/pdf');
 
       const formData = new FormData();
       formData.append('file', {
@@ -99,14 +104,12 @@ const JobProposalScreen = ({ route, navigation }) => {
 
       const uploadedUrl = resData?.url || resData?.data?.url;
       if (uploadedUrl) {
-        setAttachments(prev => [
-          ...prev,
-          {
-            url: uploadedUrl,
-            name: cleanFileName,
-            type: cleanMimeType,
-          }
-        ]);
+        setSelectedCv({
+          url: uploadedUrl,
+          name: cleanFileName,
+          type: cleanMimeType,
+          source: 'upload',
+        });
       }
     } catch (err) {
       console.error('Proposal file upload error:', err);
@@ -153,8 +156,14 @@ const JobProposalScreen = ({ route, navigation }) => {
     }
   };
 
-  const removeAttachment = (indexToRemove) => {
-    setAttachments(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  const useProfileCv = () => {
+    if (!user?.cvUrl) return;
+    setSelectedCv({
+      url: user.cvUrl,
+      name: user.cvName || t('jobs.savedProfileCv', 'Saved profile CV'),
+      type: user.cvName?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream',
+      source: 'profile',
+    });
   };
 
   const handleSubmitProposal = async () => {
@@ -180,6 +189,11 @@ const JobProposalScreen = ({ route, navigation }) => {
       Alert.alert(t('common.error'), t('jobs.notFound', 'Task not found. Please go back and try again.'));
       return;
     }
+    const missingQuestion = missingRequiredAnswer(task.applicationQuestions || [], screeningAnswers);
+    if (missingQuestion) {
+      Alert.alert(t('jobs.answerRequired', 'Answer required'), missingQuestion.prompt);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -187,7 +201,9 @@ const JobProposalScreen = ({ route, navigation }) => {
         boostCoins: boostAmount,
         coverLetter: coverLetter.trim() || undefined,
         proposedBudget: proposedBudget ? Number(proposedBudget) : undefined,
-        proposalMedia: attachments.length > 0 ? attachments : undefined,
+        cvUrl: selectedCv?.url || null,
+        cvName: selectedCv?.name || null,
+        screeningAnswers,
       };
 
       const res = await api.post(`/jobs/${taskId}/apply`, payload);
@@ -297,13 +313,30 @@ const JobProposalScreen = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {/* 3. Media / Document Upload */}
+        {/* 3. Explicit CV selection */}
         <View style={styles.fieldGroup}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text style={[styles.fieldLabel, { color: colors.text, marginBottom: 0 }]}>
-              {t('jobs.attachMediaLabel', 'Attach Photo CV / PDF Resume / Samples')}
+              {t('jobs.applicationCvOptional', 'Application CV (Optional)')}
             </Text>
           </View>
+
+          <Text style={[styles.fieldHint, { marginBottom: 12 }]}>
+            {t('jobs.applicationCvPrivacyHint', 'No CV will be sent unless you select one for this application.')}
+          </Text>
+
+          {user?.cvUrl && selectedCv?.source !== 'profile' && (
+            <TouchableOpacity
+              style={[styles.profileCvButton, { borderColor: colors.border, backgroundColor: colors.card }]}
+              onPress={useProfileCv}
+            >
+              <MaterialCommunityIcons name="file-account-outline" size={22} color={colors.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.profileCvTitle, { color: colors.text }]}>{t('jobs.useSavedProfileCv', 'Use CV saved in my profile')}</Text>
+                <Text style={[styles.profileCvName, { color: colors.textSecondary }]} numberOfLines={1}>{user.cvName || t('jobs.savedProfileCv', 'Saved profile CV')}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* Upload CTA Button */}
           <TouchableOpacity
@@ -317,17 +350,17 @@ const JobProposalScreen = ({ route, navigation }) => {
               <MaterialCommunityIcons name="cloud-upload-outline" size={22} color={colors.accent} />
             )}
             <Text style={[styles.uploadButtonText, { color: colors.accent }]}>
-              {uploadingMedia ? t('jobs.uploading', 'Uploading...') : t('jobs.addAttachment', '+ Add Photo or PDF Document')}
+              {uploadingMedia ? t('jobs.uploading', 'Uploading...') : t('jobs.uploadApplicationCv', 'Upload a different CV')}
             </Text>
           </TouchableOpacity>
 
-          {/* Attachment list */}
-          {attachments.length > 0 && (
+          {/* Selected application CV */}
+          {selectedCv && (
             <View style={{ marginTop: 12, gap: 8 }}>
-              {attachments.map((att, index) => {
-                const isPdf = att.type?.includes('pdf') || att.name?.toLowerCase().endsWith('.pdf');
+              {(() => {
+                const isPdf = selectedCv.type?.includes('pdf') || selectedCv.name?.toLowerCase().endsWith('.pdf');
                 return (
-                  <View key={index} style={[styles.attachmentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[styles.attachmentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <MaterialCommunityIcons
                       name={isPdf ? 'file-pdf-box' : 'file-image'}
                       size={28}
@@ -335,21 +368,23 @@ const JobProposalScreen = ({ route, navigation }) => {
                     />
                     <View style={{ flex: 1, marginLeft: 10 }}>
                       <Text style={[styles.attachmentName, { color: colors.text }]} numberOfLines={1}>
-                        {att.name}
+                        {selectedCv.name}
                       </Text>
                       <Text style={{ fontSize: 11, color: colors.textSecondary }}>
-                        {isPdf ? 'PDF Document' : 'Photo / Image'}
+                        {selectedCv.source === 'profile' ? t('jobs.profileCvSelected', 'Profile CV selected') : t('jobs.uploadedCvSelected', 'Uploaded CV selected')}
                       </Text>
                     </View>
-                    <TouchableOpacity onPress={() => removeAttachment(index)} style={styles.removeAttBtn}>
+                    <TouchableOpacity onPress={() => setSelectedCv(null)} style={styles.removeAttBtn}>
                       <MaterialCommunityIcons name="close-circle" size={20} color="#EF4444" />
                     </TouchableOpacity>
                   </View>
                 );
-              })}
+              })()}
             </View>
           )}
         </View>
+
+        <ScreeningQuestionFields questions={task.applicationQuestions || []} answers={screeningAnswers} onChange={setScreeningAnswers} />
 
         {/* 4. Optional Proposal Boost */}
         <View style={[styles.boostBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
@@ -390,9 +425,9 @@ const JobProposalScreen = ({ route, navigation }) => {
               <MaterialCommunityIcons name="send" size={20} color="#FFF" />
               <Text style={styles.submitBtnText}>
                 {isBoostOnly
-                  ? t('jobs.boostProposalAction', `Boost Proposal (${boostAmount || 1} Coins) 🚀`)
+                  ? t('jobs.boostProposalAction', { coins: boostAmount || 1 })
                   : boostAmount > 0 
-                    ? t('jobs.submitBoostedProposal', `Submit Boosted Proposal (${boostAmount} Coins)`)
+                    ? t('jobs.submitBoostedProposal', { coins: boostAmount })
                     : t('jobs.submitFreeProposal', 'Submit Proposal (FREE)')}
               </Text>
             </View>
@@ -404,15 +439,15 @@ const JobProposalScreen = ({ route, navigation }) => {
       <Modal visible={showUploadPicker} transparent animationType="fade" onRequestClose={() => setShowUploadPicker(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowUploadPicker(false)}>
           <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#1E293B' : '#FFF' }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('jobs.selectUploadSource', 'Upload Document / Media')}</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('jobs.uploadApplicationCv', 'Upload application CV')}</Text>
             
             <TouchableOpacity style={[styles.uploadOptionRow, { borderColor: colors.border }]} onPress={pickPhoto}>
               <View style={[styles.uploadIconWrap, { backgroundColor: 'rgba(13, 148, 136, 0.12)' }]}>
                 <MaterialCommunityIcons name="image" size={24} color="#0D9488" />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.uploadOptionTitle, { color: colors.text }]}>{t('jobs.uploadPhoto', 'Photo / Image')}</Text>
-                <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('jobs.uploadPhotoSub', 'Select certificate, past work photo or ID photo')}</Text>
+                <Text style={[styles.uploadOptionTitle, { color: colors.text }]}>{t('jobs.uploadCvPhoto', 'CV Photo / Image')}</Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('jobs.uploadCvPhotoSub', 'Choose a clear image of your CV')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -421,8 +456,8 @@ const JobProposalScreen = ({ route, navigation }) => {
                 <MaterialCommunityIcons name="file-pdf-box" size={24} color="#EF4444" />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.uploadOptionTitle, { color: colors.text }]}>{t('jobs.uploadPdf', 'PDF Document / Resume')}</Text>
-                <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('jobs.uploadPdfSub', 'Attach your CV, proposal PDF, or quote document')}</Text>
+                <Text style={[styles.uploadOptionTitle, { color: colors.text }]}>{t('jobs.uploadCvPdf', 'PDF CV / Resume')}</Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('jobs.uploadCvPdfSub', 'Choose the PDF CV for this application')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -499,6 +534,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   attachmentName: { fontSize: 13, fontWeight: '700' },
+  profileCvButton: { minHeight: 62, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, marginBottom: 10 },
+  profileCvTitle: { fontSize: 13, fontWeight: '800' },
+  profileCvName: { fontSize: 11, marginTop: 3 },
   removeAttBtn: { padding: 4 },
 
   boostBox: {

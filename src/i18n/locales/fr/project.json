@@ -138,5 +138,6 @@
   "selectCategory": "Sélectionner une catégorie",
   "draftAutoSaved": "Brouillon en cours enregistré automatiquement",
   "clearDraftTitle": "Effacer le brouillon ?",
-  "clearDraftBody": "Voulez-vous vraiment effacer votre brouillon de projet en cours ?"
+  "clearDraftBody": "Voulez-vous vraiment effacer votre brouillon de projet en cours ?",
+  "videoSizeLimit": "Chaque vidéo doit avoir une taille maximale de 100 Mo."
 }

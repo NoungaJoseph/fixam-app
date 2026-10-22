@@ -52,3 +52,7 @@ service-account*.json
 !/android/
 !/android/app/
 !/android/app/google-services.json
+
+# Temporary verification artifacts
+.expo-*/
+.gradle-user-home/

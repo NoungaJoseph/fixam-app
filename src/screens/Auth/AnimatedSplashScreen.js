@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ONBOARDING_COMPLETE_KEY = 'FIXAM_INITIAL_ONBOARDING_COMPLETE';
 
 const { width } = Dimensions.get('window');
 const LOGO_TEXT = 'Fixam';
@@ -108,11 +111,12 @@ const AnimatedSplashScreen = ({ navigation, onFinish }) => {
         exitAnimation,
       ]);
 
-    introAnimation.start(() => {
+    introAnimation.start(async () => {
       bobAnimation.stop();
       shimmerAnimation.stop();
       if (!onFinish) {
-        navigation?.replace('LanguageSelection');
+        const hasCompletedOnboarding = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        navigation?.replace(hasCompletedOnboarding === 'true' ? 'Login' : 'LanguageSelection');
       }
     });
 

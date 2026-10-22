@@ -535,7 +535,7 @@ export const AppProvider = ({ children }) => {
 
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await api.get('/chat/conversations');
+      const res = await api.get('/chat/conversations?includeArchived=true');
       setConversations((res.data.data || []).map(normalizeConversation));
     } catch (error) {
       console.log('Error refreshing conversations:', error);

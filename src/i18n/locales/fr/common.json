@@ -277,6 +277,7 @@
     "IN_PROGRESS": "En cours",
     "COMPLETED": "Terminée",
     "CANCELLED": "Annulée",
+    "EXPIRED": "Expirée",
     "REJECTED": "Refusée",
     "VERIFIED": "Vérifié",
     "UNVERIFIED": "Non vérifié",

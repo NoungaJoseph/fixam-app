@@ -444,6 +444,43 @@ const ChatScreen = ({ route, navigation }) => {
     Alert.alert(t('common.error'), t('profile.chatClosedBanner'));
   };
 
+  const archiveCurrentConversation = async () => {
+    if (!activeConvId) return;
+    try {
+      await api.patch(`/chat/conversations/${activeConvId}/archive`, { archived: true });
+      await fetchConversations();
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert(t('common.error'), t('messages.sendFailed'));
+    }
+  };
+
+  const deleteCurrentConversation = () => {
+    if (!activeConvId) return;
+    Alert.alert(t('messages.deleteChat'), t('messages.deleteChatQuestion', { name: userName }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('messages.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/chat/conversations/${activeConvId}`);
+            await fetchConversations();
+            navigation.goBack();
+          } catch (error) {
+            Alert.alert(t('common.error'), t('messages.deleteFailed'));
+          }
+        }
+      }
+    ]);
+  };
+
+  const showConversationMenu = () => Alert.alert(t('messages.conversationOptions'), userName, [
+    { text: t('common.cancel'), style: 'cancel' },
+    { text: t('messages.archiveConversation'), onPress: archiveCurrentConversation },
+    { text: t('messages.delete'), style: 'destructive', onPress: deleteCurrentConversation }
+  ]);
+
   const handleCarrierCall = async () => {
     // 1. Resolve registered phone number from available sources
     let rawPhone = participantPhone ||
@@ -1122,6 +1159,9 @@ const ChatScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         )}
+        <TouchableOpacity style={[styles.moreHeaderBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={showConversationMenu} accessibilityLabel={t('messages.conversationOptions')}>
+          <MaterialCommunityIcons name="dots-vertical" size={21} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       {/* ── Feature 1: Chat Disclosure Notice ───────────────────────────────
@@ -1144,16 +1184,21 @@ const ChatScreen = ({ route, navigation }) => {
         )}
 
         {!canMessage && (
-          <View style={[styles.bookingBanner, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-            <Text style={[styles.bookingBannerText, { color: colors.textSecondary }]}>
-              {t('profile.chatClosedBanner')}
-            </Text>
+          <View style={[styles.closedConversationCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.closedConversationCopy}>
+              <View style={styles.closedIcon}><MaterialCommunityIcons name="check-circle-outline" size={21} color="#0D9488" /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.closedTitle, { color: colors.text }]}>{t('messages.conversationCompleteTitle')}</Text>
+                <Text style={[styles.closedBody, { color: colors.textSecondary }]}>{t('messages.conversationCompleteBody')}</Text>
+              </View>
+            </View>
             {user?.role === 'CLIENT' && otherParticipant?.role === 'PROVIDER' && (
               <TouchableOpacity
-                style={[styles.bannerBookBtn, { backgroundColor: colors.accent }]}
+                style={[styles.closedAction, { backgroundColor: colors.accent }]}
                 onPress={handleBookAgain}
               >
-                <Text style={styles.bannerBookBtnText}>{t('profile.bookAgain')}</Text>
+                <Text style={styles.bannerBookBtnText}>{t('messages.bookAgain')}</Text>
+                <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </View>
@@ -1182,7 +1227,7 @@ const ChatScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {isRecording ? (
+        {canMessage && (isRecording ? (
           <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
             <TouchableOpacity style={styles.cancelRecordBtn} onPress={cancelRecording}>
               <MaterialCommunityIcons name="delete" size={24} color="#EF4444" />
@@ -1215,7 +1260,7 @@ const ChatScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
           </View>
-        )}
+        ))}
       </KeyboardAvoidingView>
     </View>
 
@@ -1336,6 +1381,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginLeft: 6,
   },
+  moreHeaderBtn: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginLeft: 6 },
   callHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1404,6 +1450,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  closedConversationCard: { marginHorizontal: 16, marginVertical: 12, padding: 16, borderWidth: 1, borderRadius: 12 },
+  closedConversationCopy: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  closedIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(13,148,136,0.12)', alignItems: 'center', justifyContent: 'center' },
+  closedTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
+  closedBody: { fontSize: 12.5, lineHeight: 18 },
+  closedAction: { height: 44, borderRadius: 9, marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   previewContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.95)',

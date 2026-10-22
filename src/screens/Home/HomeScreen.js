@@ -23,6 +23,14 @@ import NewsTicker from '../../components/NewsTicker';
 
 const { width } = Dimensions.get('window');
 
+const CLIENT_BILLBOARD_IMAGES = {
+  professionals: require('../../../assets/client-billboard/find-professionals.jpg'),
+  postJob: require('../../../assets/client-billboard/post-job.jpg'),
+  booking: require('../../../assets/client-billboard/book-service.jpg'),
+  work: require('../../../assets/client-billboard/explore-work.jpg'),
+  satisfaction: require('../../../assets/client-billboard/customer-satisfaction.jpg'),
+};
+
 const LEARN_CARDS = [
   {
     id: '1',
@@ -66,10 +74,28 @@ const HomeScreen = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [billboardIndex, setBillboardIndex] = useState(0);
+  const [headerPhraseIndex, setHeaderPhraseIndex] = useState(0);
+  const [typedHeaderText, setTypedHeaderText] = useState('');
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const popularServices = popularCategories.slice(0, 15);
   const learnScrollRef = useRef(null);
+  const billboardScrollRef = useRef(null);
+
+  const clientHeaderPhrases = useMemo(() => [
+    t('home.clientHeader.findProfessionals'),
+    t('home.clientHeader.postJob'),
+    t('home.clientHeader.bookService'),
+    t('home.clientHeader.exploreWork'),
+  ], [t]);
+  const clientBillboards = useMemo(() => [
+    { id: 'professionals', image: CLIENT_BILLBOARD_IMAGES.professionals, route: 'ProviderList', ...t('home.clientBillboards.professionals', { returnObjects: true }) },
+    { id: 'postJob', image: CLIENT_BILLBOARD_IMAGES.postJob, route: 'Create Task', ...t('home.clientBillboards.postJob', { returnObjects: true }) },
+    { id: 'booking', image: CLIENT_BILLBOARD_IMAGES.booking, route: 'ProviderList', ...t('home.clientBillboards.booking', { returnObjects: true }) },
+    { id: 'work', image: CLIENT_BILLBOARD_IMAGES.work, route: 'ProjectList', ...t('home.clientBillboards.work', { returnObjects: true }) },
+    { id: 'satisfaction', image: CLIENT_BILLBOARD_IMAGES.satisfaction, route: 'ProviderList', ...t('home.clientBillboards.satisfaction', { returnObjects: true }) },
+  ], [t]);
 
   const topUpRef = useRef(null);
   const postTaskRef = useRef(null);
@@ -136,6 +162,38 @@ const HomeScreen = ({ navigation }) => {
     }
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const phrase = clientHeaderPhrases[headerPhraseIndex] || '';
+    setTypedHeaderText('');
+    let position = 0;
+    const typing = setInterval(() => {
+      position += 1;
+      setTypedHeaderText(phrase.slice(0, position));
+      if (position >= phrase.length) clearInterval(typing);
+    }, 45);
+    const rotate = setTimeout(() => setHeaderPhraseIndex(current => (current + 1) % clientHeaderPhrases.length), 3100);
+    return () => { clearInterval(typing); clearTimeout(rotate); };
+  }, [headerPhraseIndex, clientHeaderPhrases]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBillboardIndex(current => {
+        const next = (current + 1) % clientBillboards.length;
+        billboardScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
+        return next;
+      });
+    }, 5200);
+    return () => clearInterval(timer);
+  }, [clientBillboards.length]);
+
+  const openBillboard = (slide) => {
+    if (slide.id === 'postJob') {
+      navigation.navigate('Create Task', { screen: 'PostTask', params: { startOnPost: true } });
+      return;
+    }
+    navigation.navigate(slide.route);
+  };
 
   const handleScroll = (event) => {
     const slide = Math.round(event.nativeEvent.contentOffset.x / (width - 60));
@@ -267,11 +325,24 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar style="light" backgroundColor={isDarkMode ? '#0F4C4A' : '#14B8A6'} />
-      <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#0F4C4A' : '#14B8A6' }]} edges={['top']}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={colors.background} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={{ flex: 1, backgroundColor: colors.background }}>
           {/* ═══ 1. HEADER with gradient ═══ */}
-          <LinearGradient
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.openDrawer()} style={[styles.menuBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <MaterialCommunityIcons name="menu" size={22} color={colors.text} />
+            </TouchableOpacity>
+            <View style={styles.brandHeaderCenter}>
+              <Image source={require('../../../assets/fixam.png')} style={styles.brandHeaderLogo} resizeMode="contain" />
+              <Text style={[styles.brandHeaderPhrase, { color: colors.textSecondary }]} numberOfLines={1}>{typedHeaderText}<Text style={{ color: '#0D9488' }}>|</Text></Text>
+            </View>
+            <TouchableOpacity style={[styles.bellBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('Notifications')}>
+              <MaterialCommunityIcons name="bell-outline" size={20} color={colors.text} />
+              {notificationCount > 0 && <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{notificationCount > 9 ? '9+' : notificationCount}</Text></View>}
+            </TouchableOpacity>
+          </View>
+          {false && <LinearGradient
         colors={isDarkMode ? ['#0F4C4A', '#1E3A5F'] : ['#0D9488', '#2563EB']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -298,7 +369,7 @@ const HomeScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </LinearGradient>}
 
       <NewsTicker />
 
@@ -308,6 +379,23 @@ const HomeScreen = ({ navigation }) => {
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0D9488']} tintColor="#0D9488" />}
       >
+
+        <View style={styles.billboardSection}>
+          <ScrollView ref={billboardScrollRef} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => setBillboardIndex(Math.round(event.nativeEvent.contentOffset.x / (width - 32)))}>
+            {clientBillboards.map((slide) => <Image key={slide.id} source={slide.image} style={styles.billboardImage} resizeMode="cover" />)}
+          </ScrollView>
+          <LinearGradient colors={['rgba(3,20,47,0.08)', 'rgba(3,20,47,0.22)', 'rgba(3,20,47,0.94)']} locations={[0, 0.4, 1]} style={styles.billboardOverlay} pointerEvents="none" />
+          <View pointerEvents="box-none" style={styles.billboardContent}>
+            <Text style={styles.billboardEyebrow}>{clientBillboards[billboardIndex].eyebrow}</Text>
+            <Text style={styles.billboardTitle}>{clientBillboards[billboardIndex].title}</Text>
+            <Text style={styles.billboardBody} numberOfLines={2}>{clientBillboards[billboardIndex].body}</Text>
+            <TouchableOpacity style={styles.billboardAction} onPress={() => openBillboard(clientBillboards[billboardIndex])}>
+              <Text style={styles.billboardActionText}>{clientBillboards[billboardIndex].action}</Text><MaterialCommunityIcons name="arrow-right" size={17} color="#06213E" />
+            </TouchableOpacity>
+            <View style={styles.billboardDots}>{clientBillboards.map((slide, index) => <View key={slide.id} style={[styles.billboardDot, index === billboardIndex && styles.billboardDotActive]} />)}</View>
+          </View>
+        </View>
 
         {/* ═══ 1.5. SEARCH BAR & FILTER ROW ═══ */}
         <LinearGradient
@@ -742,6 +830,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingBottom: 110 },
 
+  headerTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 11, backgroundColor: 'transparent' },
+  brandHeaderCenter: { flex: 1, alignItems: 'center', paddingHorizontal: 10 },
+  brandHeaderLogo: { width: 88, height: 31 },
+  brandHeaderPhrase: { marginTop: 2, minHeight: 16, fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  billboardSection: { height: 270, marginHorizontal: 16, marginTop: 14, marginBottom: 14, borderRadius: 22, overflow: 'hidden', backgroundColor: '#06213E' },
+  billboardImage: { width: width - 32, height: 270 },
+  billboardOverlay: { ...StyleSheet.absoluteFillObject },
+  billboardContent: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 20 },
+  billboardEyebrow: { color: '#99F6E4', fontSize: 10, fontWeight: '900', letterSpacing: 1.3, marginBottom: 5 },
+  billboardTitle: { color: '#FFFFFF', fontSize: 25, lineHeight: 29, fontWeight: '900', letterSpacing: -0.6, maxWidth: '88%' },
+  billboardBody: { color: '#E2E8F0', fontSize: 12, lineHeight: 17, marginTop: 5, maxWidth: '82%' },
+  billboardAction: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 11, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, backgroundColor: '#E6FFFA' },
+  billboardActionText: { color: '#06213E', fontSize: 12, fontWeight: '900' },
+  billboardDots: { position: 'absolute', right: 18, bottom: 18, flexDirection: 'row', gap: 5 },
+  billboardDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.48)' },
+  billboardDotActive: { width: 18, backgroundColor: '#99F6E4' },
+
   // 1. HEADER
   header: {
     paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 10 : 54,
@@ -751,12 +856,12 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 0,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
-  menuBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  menuBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   greetText: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
   nameText: { fontSize: 22, fontWeight: '900', color: '#FFF', marginTop: 1 },
   locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 2 },
   locationText: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-  bellBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  bellBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   bellBadge: { position: 'absolute', top: -2, right: -2, backgroundColor: '#EF4444', minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#2563EB' },
   bellBadgeText: { color: '#FFF', fontSize: 10, fontWeight: '900' },
 

@@ -287,7 +287,6 @@ const PostProjectScreen = ({ navigation, route }) => {
   // Pick Images from device
   const handlePickImages = async () => {
     try {
-      setPickingMedia(true);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
@@ -296,8 +295,20 @@ const PostProjectScreen = ({ navigation, route }) => {
       });
 
       if (!result.canceled && result.assets) {
-        const picked = result.assets.map(a => a.uri).filter(Boolean);
+        // The native gallery must close before displaying our processing modal.
+        // Optimizing in parallel keeps previews fast and uploads small.
+        setPickingMedia(true);
+        const picked = (await Promise.all(result.assets.map(async (asset) => {
+          if (!asset?.uri) return null;
+          try {
+            const optimized = await optimizeImageForUpload(asset.uri, { maxWidth: 1200, quality: 0.75 });
+            return optimized?.uri || asset.uri;
+          } catch (_) {
+            return asset.uri;
+          }
+        }))).filter(Boolean);
         setImageUris(prev => [...prev, ...picked]);
+        setPickingMedia(false);
       }
     } catch (err) {
       console.error('[Pick Images Error]:', err);
@@ -314,7 +325,6 @@ const PostProjectScreen = ({ navigation, route }) => {
   // Pick Multiple Videos from device (Max 1 min duration per video)
   const handlePickVideo = async () => {
     try {
-      setPickingMedia(true);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['videos'],
         allowsMultipleSelection: true,
@@ -331,7 +341,10 @@ const PostProjectScreen = ({ navigation, route }) => {
               t('common.error'),
               t('project.videoDurationLimit', 'Demo video duration must not exceed 1 minute (60 seconds).')
             );
-            setPickingMedia(false);
+            return;
+          }
+          if (asset.fileSize && asset.fileSize > 100 * 1024 * 1024) {
+            Alert.alert(t('common.error'), t('project.videoSizeLimit', 'Each video must be smaller than 100 MB.'));
             return;
           }
           if (asset.uri) {
@@ -343,8 +356,6 @@ const PostProjectScreen = ({ navigation, route }) => {
     } catch (err) {
       console.error('[Pick Video Error]:', err);
       Alert.alert(t('common.error'), err.message || t('common.tryAgain'));
-    } finally {
-      setPickingMedia(false);
     }
   };
 

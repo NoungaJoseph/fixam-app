@@ -124,6 +124,40 @@
       "paymentTitle": "Paiement après\nla prestation",
       "paymentDesc": "Le client paie lorsque\nle service est terminé"
     },
+    "providerHeader": {
+      "forProfessionals": "Pour les professionnels",
+      "findNextJob": "Trouvez votre prochaine mission",
+      "showBestWork": "Présentez votre meilleur travail",
+      "buildReputation": "Développez votre réputation",
+      "growWithFixam": "Évoluez avec Fixam"
+    },
+    "clientHeader": {
+      "findProfessionals": "Trouvez des professionnels de confiance",
+      "postJob": "Publiez une mission en quelques minutes",
+      "bookService": "Réservez le service idéal",
+      "exploreWork": "Découvrez les professionnels en action"
+    },
+    "clientBillboards": {
+      "professionals": { "eyebrow": "EXPERTS LOCAUX DE CONFIANCE", "title": "Trouvez le bon professionnel", "body": "Découvrez des prestataires qualifiés près de chez vous et choisissez en toute confiance.", "action": "Trouver un professionnel" },
+      "postJob": { "eyebrow": "DITES-NOUS CE QU’IL VOUS FAUT", "title": "Publiez une mission en quelques minutes", "body": "Décrivez votre besoin, fixez votre budget et recevez des offres de professionnels.", "action": "Publier une mission" },
+      "booking": { "eyebrow": "SIMPLE ET DIRECT", "title": "Réservez un service en confiance", "body": "Choisissez un professionnel, convenez des détails et suivez votre réservation.", "action": "Réserver un service" },
+      "work": { "eyebrow": "DES RÉALISATIONS CONCRÈTES", "title": "Découvrez le travail des professionnels", "body": "Consultez les projets réalisés et trouvez la qualité adaptée à vos besoins.", "action": "Voir les réalisations" },
+      "satisfaction": { "eyebrow": "UNE QUALITÉ DE CONFIANCE", "title": "Votre satisfaction avant tout", "body": "Utilisez les notes, les avis et les profils vérifiés pour choisir sereinement.", "action": "Voir les meilleurs profils" }
+    },
+    "providerBillboards": {
+      "jobs": { "eyebrow": "NOUVELLES OPPORTUNITÉS", "title": "Trouvez des missions adaptées à vos compétences", "body": "Explorez des missions vérifiées et développez votre clientèle.", "action": "Explorer les missions" },
+      "work": { "eyebrow": "VOTRE PORTFOLIO", "title": "Présentez votre meilleur travail", "body": "Partagez vos réalisations pour montrer votre savoir-faire aux clients.", "action": "Publier un projet" },
+      "profile": { "eyebrow": "INSPIREZ CONFIANCE", "title": "Complétez votre profil professionnel", "body": "Un profil complet aide les bons clients à vous trouver.", "action": "Compléter le profil" },
+      "bookings": { "eyebrow": "RESTEZ ORGANISÉ", "title": "Gardez le contrôle de vos réservations", "body": "Consultez vos prochaines missions et répondez rapidement aux clients.", "action": "Voir les réservations" },
+      "reputation": { "eyebrow": "VOTRE RÉPUTATION", "title": "Renforcez la confiance à chaque mission", "body": "Un excellent service génère des avis et de nouvelles opportunités.", "action": "Voir vos statistiques" }
+    },
+    "invite": {
+      "eyebrow": "DÉVELOPPEZ LE RÉSEAU",
+      "title": "Vous connaissez un excellent professionnel ?",
+      "body": "Invitez-le sur Fixam et développez un réseau local de confiance.",
+      "action": "Inviter"
+    },
+    "showWorkFeature": { "badge": "SOYEZ REMARQUÉ", "title": "Montrez vos meilleures réalisations", "body": "Créez un portfolio visuel qui transforme les visites en réservations.", "action": "Publier un projet" },
     "sports": {
       "upcoming": "À venir",
       "live": "DIRECT",

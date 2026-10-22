@@ -76,6 +76,7 @@ export const COUNTRY_DATA = {
   },
   "Ivory Coast": {
     name: 'Ivory Coast',
+    displayName: "Côte d’Ivoire",
     code: 'CI',
     dialCode: '+225',
     flag: '🇨🇮',
@@ -169,6 +170,49 @@ export const COUNTRY_DATA = {
       Kano: ["Kano City", "Fagge", "Gwale"],
       Oyo: ["Ibadan", "Ogbomosho", "Oyo Town"]
     }
+  },
+  Senegal: {
+    name: 'Senegal', code: 'SN', dialCode: '+221', flag: '\u{1F1F8}\u{1F1F3}', currency: 'XOF', phoneLength: 9,
+    regex: /^(7|3)\d{8}$/, placeholder: '7X XXX XX XX',
+    paymentMethods: [
+      { id: 'wave', name: 'Wave', icon: 'cellphone', type: 'momo', methodKey: 'WAVE' },
+      { id: 'orange', name: 'Orange Money', icon: 'cellphone', type: 'momo', methodKey: 'ORANGE_MONEY' },
+      { id: 'card', name: 'Credit/Debit Card', icon: 'credit-card-outline', type: 'card', methodKey: 'CARD' }
+    ],
+    coinPrices: { p1: 5000, p2: 10000, p3: 15000, p4: 20000, p5: 25000 },
+    regions: { Dakar: ['Dakar', 'Pikine', 'Guédiawaye', 'Rufisque'], Thiès: ['Thiès', 'Mbour'], SaintLouis: ['Saint-Louis'], Diourbel: ['Diourbel', 'Touba'] }
+  },
+  Uganda: {
+    name: 'Uganda', code: 'UG', dialCode: '+256', flag: '\u{1F1FA}\u{1F1EC}', currency: 'UGX', phoneLength: 9,
+    regex: /^7\d{8}$/, placeholder: '7XX XXX XXX',
+    paymentMethods: [
+      { id: 'mtn', name: 'MTN Mobile Money', icon: 'cellphone', type: 'momo', methodKey: 'MTN_MOMO' },
+      { id: 'airtel', name: 'Airtel Money', icon: 'cellphone', type: 'momo', methodKey: 'AIRTEL_MONEY' },
+      { id: 'card', name: 'Credit/Debit Card', icon: 'credit-card-outline', type: 'card', methodKey: 'CARD' }
+    ],
+    coinPrices: { p1: 30000, p2: 60000, p3: 90000, p4: 120000, p5: 150000 },
+    regions: { Central: ['Kampala', 'Entebbe', 'Wakiso'], Eastern: ['Jinja', 'Mbale'], Northern: ['Gulu', 'Lira'], Western: ['Mbarara', 'Fort Portal'] }
+  },
+  Rwanda: {
+    name: 'Rwanda', code: 'RW', dialCode: '+250', flag: '\u{1F1F7}\u{1F1FC}', currency: 'RWF', phoneLength: 9,
+    regex: /^7\d{8}$/, placeholder: '7XX XXX XXX',
+    paymentMethods: [
+      { id: 'mtn', name: 'MTN Mobile Money', icon: 'cellphone', type: 'momo', methodKey: 'MTN_MOMO' },
+      { id: 'airtel', name: 'Airtel Money', icon: 'cellphone', type: 'momo', methodKey: 'AIRTEL_MONEY' },
+      { id: 'card', name: 'Credit/Debit Card', icon: 'credit-card-outline', type: 'card', methodKey: 'CARD' }
+    ],
+    coinPrices: { p1: 10000, p2: 20000, p3: 30000, p4: 40000, p5: 50000 },
+    regions: { Kigali: ['Kigali', 'Gasabo', 'Kicukiro', 'Nyarugenge'], Northern: ['Musanze'], Southern: ['Huye'], Western: ['Rubavu'], Eastern: ['Rwamagana'] }
+  },
+  'South Africa': {
+    name: 'South Africa', code: 'ZA', dialCode: '+27', flag: '\u{1F1FF}\u{1F1E6}', currency: 'ZAR', phoneLength: 9,
+    regex: /^[6-8]\d{8}$/, placeholder: '7X XXX XXXX',
+    paymentMethods: [
+      { id: 'card', name: 'Credit/Debit Card', icon: 'credit-card-outline', type: 'card', methodKey: 'CARD' },
+      { id: 'bank_transfer', name: 'Bank Transfer', icon: 'bank-transfer', type: 'bank_transfer', methodKey: 'BANK_TRANSFER' }
+    ],
+    coinPrices: { p1: 180, p2: 360, p3: 540, p4: 720, p5: 900 },
+    regions: { Gauteng: ['Johannesburg', 'Pretoria', 'Soweto'], 'Western Cape': ['Cape Town', 'Stellenbosch'], 'KwaZulu-Natal': ['Durban', 'Pietermaritzburg'], 'Eastern Cape': ['Gqeberha', 'East London'] }
   }
 };
 
@@ -179,7 +223,12 @@ export const SUPPORTED_COUNTRIES = [
   COUNTRY_DATA.Ghana,
   COUNTRY_DATA['Ivory Coast'],
   COUNTRY_DATA.Tanzania,
-  COUNTRY_DATA.Egypt
+  COUNTRY_DATA.Egypt,
+  COUNTRY_DATA.Nigeria,
+  COUNTRY_DATA.Senegal,
+  COUNTRY_DATA.Uganda,
+  COUNTRY_DATA.Rwanda,
+  COUNTRY_DATA['South Africa']
 ];
 
 // Fallback helper to automatically detect the country based on the phone prefix
@@ -192,8 +241,11 @@ export const detectCountryFromPhone = (phone) => {
   if (cleaned.startsWith('225')) return 'Ivory Coast';
   if (cleaned.startsWith('255')) return 'Tanzania';
   if (cleaned.startsWith('20')) return 'Egypt';
-  // Nigeria is on standby:
-  // if (cleaned.startsWith('234')) return 'Nigeria';
+  if (cleaned.startsWith('234')) return 'Nigeria';
+  if (cleaned.startsWith('221')) return 'Senegal';
+  if (cleaned.startsWith('256')) return 'Uganda';
+  if (cleaned.startsWith('250')) return 'Rwanda';
+  if (cleaned.startsWith('27')) return 'South Africa';
   return 'Cameroon';
 };
 

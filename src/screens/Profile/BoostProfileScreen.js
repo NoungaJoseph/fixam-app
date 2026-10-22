@@ -10,7 +10,7 @@ import api from '../../services/api';
 const BoostProfileScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { isDarkMode, colors } = useTheme();
-  const { user, fetchUserData } = useAuth();
+  const { user, refreshUser } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [monthlyStatsHistory, setMonthlyStatsHistory] = useState([]);
@@ -87,8 +87,7 @@ const BoostProfileScreen = ({ navigation }) => {
               const res = await api.post('/providers/boost', { duration });
               if (res.data?.success) {
                 Alert.alert(t('profile.success', 'Success'), t('profile.boostSuccess', 'Profile boosted successfully!'));
-                fetchUserData?.();
-                navigation.goBack();
+                await refreshUser?.();
               }
             } catch (error) {
               Alert.alert(t('common.error', 'Error'), error.response?.data?.message || t('profile.boostError', 'Failed to boost profile.'));

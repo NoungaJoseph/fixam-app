@@ -8,12 +8,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const OTPScreen = ({ route, navigation }) => {
-  const { contact, method, role, purpose } = route.params || { contact: '', method: 'phone', role: 'CLIENT' };
+  const { contact, method, role, purpose, dialCode = '+237' } = route.params || { contact: '', method: 'phone', role: 'CLIENT' };
   const { loginWithOTP, verifyEmailRegistration, isLoading } = useAuth();
   const { t, locale } = useLanguage();
+  const { isDarkMode } = useTheme();
   const [otp, setOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
   const [timer, setTimer] = useState(59);
   const inputRef = useRef(null);
 
@@ -40,13 +43,15 @@ const OTPScreen = ({ route, navigation }) => {
     const cleanValue = value.replace(/[^0-9]/g, '');
     setOtp(cleanValue);
     
-    if (cleanValue.length === 6) {
+    if (cleanValue.length === 6 && !verifying && !isLoading) {
       Keyboard.dismiss();
       performVerify(cleanValue);
     }
   };
 
   const performVerify = async (code) => {
+    if (verifying || isLoading || code.length !== 6) return;
+    setVerifying(true);
     try {
       const email = method === 'email' ? contact : null;
       const phone = method === 'phone' ? contact : null;
@@ -63,6 +68,8 @@ const OTPScreen = ({ route, navigation }) => {
       setOtp('');
       // Refocus after error
       setTimeout(() => inputRef.current?.focus(), 500);
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -84,14 +91,26 @@ const OTPScreen = ({ route, navigation }) => {
     ? `+237 ${contact.slice(0, 3)}••••${contact.slice(-2)}`
     : contact.replace(/(.{3})(.*)(@.*)/, "$1••••$3");
 
+  const palette = {
+    background: isDarkMode ? '#07111F' : '#F6F8FB',
+    surface: isDarkMode ? '#101B2D' : '#FFFFFF',
+    text: isDarkMode ? '#F8FAFC' : '#0F172A',
+    muted: isDarkMode ? '#94A3B8' : '#64748B',
+    border: isDarkMode ? '#26364D' : '#DCE4EE',
+  };
+
+  const displayContact = method === 'phone'
+    ? `${dialCode} ${contact.slice(0, 3)}••••${contact.slice(-2)}`
+    : contact.replace(/(.{3})(.*)(@.*)/, '$1••••$3');
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color="#0F172A" />
-          <Text style={styles.logo}>{t('otp.verification')}</Text>
+          <MaterialCommunityIcons name="chevron-left" size={28} color={palette.text} />
+          <Text style={[styles.logo, { color: palette.text }]}>{t('otp.verification')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -104,19 +123,19 @@ const OTPScreen = ({ route, navigation }) => {
           />
         </View>
 
-        <Text style={styles.verifyTitle}>
+        <Text style={[styles.verifyTitle, { color: palette.text }]}>
           {method === 'phone' ? t('otp.checkSms') : t('otp.checkEmail')}
         </Text>
-        <Text style={styles.verifySubtitle}>
-          {t('otp.sentCode', { contact: maskedContact })}
+        <Text style={[styles.verifySubtitle, { color: palette.muted }]}>
+          {t('otp.sentCode', { contact: displayContact })}
         </Text>
 
         <View style={{ position: 'relative' }}>
           {/* Visible OTP Boxes */}
           <View style={styles.otpRow}>
             {[0, 1, 2, 3, 4, 5].map(i => (
-              <View key={i} style={[styles.otpBox, otp.length === i && styles.otpBoxActive]}>
-                <Text style={styles.otpDigit}>{otp[i] || ''}</Text>
+              <View key={i} style={[styles.otpBox, { backgroundColor: palette.surface, borderColor: palette.border }, otp.length === i && styles.otpBoxActive]}>
+                <Text style={[styles.otpDigit, { color: palette.text }]}>{otp[i] || ''}</Text>
               </View>
             ))}
           </View>
@@ -132,6 +151,9 @@ const OTPScreen = ({ route, navigation }) => {
             caretHidden
             autoFocus={true}
             blurOnSubmit={false}
+            autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
+            textContentType="oneTimeCode"
+            importantForAutofill="yes"
           />
         </View>
 
@@ -147,11 +169,11 @@ const OTPScreen = ({ route, navigation }) => {
         </View>
 
         <TouchableOpacity 
-          style={[styles.verifyBtn, (otp.length < 6 || isLoading) && styles.verifyBtnDisabled]}
-          disabled={otp.length < 6 || isLoading}
+          style={[styles.verifyBtn, (otp.length < 6 || isLoading || verifying) && styles.verifyBtnDisabled]}
+          disabled={otp.length < 6 || isLoading || verifying}
           onPress={() => performVerify(otp)}
         >
-          {isLoading ? (
+          {isLoading || verifying ? (
             <ActivityIndicator color="#FFF" />
           ) : (
             <Text style={styles.verifyBtnText}>{t('otp.verifyContinue')}</Text>
@@ -167,8 +189,8 @@ const styles = StyleSheet.create({
   header: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 15 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logo: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
-  body: { flex: 1, paddingHorizontal: 30, paddingTop: 40, alignItems: 'center' },
-  iconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#F0F9FF', justifyContent: 'center', alignItems: 'center', marginBottom: 30 },
+  body: { flex: 1, paddingHorizontal: 24, paddingTop: 44, alignItems: 'center' },
+  iconCircle: { width: 76, height: 76, borderRadius: 22, backgroundColor: '#E7F7F4', justifyContent: 'center', alignItems: 'center', marginBottom: 28 },
   verifyTitle: { fontSize: 26, fontWeight: '800', color: '#0F172A', marginBottom: 12, textAlign: 'center' },
   verifySubtitle: { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 24, marginBottom: 40 },
   hiddenInput: { 
@@ -181,13 +203,13 @@ const styles = StyleSheet.create({
     color: 'transparent',
   },
   otpRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
-  otpBox: { width: 45, height: 60, borderWidth: 2, borderColor: '#F3F4F6', borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },
+  otpBox: { width: 44, height: 58, borderWidth: 1, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   otpBoxActive: { borderColor: '#0D9488', backgroundColor: '#FFF' },
   otpDigit: { fontSize: 24, fontWeight: '800', color: '#0F172A' },
   resendContainer: { flexDirection: 'row', gap: 8, marginBottom: 40 },
   timerText: { fontSize: 14, color: '#9CA3AF', fontWeight: '600' },
   resendLink: { fontSize: 14, color: '#0D9488', fontWeight: '700', textDecorationLine: 'underline' },
-  verifyBtn: { backgroundColor: '#0F172A', width: '100%', paddingVertical: 18, borderRadius: 20, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 },
+  verifyBtn: { backgroundColor: '#0D9488', width: '100%', height: 54, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   verifyBtnDisabled: { opacity: 0.5 },
   verifyBtnText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
 });

@@ -13,6 +13,7 @@ const STATUS_CONFIG = {
   Booked:    { label: 'Booked',      color: '#8B5CF6', bg: '#F5F3FF', icon: 'calendar-clock' },
   Active:    { label: 'In Progress', color: '#2563EB', bg: '#EFF6FF', icon: 'progress-clock' },
   Completed: { label: 'Completed',   color: '#22C55E', bg: '#F0FDF4', icon: 'check-circle' },
+  Expired:   { label: 'Expired',     color: '#64748B', bg: '#F1F5F9', icon: 'calendar-remove-outline' },
   Cancelled: { label: 'Cancelled',   color: '#EF4444', bg: '#FEF2F2', icon: 'close-circle-outline' },
 };
 
@@ -39,7 +40,8 @@ const MyTasksListScreen = ({ navigation }) => {
 
   const mappedJobs = jobs.map(job => {
     let statusVal = 'Active';
-    if (job.status === 'COMPLETED') statusVal = 'Completed';
+    if (job.status === 'EXPIRED') statusVal = 'Expired';
+    else if (job.status === 'COMPLETED') statusVal = 'Completed';
     else if (job.status === 'CANCELLED') statusVal = 'Cancelled';
     else if (job.status === 'SCHEDULED' || job.status === 'BOOKED' || (job.status === 'ASSIGNED' && job.scheduledTime)) statusVal = 'Booked';
     else if (job.assignmentStatus === 'PENDING' || job.status === 'PENDING') statusVal = 'Requests';
@@ -82,7 +84,8 @@ const MyTasksListScreen = ({ navigation }) => {
     'Booked': 2,
     'Active': 3,
     'Completed': 4,
-    'Cancelled': 5
+    'Expired': 5,
+    'Cancelled': 6
   };
   const mapped = [...mappedBookings, ...mappedJobs].sort((a, b) => {
     const weightA = statusWeight[a.status] || 99;

@@ -147,7 +147,9 @@ const TaskDiscoveryScreen = ({ navigation }) => {
 
   const TaskCard = ({ task }) => (
     <TouchableOpacity
-      onPress={() => handleTaskPress(task)}
+      onPress={() => task.isExternal
+        ? navigation.navigate('TaskDetails', { task, taskId: task.id })
+        : handleTaskPress(task)}
       style={[
         styles.taskCard,
         { backgroundColor: colors.card, borderColor: colors.border }

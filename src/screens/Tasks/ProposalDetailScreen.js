@@ -196,6 +196,42 @@ const ProposalDetailScreen = ({ route, navigation }) => {
             </View>
           ) : null}
 
+          {Array.isArray(job?.applicationQuestions) && job.applicationQuestions.length > 0 ? (
+            <View style={[styles.section, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('jobs.recruiterQuestions', 'Recruiter questions')}</Text>
+              {job.applicationQuestions.map((question) => {
+                const answer = assignment?.screeningAnswers?.[question.id];
+                const displayAnswer = Array.isArray(answer) ? answer.join(', ') : answer === true ? t('jobs.yes', 'Yes') : answer === false ? t('jobs.no', 'No') : (answer ?? t('jobs.notAnswered', 'Not answered'));
+                return <View key={question.id} style={{ marginTop: 12 }}><Text style={{ color: colors.text, fontWeight: '800', lineHeight: 20 }}>{question.prompt}</Text><Text style={{ color: colors.textSecondary, marginTop: 4, lineHeight: 20 }}>{String(displayAnswer)}</Text></View>;
+              })}
+            </View>
+          ) : null}
+
+          {/* The exact CV explicitly selected for this application */}
+          {assignment?.cvUrl ? (
+            <View style={[styles.section, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                {t('jobs.submittedCv', 'Submitted CV')}
+              </Text>
+              <TouchableOpacity
+                style={[styles.mediaItem, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: colors.border, marginTop: 8 }]}
+                onPress={() => handleOpenAttachment(getMediaUrl(assignment.cvUrl), true)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="file-account-outline" size={27} color={colors.accent} />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={[styles.mediaItemName, { color: colors.text }]} numberOfLines={1}>
+                    {assignment.cvName || t('jobs.submittedCv', 'Submitted CV')}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                    {t('jobs.viewDownloadCv', 'View / Download CV')}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="download-outline" size={20} color={colors.accent} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           {/* Attached Documents */}
           {mediaList.length > 0 && (
             <View style={[styles.section, { borderBottomColor: colors.border }]}>

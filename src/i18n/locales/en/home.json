@@ -124,6 +124,40 @@
       "paymentTitle": "Pay on delivery\nworkflow",
       "paymentDesc": "Clients pay when the\nservice is completed"
     },
+    "providerHeader": {
+      "forProfessionals": "For professionals",
+      "findNextJob": "Find your next job",
+      "showBestWork": "Show your best work",
+      "buildReputation": "Build your reputation",
+      "growWithFixam": "Grow with Fixam"
+    },
+    "clientHeader": {
+      "findProfessionals": "Find trusted professionals",
+      "postJob": "Post a job in minutes",
+      "bookService": "Book the right service",
+      "exploreWork": "See professionals at work"
+    },
+    "clientBillboards": {
+      "professionals": { "eyebrow": "TRUSTED LOCAL EXPERTS", "title": "Find the right professional", "body": "Discover skilled providers near you and choose with confidence.", "action": "Find professionals" },
+      "postJob": { "eyebrow": "TELL US WHAT YOU NEED", "title": "Post a job in minutes", "body": "Describe your task, set your budget and receive offers from professionals.", "action": "Post a job" },
+      "booking": { "eyebrow": "SIMPLE AND DIRECT", "title": "Book a service with confidence", "body": "Choose a professional, agree on the details and track your booking.", "action": "Book a service" },
+      "work": { "eyebrow": "REAL WORK, REAL RESULTS", "title": "Explore professionals’ work", "body": "See completed projects and find the quality that matches your needs.", "action": "Explore work" },
+      "satisfaction": { "eyebrow": "QUALITY YOU CAN TRUST", "title": "Your satisfaction comes first", "body": "Use ratings, reviews and verified profiles to make a confident choice.", "action": "View top professionals" }
+    },
+    "providerBillboards": {
+      "jobs": { "eyebrow": "NEW OPPORTUNITIES", "title": "Find work that fits your skills", "body": "Explore verified jobs and grow your client base.", "action": "Explore jobs" },
+      "work": { "eyebrow": "YOUR PORTFOLIO", "title": "Show your best work", "body": "Share completed jobs so clients can see your quality.", "action": "Post a project" },
+      "profile": { "eyebrow": "BUILD TRUST", "title": "Complete your professional profile", "body": "A complete profile helps the right clients find you.", "action": "Complete profile" },
+      "bookings": { "eyebrow": "STAY ORGANIZED", "title": "Keep your bookings on track", "body": "Review upcoming work and respond to clients quickly.", "action": "View bookings" },
+      "reputation": { "eyebrow": "YOUR REPUTATION", "title": "Build trust with every job", "body": "Great service earns reviews that bring more opportunities.", "action": "View your stats" }
+    },
+    "invite": {
+      "eyebrow": "GROW THE NETWORK",
+      "title": "Know a great professional?",
+      "body": "Invite them to Fixam and build a trusted local network.",
+      "action": "Invite"
+    },
+    "showWorkFeature": { "badge": "GET DISCOVERED", "title": "Show clients your best work", "body": "Build a visual portfolio that turns profile visits into real bookings.", "action": "Post a project" },
     "sports": {
       "upcoming": "Upcoming",
       "live": "LIVE",

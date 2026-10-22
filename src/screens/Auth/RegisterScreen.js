@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
@@ -13,6 +13,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { COUNTRY_DATA, SUPPORTED_COUNTRIES } from '../../constants/countries';
+import { detectPreferredCountry, rememberCountry } from '../../utils/countryDetection';
 
 const RegisterScreen = ({ navigation, route }) => {
   const { isDarkMode, colors } = useTheme();
@@ -51,6 +52,8 @@ const RegisterScreen = ({ navigation, route }) => {
       city: null
     }));
     setShowCountryPicker(false);
+    const selected = SUPPORTED_COUNTRIES.find(country => country.name === countryName);
+    if (selected) rememberCountry(selected).catch(() => {});
   };
   const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
@@ -59,6 +62,12 @@ const RegisterScreen = ({ navigation, route }) => {
   const [showRegionPicker, setShowRegionPicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    detectPreferredCountry().then((country) => {
+      setFormData(previous => ({ ...previous, country: country.name }));
+    }).catch(() => {});
+  }, []);
 
   const setField = (key, value) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -184,7 +193,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
   return (
     <LinearGradient
-      colors={['#0D9488', '#14B8A6', '#2563EB']}
+      colors={isDarkMode ? ['#07111F', '#0F2734', '#102A43'] : ['#0D9488', '#14B8A6', '#2563EB']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.background}
@@ -226,6 +235,9 @@ const RegisterScreen = ({ navigation, route }) => {
                   value={formData.firstName}
                   onChangeText={(v) => setField('firstName', v)}
                   selectionColor="#FFF"
+                  autoComplete="given-name"
+                  textContentType="givenName"
+                  importantForAutofill="yes"
                 />
                 {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
               </View>
@@ -241,6 +253,9 @@ const RegisterScreen = ({ navigation, route }) => {
                   value={formData.lastName}
                   onChangeText={(v) => setField('lastName', v)}
                   selectionColor="#FFF"
+                  autoComplete="family-name"
+                  textContentType="familyName"
+                  importantForAutofill="yes"
                 />
                 {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
               </View>
@@ -261,8 +276,20 @@ const RegisterScreen = ({ navigation, route }) => {
               selectionColor="#FFF"
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
+              importantForAutofill="yes"
             />
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
+            <Text style={styles.label}>
+              {t('register.country', isFr ? 'Pays de résidence' : 'Country of residence')}
+              <Text style={styles.requiredStar}> *</Text>
+            </Text>
+            <TouchableOpacity style={[styles.input, inputStyle, styles.countrySelector]} onPress={() => setShowCountryPicker(true)}>
+              <Text style={styles.countrySelectorText}>{selectedCountry.flag}  {selectedCountry.displayName || selectedCountry.name}</Text>
+              <MaterialCommunityIcons name="chevron-down" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
 
             {/* Phone */}
             <Text style={styles.label}>
@@ -284,6 +311,9 @@ const RegisterScreen = ({ navigation, route }) => {
                 onChangeText={setPhoneField}
                 maxLength={selectedCountry.phoneLength}
                 selectionColor="#FFF"
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+                importantForAutofill="yes"
               />
             </View>
             {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
@@ -350,6 +380,9 @@ const RegisterScreen = ({ navigation, route }) => {
                 selectionColor="#FFF"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                importantForAutofill="yes"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <MaterialCommunityIcons
@@ -410,6 +443,9 @@ const RegisterScreen = ({ navigation, route }) => {
                 selectionColor="#FFF"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                importantForAutofill="yes"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <MaterialCommunityIcons
@@ -522,7 +558,7 @@ const RegisterScreen = ({ navigation, route }) => {
                   onPress={() => handleCountrySelect(country.name)}
                 >
                   <Text style={[styles.modalOptionText, { color: colors.text }]}>
-                    {country.flag} {country.name} ({country.dialCode})
+                    {country.flag} {country.displayName || country.name} ({country.dialCode})
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -556,9 +592,11 @@ const styles = StyleSheet.create({
   label: { color: '#FFF', fontSize: 13, fontWeight: '900', marginBottom: 9, marginTop: 12 },
   requiredStar: { color: '#EF4444', fontSize: 14, fontWeight: '900' },
   optionalBadge: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 'normal' },
-  input: { height: 54, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, fontSize: 15, fontWeight: '600' },
-  inputWrapper: { height: 54, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
-  phoneInputWrapper: { height: 54, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
+  input: { height: 54, borderRadius: 11, borderWidth: 1, paddingHorizontal: 14, fontSize: 15, fontWeight: '600' },
+  countrySelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  countrySelectorText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  inputWrapper: { height: 54, borderRadius: 11, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
+  phoneInputWrapper: { height: 54, borderRadius: 11, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
   countryPrefix: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 12, paddingRight: 12, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.28)' },
   flagText: { fontSize: 20 },
   prefixText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
@@ -589,7 +627,7 @@ const styles = StyleSheet.create({
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
   termsText: { flex: 1, color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 19 },
   linkText: { color: '#FFF', fontWeight: '900', textDecorationLine: 'underline' },
-  registerBtn: { alignSelf: 'center', width: '72%', maxWidth: 260, minWidth: 190, height: 56, borderRadius: 999, marginTop: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D9488', position: 'relative' },
+  registerBtn: { width: '100%', height: 56, borderRadius: 10, marginTop: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D9488', position: 'relative' },
   registerBtnText: { color: '#FFF', fontSize: 17, fontWeight: '900', textAlign: 'center' },
   buttonArrow: { position: 'absolute', right: 20 },
   passwordHint: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 4, marginLeft: 4 },

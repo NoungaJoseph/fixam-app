@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
+const ONBOARDING_COMPLETE_KEY = 'FIXAM_INITIAL_ONBOARDING_COMPLETE';
 
 const SLIDES = [
   {
@@ -56,15 +58,20 @@ const OnboardingScreen = ({ navigation }) => {
     flatListRef.current?.scrollToIndex({ index, animated: true });
   };
 
+  const completeOnboarding = async () => {
+    await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    navigation.replace('Login');
+  };
+
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
       goTo(currentIndex + 1);
     } else {
-      navigation.replace('Login');
+      completeOnboarding();
     }
   };
 
-  const handleSkip = () => navigation.replace('Login');
+  const handleSkip = completeOnboarding;
 
   const renderItem = ({ item }) => (
     <View style={styles.slide}>
@@ -78,7 +85,7 @@ const OnboardingScreen = ({ navigation }) => {
           <Image source={item.image} style={styles.panelImage} resizeMode="contain" />
         </View>
         <View style={styles.copyWrap}>
-          <View style={[styles.kicker, { borderColor: item.accent }]}>
+          <View style={styles.kicker}>
             <Text style={styles.kickerText}>FIXAM</Text>
           </View>
           <Text style={styles.title}>{t(item.titleKey)}</Text>
@@ -163,22 +170,23 @@ const styles = StyleSheet.create({
   },
   copyWrap: {
     paddingHorizontal: 24,
-    paddingBottom: 158,
+    paddingBottom: 166,
   },
   kicker: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(3,7,18,0.3)',
+    borderColor: 'rgba(255,255,255,0.28)',
     marginBottom: 14,
   },
   kickerText: { color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
   title: {
     color: '#FFF',
-    fontSize: 36,
-    lineHeight: 40,
+    fontSize: 34,
+    lineHeight: 39,
     fontWeight: '900',
     maxWidth: 330,
   },
@@ -200,7 +208,7 @@ const styles = StyleSheet.create({
     marginRight: 18,
     paddingHorizontal: 16,
     paddingVertical: 9,
-    borderRadius: 999,
+    borderRadius: 10,
     backgroundColor: 'rgba(15,23,42,0.42)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
@@ -209,12 +217,12 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 18, paddingBottom: 20 },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 18 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.42)' },
-  dotActive: { width: 28 },
+  dotActive: { width: 24, backgroundColor: '#FFFFFF' },
   navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
   navButton: {
     minWidth: 128,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 11,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -228,13 +236,13 @@ const styles = StyleSheet.create({
   navButtonPrimary: {
     minWidth: 128,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 11,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#07111F',
   },
   navText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
 });

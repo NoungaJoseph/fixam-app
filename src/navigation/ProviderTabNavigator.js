@@ -63,6 +63,7 @@ import BookingFormScreen from '../screens/Bookings/BookingFormScreen';
 import RevisedQuoteScreen from '../screens/Bookings/RevisedQuoteScreen';
 import ProviderProfileScreen from '../screens/Providers/ProviderProfileScreen';
 import JobProposalScreen from '../screens/Provider/JobProposalScreen';
+import ExternalJobApplicationScreen from '../screens/Provider/ExternalJobApplicationScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -348,6 +349,7 @@ const ProviderTabNavigator = () => {
       <Drawer.Screen name="ProjectList" component={ProjectListScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProjectProposal" component={ProjectProposalScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="JobProposal" component={JobProposalScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ExternalJobApplication" component={ExternalJobApplicationScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfile" component={ProviderProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
 
       <Drawer.Screen

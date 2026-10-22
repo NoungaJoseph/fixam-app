@@ -4,7 +4,6 @@ import {
   StatusBar, ActivityIndicator, Alert,
   Platform, Image, Modal, ScrollView
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SUPPORTED_COUNTRIES } from '../../constants/countries';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -14,6 +13,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { detectPreferredCountry, rememberCountry } from '../../utils/countryDetection';
 
 const LoginScreen = ({ navigation }) => {
   const [loginMethod, setLoginMethod] = useState('phone'); // 'phone' or 'email'
@@ -32,11 +32,7 @@ const LoginScreen = ({ navigation }) => {
   useEffect(() => {
     const loadCountry = async () => {
       try {
-        const stored = await AsyncStorage.getItem('FIXAM_LAST_SELECTED_COUNTRY');
-        if (stored) {
-          const found = SUPPORTED_COUNTRIES.find(c => c.name === stored);
-          if (found) setSelectedCountry(found);
-        }
+        setSelectedCountry(await detectPreferredCountry());
       } catch (err) {
         console.log('Failed to load last selected country', err);
       }
@@ -49,15 +45,23 @@ const LoginScreen = ({ navigation }) => {
     setShowCountryPicker(false);
     setContact('');
     try {
-      await AsyncStorage.setItem('FIXAM_LAST_SELECTED_COUNTRY', country.name);
+      await rememberCountry(country);
     } catch (err) {
       console.log('Failed to save selected country', err);
     }
   };
 
   const phoneDigits = contact.replace(/\D/g, '').slice(0, selectedCountry.phoneLength);
-  const authInputStyle = { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)' };
-  const authInputTextStyle = { color: '#FFF' };
+  const palette = {
+    background: isDarkMode ? '#07111F' : '#F5F8FC',
+    surface: isDarkMode ? '#101B2D' : '#FFFFFF',
+    text: isDarkMode ? '#F8FAFC' : '#0F172A',
+    muted: isDarkMode ? '#94A3B8' : '#64748B',
+    border: isDarkMode ? '#26364D' : '#DDE5EF',
+    input: isDarkMode ? '#0C1727' : '#F8FAFC',
+  };
+  const authInputStyle = { backgroundColor: palette.input, borderColor: palette.border };
+  const authInputTextStyle = { color: palette.text };
 
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isValidPhone = (phone) => selectedCountry.regex.test(phone);
@@ -97,7 +101,7 @@ const LoginScreen = ({ navigation }) => {
       if (res.data.requiresEmailVerification) {
         navigation.navigate('OTP', { contact: res.data.email || contact, method: 'email', purpose: 'registration' });
       } else if (res.data.otpRequired) {
-        navigation.navigate('OTP', { contact, method: loginMethod, role: res.data.user.role });
+        navigation.navigate('OTP', { contact, method: loginMethod, role: res.data.user.role, dialCode: selectedCountry.dialCode });
       } else if (res.data.requiresTwoFactor) {
         navigation.navigate('TwoFactorLoginScreen', {
           contact,
@@ -125,7 +129,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={['#0D9488', '#14B8A6', '#2563EB']}
+      colors={isDarkMode ? ['#07111F', '#0B1627'] : ['#F5F8FC', '#EDF7F6']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.mainContainer}
@@ -144,18 +148,18 @@ const LoginScreen = ({ navigation }) => {
         >
           <View style={styles.brandHeader}>
               <Image source={require('../../../assets/fixam-white-bg.png')} style={styles.logoImage} resizeMode="contain" />
-              <Text style={styles.welcomeTo}>{t('login.welcome')}</Text>
-              <Text style={styles.headerSub}>{t('login.subtitle')}</Text>
+              <Text style={[styles.welcomeTo, { color: palette.text }]}>{t('login.welcome')}</Text>
+              <Text style={[styles.headerSub, { color: palette.muted }]}>{t('login.subtitle')}</Text>
             </View>
 
             <View style={styles.formArea}>
-              <View style={styles.methodToggle}>
+              <View style={[styles.methodToggle, { backgroundColor: palette.surface, borderColor: palette.border }]}>
                 <TouchableOpacity
                   style={[styles.methodBtn, loginMethod === 'phone' && styles.methodBtnActive]}
                   onPress={() => { setLoginMethod('phone'); setContact(''); }}
                 >
                   <Text
-                    style={[styles.methodText, loginMethod === 'phone' && styles.methodTextActive]}
+                    style={[styles.methodText, { color: palette.muted }, loginMethod === 'phone' && styles.methodTextActive]}
                     numberOfLines={1}
                     adjustsFontSizeToFit
                   >
@@ -167,7 +171,7 @@ const LoginScreen = ({ navigation }) => {
                   onPress={() => { setLoginMethod('email'); setContact(''); }}
                 >
                   <Text
-                    style={[styles.methodText, loginMethod === 'email' && styles.methodTextActive]}
+                    style={[styles.methodText, { color: palette.muted }, loginMethod === 'email' && styles.methodTextActive]}
                     numberOfLines={1}
                     adjustsFontSizeToFit
                   >
@@ -184,38 +188,41 @@ const LoginScreen = ({ navigation }) => {
                       <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
                         <Text style={styles.flagText}>{selectedCountry.flag}</Text>
                         <Text style={styles.prefixText}>{selectedCountry.dialCode}</Text>
-                        <MaterialIcons name="arrow-drop-down" size={18} color="#FFF" />
+                        <MaterialIcons name="arrow-drop-down" size={18} color={palette.text} />
                       </TouchableOpacity>
                       <TextInput
                         key="phone-input"
                         style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
                         placeholder={selectedCountry.placeholder}
-                        placeholderTextColor="rgba(255,255,255,0.66)"
+                        placeholderTextColor={palette.muted}
                         value={phoneDigits}
                         onChangeText={handleContactChange}
                         keyboardType="phone-pad"
                         maxLength={selectedCountry.phoneLength}
-                        selectionColor="#FFF"
+                        selectionColor="#0D9488"
                         autoCapitalize="none"
                         autoCorrect={false}
+                        autoComplete="tel"
+                        textContentType="telephoneNumber"
+                        importantForAutofill="yes"
                       />
                     </>
                   ) : (
                     <>
-                      <MaterialIcons name="alternate-email" size={22} color="#FFF" style={styles.inputIcon} />
+                      <MaterialIcons name="alternate-email" size={22} color={palette.muted} style={styles.inputIcon} />
                       <TextInput
                         key="email-input"
                         style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
                         value={contact}
                         onChangeText={handleContactChange}
-                        placeholder="Email address"
-                        placeholderTextColor="rgba(255,255,255,0.5)"
+                        placeholder={t('register.emailPlaceholder')}
+                        placeholderTextColor={palette.muted}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
-                        autoComplete="off"
-                        textContentType="oneTimeCode"
-                        importantForAutofill="no"
+                        autoComplete="email"
+                        textContentType="username"
+                        importantForAutofill="yes"
                         secureTextEntry={false}
                         editable={true}
                         selectTextOnFocus={false}
@@ -226,23 +233,26 @@ const LoginScreen = ({ navigation }) => {
 
                 {/* Password field */}
                 <View style={[styles.inputWrapper, authInputStyle]}>
-                  <MaterialIcons name="lock-outline" size={22} color="#FFF" style={styles.inputIcon} />
+                  <MaterialIcons name="lock-outline" size={22} color={palette.muted} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.textInput, authInputTextStyle, { height: '100%' }]}
                     placeholder={t('register.password')}
-                    placeholderTextColor="rgba(255,255,255,0.66)"
+                    placeholderTextColor={palette.muted}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     selectionColor="#FFF"
                     autoCapitalize="none"
                     autoCorrect={false}
+                    autoComplete="current-password"
+                    textContentType="password"
+                    importantForAutofill="yes"
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     <MaterialIcons
                       name={showPassword ? 'visibility-off' : 'visibility'}
                       size={20}
-                      color="rgba(255,255,255,0.74)"
+                      color={palette.muted}
                     />
                   </TouchableOpacity>
                 </View>
@@ -266,7 +276,7 @@ const LoginScreen = ({ navigation }) => {
                     <Text style={styles.registerLink}>{t('login.registerLink')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-                    <Text style={styles.forgotText}>{t('login.forgotPassword')}</Text>
+                    <Text style={[styles.forgotText, { color: palette.muted }]}>{t('login.forgotPassword')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -277,7 +287,7 @@ const LoginScreen = ({ navigation }) => {
       <Modal visible={showCountryPicker} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowCountryPicker(false)}>
           <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#111827' : '#FFF' }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Select Country</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('register.selectCountry', 'Select country')}</Text>
             <ScrollView style={{ maxHeight: 300 }}>
               {SUPPORTED_COUNTRIES.map(country => (
                 <TouchableOpacity 
@@ -286,7 +296,7 @@ const LoginScreen = ({ navigation }) => {
                   onPress={() => handleCountrySelect(country)}
                 >
                   <Text style={[styles.modalOptionText, { color: colors.text }]}>
-                    {country.flag} {country.name} ({country.dialCode})
+                    {country.flag} {country.displayName || country.name} ({country.dialCode})
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -300,29 +310,29 @@ const LoginScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 24, justifyContent: 'center' },
-  brandHeader: { alignItems: 'center', marginBottom: 26 },
-  logoImage: { width: 340, height: 184, marginBottom: 14 },
-  welcomeTo: { color: '#FFF', fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  headerSub: { color: 'rgba(255,255,255,0.88)', fontSize: 14, fontWeight: '700', marginTop: 8, textAlign: 'center', lineHeight: 20 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, justifyContent: 'center' },
+  brandHeader: { alignItems: 'center', marginBottom: 30 },
+  logoImage: { width: 128, height: 70, marginBottom: 20 },
+  welcomeTo: { fontSize: 30, fontWeight: '900', textAlign: 'center', letterSpacing: -0.6 },
+  headerSub: { fontSize: 14, fontWeight: '600', marginTop: 8, textAlign: 'center', lineHeight: 20 },
   formArea: { paddingHorizontal: 0 },
-  methodToggle: { flexDirection: 'row', borderRadius: 999, padding: 4, marginBottom: 22, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
-  methodBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 999 },
-  methodBtnActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  methodText: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.78)' },
+  methodToggle: { flexDirection: 'row', borderRadius: 12, padding: 4, marginBottom: 22, borderWidth: 1 },
+  methodBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 8 },
+  methodBtnActive: { backgroundColor: '#0D9488' },
+  methodText: { fontSize: 14, fontWeight: '700' },
   methodTextActive: { color: '#FFF', fontWeight: '900' },
   formContainer: { gap: 18 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 18, paddingHorizontal: 15, height: 58, borderWidth: 1 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 15, height: 58, borderWidth: 1 },
   inputIcon: { marginRight: 12 },
   textInput: { flex: 1, fontSize: 15, fontWeight: '600' },
   countryPrefix: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 12, paddingRight: 12, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.28)' },
   flagText: { fontSize: 20 },
-  prefixText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
-  loginButton: { alignSelf: 'center', width: '58%', maxWidth: 220, minWidth: 154, height: 52, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginTop: 6, flexDirection: 'row', backgroundColor: '#0D9488', position: 'relative' },
+  prefixText: { color: '#0D9488', fontSize: 14, fontWeight: '900' },
+  loginButton: { width: '100%', height: 54, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 6, flexDirection: 'row', backgroundColor: '#0D9488', position: 'relative' },
   loginButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900', textAlign: 'center' },
   buttonArrow: { position: 'absolute', right: 18 },
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, marginTop: 10 },
-  registerLink: { color: '#FFF', fontSize: 14, fontWeight: '800', textDecorationLine: 'underline' },
+  registerLink: { color: '#0D9488', fontSize: 14, fontWeight: '800' },
   forgotText: { color: 'rgba(255,255,255,0.82)', fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { width: '100%', backgroundColor: '#FFF', borderRadius: 16, padding: 20, maxHeight: '80%' },

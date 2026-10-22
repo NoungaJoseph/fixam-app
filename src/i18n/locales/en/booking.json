@@ -2,6 +2,8 @@
   "bookings": {
     "revisedQuote": "Revised quote",
     "revisedQuoteReceived": "Revised quote received",
+    "reviewRevisedOffer": "Review Revised Offer",
+    "revisionCoinNotice": "1 coin is reserved when you send this offer. It is refunded if the client declines or cancels.",
     "yourRevisedQuote": "Your revised quote",
     "requestedTerms": "Requested terms",
     "revisedTerms": "Revised terms",

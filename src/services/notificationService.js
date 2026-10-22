@@ -13,6 +13,8 @@ class NotificationService {
     this._localResponseSubscription = null;
     this._initialized = false;
     this._lastHandledNotificationResponseId = null;
+    this._pendingNavigationData = null;
+    this._navigationRetry = null;
   }
 
   /**
@@ -21,6 +23,9 @@ class NotificationService {
    */
   setNavigationRef(ref) {
     this._navigationRef = ref;
+    if (this._pendingNavigationData) {
+      this.handleNotificationNavigation(this._pendingNavigationData);
+    }
   }
 
   /**
@@ -30,20 +35,23 @@ class NotificationService {
   handleNotificationNavigation(data) {
     this.clearBadge().catch(console.error);
     const nav = this._navigationRef;
-    if (!nav || !nav.isReady || !nav.isReady()) return;
+    if (!nav || !nav.isReady || !nav.isReady()) {
+      this._pendingNavigationData = data;
+      clearTimeout(this._navigationRetry);
+      this._navigationRetry = setTimeout(() => this.handleNotificationNavigation(data), 150);
+      return;
+    }
+    this._pendingNavigationData = null;
 
     const type = data?.type;
 
     switch (type) {
       case 'NEW_MESSAGE':
-        nav.navigate('Messages');
-        setTimeout(() => {
-          if (data.conversationId) {
-            nav.navigate('Chat', {
-              conversationId: data.conversationId
-            });
-          }
-        }, 100);
+        if (data.conversationId) {
+          nav.navigate('Chat', { conversationId: data.conversationId, messageId: data.messageId });
+        } else {
+          nav.navigate('Messages');
+        }
         break;
 
       case 'NEW_BOOKING':
@@ -274,10 +282,7 @@ class NotificationService {
           }
 
           console.log('[FCM] getInitialNotification:', JSON.stringify(remoteMessage.data));
-          // Delay to let the navigation tree mount fully
-          setTimeout(() => {
-            this.handleNotificationNavigation(remoteMessage.data);
-          }, 1200);
+          this.handleNotificationNavigation(remoteMessage.data);
         }
       })
       .catch((err) => console.error('[FCM] getInitialNotification error:', err));

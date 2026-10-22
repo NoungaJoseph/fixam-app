@@ -63,6 +63,7 @@ import BookingFormScreen from '../screens/Bookings/BookingFormScreen';
 import RevisedQuoteScreen from '../screens/Bookings/RevisedQuoteScreen';
 import TaskDetailsScreen from '../screens/Provider/TaskDetailsScreen';
 import ProposalDetailScreen from '../screens/Tasks/ProposalDetailScreen';
+import ExternalJobApplicationScreen from '../screens/Provider/ExternalJobApplicationScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -355,6 +356,7 @@ const TabNavigator = () => {
       <Drawer.Screen name="PopularServices" component={PopularServicesScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="BookingForm" component={BookingFormScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="RevisedQuote" component={RevisedQuoteScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ExternalJobApplication" component={ExternalJobApplicationScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="Rating" component={RatingScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="UserProfile" component={DashboardScreen} options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="ProviderProfileEditItem" component={ProviderProfileEditItemScreen} options={{ drawerItemStyle: { display: 'none' } }} />

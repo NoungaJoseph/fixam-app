@@ -527,7 +527,7 @@ const FindJobsScreen = ({ navigation }) => {
                     <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.textSecondary} />
                     <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{job.location || '4.1070, 9.7619'}</Text>
                   </View>
-                  <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.accent }]} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
+                  <TouchableOpacity style={[styles.applyBtn, { backgroundColor: '#0D9488' }]} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
                     <Text style={styles.applyBtnText}>{t('home.apply')}</Text>
                   </TouchableOpacity>
                 </View>

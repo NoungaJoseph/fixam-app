@@ -92,6 +92,9 @@ const JobStatusScreen = ({ route, navigation }) => {
 
   const normalizedStatus = String(job.status || 'PENDING').toUpperCase();
   const displayStatus = translateStatus(normalizedStatus);
+  const pendingRevision = Array.isArray(job.revisions)
+    ? job.revisions.find((item) => item.status === 'PENDING_CLIENT')
+    : null;
 
   const isReviewed = hasReviewedLocally ||
     job.isReviewed ||
@@ -465,7 +468,7 @@ const JobStatusScreen = ({ route, navigation }) => {
               </View>
               
               <Text style={[styles.counterValue, { color: colors.text }]}>
-                {Number(job.counterBudget || 0).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
+                {Number(pendingRevision?.budget ?? job.counterBudget ?? job.budget ?? 0).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
               </Text>
 
               {job.counterNotes ? (
@@ -474,31 +477,15 @@ const JobStatusScreen = ({ route, navigation }) => {
                 </Text>
               ) : null}
 
-              <View style={styles.counterActionRow}>
-                <TouchableOpacity
-                  style={[styles.counterDeclineBtn, { borderColor: '#EF4444' }]}
-                  onPress={() => navigation.navigate('RevisedQuote', { booking: job, mode: 'client' })}
-                  disabled={updatingStatus}
-                >
-                  <Text style={{ color: '#EF4444', fontWeight: '800', fontSize: 13 }}>
-                    {t('booking.bookings.revisedTerms', 'Review terms')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.counterAcceptBtn, { backgroundColor: '#8B5CF6' }]}
-                  onPress={() => navigation.navigate('RevisedQuote', { booking: job, mode: 'client' })}
-                  disabled={updatingStatus}
-                >
-                  {updatingStatus ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>
-                      {t('booking.bookings.acceptRevisedQuote', 'Review revised quote')}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[styles.counterAcceptBtn, { backgroundColor: '#8B5CF6', marginTop: 14 }]}
+                onPress={() => navigation.navigate('RevisedQuote', { booking: job, mode: 'client' })}
+                disabled={updatingStatus}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>
+                  {t('booking.bookings.reviewRevisedOffer', 'Review Revised Offer')}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -512,7 +499,7 @@ const JobStatusScreen = ({ route, navigation }) => {
               </View>
               
               <Text style={[styles.counterValue, { color: colors.text }]}>
-                {Number(job.counterBudget || 0).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
+                {Number(pendingRevision?.budget ?? job.counterBudget ?? job.budget ?? 0).toLocaleString()} {getCurrencyForUser(job.country || user?.country || 'Cameroon')}
               </Text>
 
               {job.counterNotes ? (
@@ -632,32 +619,50 @@ const JobStatusScreen = ({ route, navigation }) => {
               }}
             />
 
-            {user?.role === 'CLIENT' && job.status === 'PENDING' && (
-              <TouchableOpacity 
-                style={[styles.cancelBtn, { borderColor: colors.error }]}
-                onPress={() => {
-                  Alert.alert(
-                    t('jobs.cancelTaskRequest'),
-                    t('jobs.cancelConfirm', 'Are you sure you want to cancel? Your coins will be refunded.'),
+            {user?.role === 'CLIENT' && !isBooking && normalizedStatus === 'PENDING' && (
+              <View style={{ gap: 10, width: '100%' }}>
+                <TouchableOpacity
+                  style={[styles.mainActionBtn, { backgroundColor: colors.success }]}
+                  disabled={updatingStatus}
+                  onPress={() => Alert.alert(
+                    t('jobs.closeJobCompletedTitle', 'Close this job?'),
+                    t('jobs.closeJobCompletedBody', 'The job will stop appearing to providers and will no longer accept applications.'),
                     [
                       { text: t('common.cancel'), style: 'cancel' },
-                      {
-                        text: t('common.yes', 'Yes'),
-                        style: 'destructive',
-                        onPress: async () => {
-                          try {
-                            await updateStatus('CANCELLED');
-                          } catch (err) {
-                            // Handled by helper
+                      { text: t('jobs.closeJobCompleted', 'Close Job as Completed'), onPress: () => updateStatus('COMPLETED') }
+                    ]
+                  )}
+                >
+                  {updatingStatus ? <ActivityIndicator size="small" color="#FFF" /> : <MaterialCommunityIcons name="check-circle-outline" size={22} color="#FFF" />}
+                  <Text style={styles.mainActionText}>{t('jobs.closeJobCompleted', 'Close Job as Completed')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.cancelBtn, { borderColor: colors.error }]}
+                  onPress={() => {
+                    Alert.alert(
+                      t('jobs.cancelTaskRequest'),
+                      t('jobs.cancelConfirm', 'Are you sure you want to cancel? Your coins will be refunded.'),
+                      [
+                        { text: t('common.cancel'), style: 'cancel' },
+                        {
+                          text: t('common.yes', 'Yes'),
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              await updateStatus('CANCELLED');
+                            } catch (err) {
+                              // Handled by helper
+                            }
                           }
                         }
-                      }
-                    ]
-                  );
-                }}
-              >
-                <Text style={[styles.cancelBtnText, { color: colors.error }]}>{t('jobs.cancelTaskRequest')}</Text>
-              </TouchableOpacity>
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={[styles.cancelBtnText, { color: colors.error }]}>{t('jobs.cancelTaskRequest')}</Text>
+                </TouchableOpacity>
+              </View>
             )}
 
             {user?.role === 'CLIENT' && normalizedStatus === 'COMPLETED' && (

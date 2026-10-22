@@ -146,6 +146,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   );
   const isMultiProvider = (Number(displayTask.providersNeeded || task.providersNeeded) || 1) > 1;
   const canMessageClient = isMultiProvider || (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase()));
+  const bookingStatus = String(displayTask.status || task.status || '').toUpperCase();
+  const canReviseBookingOffer = isBooking && bookingStatus === 'PENDING' && !hasApplied;
+  const isBookingRevisionPending = isBooking && ['COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(bookingStatus);
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
 
   React.useEffect(() => {
@@ -232,14 +235,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
   const handleAccept = () => {
     if (isExternalJob) {
-      setExtApplicantName(user?.fullName || '');
-      setExtApplicantEmail(user?.email || '');
-      setExtApplicantPhone(user?.phone || '');
-      setExtCvLink('');
-      setExtCoverLetter(
-        `Dear Hiring Team at ${displayTask.companyName || 'the organization'},\n\nI am writing to express my strong interest in the ${displayTask.title} position posted via Fixam. With my verified background and hands-on professional expertise, I am confident in delivering excellent results for your team.\n\nI welcome the opportunity to discuss how my experience aligns with your objectives.\n\nBest regards,\n${user?.fullName || 'Candidate'}`
-      );
-      setShowExternalApplyModal(true);
+      navigation.navigate('ExternalJobApplication', { job: displayTask });
       return;
     }
 
@@ -639,10 +635,20 @@ const TaskDetailsScreen = ({ route, navigation }) => {
       )}
 
       <View style={[styles.footer, { bottom: Math.max(insets.bottom, 12) + 25 }]}>
+        {canReviseBookingOffer && (
+          <TouchableOpacity
+            style={[styles.reviseOfferBtn, { borderColor: '#8B5CF6', backgroundColor: colors.card }]}
+            onPress={() => navigation.navigate('RevisedQuote', { booking: displayTask, mode: 'provider' })}
+            disabled={submitting}
+          >
+            <MaterialCommunityIcons name="file-document-edit-outline" size={20} color="#8B5CF6" />
+            <Text style={styles.reviseOfferText}>{t('jobs.reviseOffer', 'Revise Offer')}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity 
-          style={[styles.proposalBtn, (submitting || hasApplied) && styles.proposalBtnDisabled]} 
+          style={[styles.proposalBtn, (submitting || hasApplied || isBookingRevisionPending) && styles.proposalBtnDisabled]}
           onPress={handleAccept} 
-          disabled={submitting || hasApplied}
+          disabled={submitting || hasApplied || isBookingRevisionPending}
         >
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
@@ -651,7 +657,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
               {isExternalJob
                 ? (hasApplied ? 'Applied' : 'Apply now')
                 : isBooking 
-                  ? (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')) 
+                  ? (isBookingRevisionPending
+                    ? t('jobs.waitingForClientResponse', 'Revised offer sent — waiting for client')
+                    : (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')))
                   : (hasApplied ? t('jobs.applied', 'Applied') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
             </Text>
           )}
@@ -872,6 +880,8 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', left: 0, right: 0, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', gap: 12 },
   footerIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
   proposalBtn: { flex: 1, height: 56, borderRadius: 8, backgroundColor: '#0D9488', alignItems: 'center', justifyContent: 'center' },
+  reviseOfferBtn: { flex: 1, height: 56, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7, paddingHorizontal: 8 },
+  reviseOfferText: { color: '#8B5CF6', fontSize: 14, fontWeight: '900' },
   proposalBtnDisabled: { backgroundColor: '#94A3B8' },
   proposalTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
   proposalSub: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', marginTop: 3 },

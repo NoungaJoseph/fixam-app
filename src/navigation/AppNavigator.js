@@ -13,6 +13,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useSocket } from '../context/SocketContext';
 import ProviderProfileScreen from '../screens/Providers/ProviderProfileScreen';
 import TaskDetailsScreen from '../screens/Provider/TaskDetailsScreen';
+import ExternalJobApplicationScreen from '../screens/Provider/ExternalJobApplicationScreen';
 
 const RootStack = createStackNavigator();
 
@@ -120,6 +121,7 @@ const AppNavigator = () => {
         </RootStack.Screen>
         <RootStack.Screen name="ProviderProfile" component={ProviderProfileScreen} />
         <RootStack.Screen name="TaskDetails" component={TaskDetailsScreen} />
+        <RootStack.Screen name="ExternalJobApplication" component={ExternalJobApplicationScreen} />
       </RootStack.Navigator>
     </NavigationContainer>
   );

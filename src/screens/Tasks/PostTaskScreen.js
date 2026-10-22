@@ -19,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { translateService, translateStatus } from '../../i18n/translate';
 import MaterialsListEditor from '../../components/MaterialsListEditor';
+import ApplicationQuestionBuilder from '../../components/ApplicationQuestionBuilder';
 
 const DRAFT_STORAGE_KEY = '@fixam_post_task_draft';
 
@@ -61,6 +62,7 @@ const FILTERS = [
   { label: 'In Progress', value: 'IN_PROGRESS', color: '#2563EB' },
   { label: 'Completed', value: 'COMPLETED', color: '#16A34A' },
   { label: 'Cancelled', value: 'CANCELLED', color: '#EF4444' },
+  { label: 'Expired', value: 'EXPIRED', color: '#64748B' },
 ];
 
 const CATEGORY_COLORS = {
@@ -78,6 +80,7 @@ const STATUS_STYLES = {
   IN_PROGRESS: { label: 'In Progress', icon: 'sync', text: '#7C3AED', bg: '#F3E8FF' },
   COMPLETED: { label: 'Completed', icon: 'check-circle-outline', text: '#0D9488', bg: '#E2F8F4' },
   CANCELLED: { label: 'Cancelled', icon: 'close-circle-outline', text: '#EF4444', bg: '#FEE2E2' },
+  EXPIRED: { label: 'Expired', icon: 'calendar-remove-outline', text: '#64748B', bg: '#F1F5F9' },
   REJECTED: { label: 'Cancelled', icon: 'close-circle-outline', text: '#EF4444', bg: '#FEE2E2' },
 };
 
@@ -207,6 +210,7 @@ const PostTaskScreen = ({ route, navigation }) => {
   const [isPinned, setIsPinned] = useState(false);
   const [forwardToEmail, setForwardToEmail] = useState(false);
   const [hiringEmail, setHiringEmail] = useState(user?.email || '');
+  const [applicationQuestions, setApplicationQuestions] = useState([]);
 
   // Load draft from AsyncStorage on mount
   useEffect(() => {
@@ -245,6 +249,7 @@ const PostTaskScreen = ({ route, navigation }) => {
             if (draft.isRemote !== undefined) setIsRemote(draft.isRemote);
             if (Array.isArray(draft.materialsList)) setMaterialsList(draft.materialsList);
             if (draft.requiresDiagnosis !== undefined) setRequiresDiagnosis(draft.requiresDiagnosis);
+            if (Array.isArray(draft.applicationQuestions)) setApplicationQuestions(draft.applicationQuestions);
             if (draft.scheduledDate) {
               const d = new Date(draft.scheduledDate);
               if (!Number.isNaN(d.getTime())) setScheduledDate(d);
@@ -288,7 +293,7 @@ const PostTaskScreen = ({ route, navigation }) => {
       importantDetails.trim() ||
       taskScope.trim() ||
       location.trim() ||
-      (materialsList && materialsList.length > 0)
+      (materialsList && materialsList.length > 0) || applicationQuestions.length > 0
     );
 
     if (hasContent) {
@@ -315,6 +320,7 @@ const PostTaskScreen = ({ route, navigation }) => {
         isRemote,
         materialsList,
         requiresDiagnosis,
+        applicationQuestions,
         scheduledDate: scheduledDate?.toISOString ? scheduledDate.toISOString() : null,
         scheduledTime: scheduledTime?.toISOString ? scheduledTime.toISOString() : null,
         hasDraftContent: true,
@@ -329,7 +335,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     providersNeeded, importantDetails, taskScope, selectedPreferences,
     selectedDetailSections, sectionDetails,
     priority, isRemote, materialsList, requiresDiagnosis, scheduledDate,
-    scheduledTime, editingJob
+    scheduledTime, editingJob, applicationQuestions
   ]);
 
   const resetForm = async () => {
@@ -358,6 +364,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     setIsPinned(false);
     setForwardToEmail(false);
     setHiringEmail(user?.email || '');
+    setApplicationQuestions([]);
     setScheduledDate(new Date());
     setScheduledTime(new Date());
     setHasRestoredDraft(false);
@@ -427,6 +434,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     setIsRemote(job.isRemote ?? false);
     setMaterialsList(Array.isArray(job.materialsList) ? job.materialsList : []);
     setRequiresDiagnosis(Boolean(job.requiresDiagnosis));
+    setApplicationQuestions(Array.isArray(job.applicationQuestions) ? job.applicationQuestions : []);
     setScheduledDate(Number.isNaN(scheduled.getTime()) ? new Date() : scheduled);
     setScheduledTime(Number.isNaN(scheduled.getTime()) ? new Date() : scheduled);
     setTaskMode('post');
@@ -637,6 +645,7 @@ const PostTaskScreen = ({ route, navigation }) => {
         isPinned: Boolean(isPinned),
         forwardToEmail: Boolean(forwardToEmail),
         hiringEmail: forwardToEmail && hiringEmail ? hiringEmail.trim() : undefined,
+        applicationQuestions,
       };
       if (editingJob) {
         await api.put(`/jobs/${editingJob.id}`, payload);
@@ -672,6 +681,7 @@ const PostTaskScreen = ({ route, navigation }) => {
     const category = String(job.category || 'TASK');
     const categoryStyle = CATEGORY_COLORS[category.toUpperCase()] || CATEGORY_COLORS.OTHER;
     const isComplete = normalizedStatus === 'COMPLETED';
+    const isExpired = normalizedStatus === 'EXPIRED';
     const isInProgress = normalizedStatus === 'IN_PROGRESS';
     const description = job.description || t('jobs.noDescription');
     const locationText = job.location || '4.1070, 9.7619';
@@ -791,7 +801,7 @@ const PostTaskScreen = ({ route, navigation }) => {
           )}
 
 
-          {isComplete ? (
+          {isComplete || isExpired ? (
             <TouchableOpacity style={[styles.secondaryActionBtn, styles.bookAgainBtn, { backgroundColor: isDarkMode ? '#1F2937' : '#F8FAFC', borderColor: colors.border }]} onPress={navigateToCreateTask}>
               <MaterialCommunityIcons name="sync" size={18} color={isDarkMode ? '#F8FAFC' : '#071936'} />
               <Text style={[styles.secondaryActionText, { color: colors.text }]}>{t('jobs.bookAgain')}</Text>
@@ -924,8 +934,13 @@ const PostTaskScreen = ({ route, navigation }) => {
       {taskMode === 'post' && step === 'details' && (
         <>
           <View style={[styles.createHeader, { backgroundColor: colors.background }]}>
-            <TouchableOpacity onPress={editingJob ? returnToTaskList : openDrawer} style={[styles.createBackBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <MaterialCommunityIcons name={editingJob ? 'arrow-left' : 'menu'} size={32} color={colors.text} />
+            <TouchableOpacity
+              onPress={returnToTaskList}
+              style={[styles.createBackBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              accessibilityRole="button"
+              accessibilityLabel={t('jobs.viewMyTasks')}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={32} color={colors.text} />
             </TouchableOpacity>
             <Text style={[styles.createHeaderTitle, { color: colors.text }]}>{editingJob ? t('jobs.editTask') : t('jobs.createTask')}</Text>
             <View style={{ width: 52 }} />
@@ -1560,6 +1575,8 @@ const PostTaskScreen = ({ route, navigation }) => {
                 <Text style={[styles.infoText, { color: colors.accent }]}>{t('jobs.taskApprovalNotification')}</Text>
               </View>
             </View>
+
+            <ApplicationQuestionBuilder value={applicationQuestions} onChange={setApplicationQuestions} />
 
             {/* Boost & Delivery Options Card */}
             <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 16, padding: 16, marginVertical: 14 }}>

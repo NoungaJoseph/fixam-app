@@ -62,28 +62,34 @@ if (fs.existsSync(targetFile)) {
 const subprojectsToPatch = [
   {
     path: path.join(__dirname, '..', 'node_modules', 'react-native-vector-icons', 'android', 'build.gradle'),
-    pattern: /repositories\s*\{\s*google\(\)\s*gradlePluginPortal\(\)\s*\}\s*dependencies\s*\{\s*classpath\(["']com\.android\.tools\.build:gradle:7\.0\.4["']\)\s*\}/,
-    replacement: `if (project == rootProject) {\n        repositories {\n            google()\n            gradlePluginPortal()\n        }\n        dependencies {\n            classpath("com.android.tools.build:gradle:7.0.4")\n        }\n    }`
+    patch: (content) => {
+      // Replace buildscript block with safeExtGet definition only
+      return content.replace(/buildscript\s*\{[\s\S]*?\n\}\n/m, `buildscript {\n    ext.safeExtGet = {prop, fallback ->\n        rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback\n    }\n}\n`);
+    }
   },
   {
     path: path.join(__dirname, '..', 'node_modules', 'react-native-safe-area-context', 'android', 'build.gradle'),
-    pattern: /buildscript\s*\{([\s\S]*?)dependencies\s*\{[\s\S]*?com\.android\.tools\.build:gradle:7\.3\.1[\s\S]*?\}\s*\}/,
-    replacement: `buildscript {\n    if (project == rootProject) {\n        def kotlin_version = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : project.properties['RNSAC_kotlinVersion']\n        repositories { mavenCentral(); google() }\n        dependencies {\n            classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")\n            classpath("com.android.tools.build:gradle:7.3.1")\n            classpath("com.diffplug.spotless:spotless-plugin-gradle:6.11.0")\n        }\n    }\n}`
+    patch: (content) => {
+      // Replace buildscript block with empty buildscript
+      return content.replace(/buildscript\s*\{[\s\S]*?\n\}\n/m, `buildscript {}\n`);
+    }
   },
   {
     path: path.join(__dirname, '..', 'node_modules', 'react-native-webview', 'android', 'build.gradle'),
-    pattern: /repositories\s*\{\s*google\(\)\s*gradlePluginPortal\(\)\s*\}\s*dependencies\s*\{[\s\S]*?com\.android\.tools\.build:gradle:7\.0\.4["']\)\s*\}/,
-    replacement: `if (project == rootProject) {\n        repositories {\n            google()\n            gradlePluginPortal()\n        }\n        dependencies {\n            classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:\${safeExtGet('kotlinVersion')}")\n            classpath("com.android.tools.build:gradle:7.0.4")\n        }\n    }`
+    patch: (content) => {
+      // Replace buildscript block with safeExtGet definition only
+      return content.replace(/buildscript\s*\{[\s\S]*?\n\}\n/m, `buildscript {\n    ext.safeExtGet = {prop ->\n        rootProject.ext.has(prop) ? rootProject.ext.get(prop) : project.properties['ReactNativeWebView_' + prop]\n    }\n}\n`);
+    }
   }
 ];
 
 for (const sub of subprojectsToPatch) {
   if (fs.existsSync(sub.path)) {
-    let raw = fs.readFileSync(sub.path, 'utf8');
-    if (sub.pattern.test(raw)) {
-      raw = raw.replace(sub.pattern, sub.replacement);
-      fs.writeFileSync(sub.path, raw, 'utf8');
-      console.log(`[patchBuildscripts] Patched ${path.basename(path.dirname(path.dirname(sub.path)))} build.gradle`);
+    const raw = fs.readFileSync(sub.path, 'utf8');
+    const updated = sub.patch(raw);
+    if (updated !== raw) {
+      fs.writeFileSync(sub.path, updated, 'utf8');
+      console.log(`[patchBuildscripts] Successfully cleaned ${path.basename(path.dirname(path.dirname(sub.path)))} build.gradle`);
     }
   }
 }

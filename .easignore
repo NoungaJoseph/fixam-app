@@ -1,9 +1,25 @@
+# Dependencies
 node_modules/
-.expo/
-.expo-export-verify/
-.gradle-user-home/
+
+# Native directories (EAS builds/generates these in the cloud)
 android/
 ios/
+
+# Cache, build, and temporary directories
+.expo/
+.expo-*/
+.gradle-user-home/
+.gradle/
 dist/
+web-build/
+
+# Local verification and testing
+coverage/
+scratch/
+
+# System and logs
 *.log
+npm-debug.*
+yarn-debug.*
 .DS_Store
+Thumbs.db

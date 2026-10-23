@@ -7,15 +7,20 @@ import SafeAreaView from '../../components/Common/TealSafeAreaView';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useAppContext } from '../../context/AppContext';
 import api from '../../services/api';
 import { optimizeImageForUpload } from '../../utils/imageOptimizer';
 import ScreeningQuestionFields, { missingRequiredAnswer } from '../../components/ScreeningQuestionFields';
 
 const ExternalJobApplicationScreen = ({ route, navigation }) => {
-  const job = route.params?.job || route.params?.task || {};
+  const initialJob = route.params?.job || route.params?.task || {};
+  const [job, setJob] = useState(initialJob);
+  const jobId = initialJob.id || route.params?.jobId || route.params?.taskId;
+
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { markJobApplied } = useAppContext();
   const [name, setName] = useState(user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -24,6 +29,18 @@ const ExternalJobApplicationScreen = ({ route, navigation }) => {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [screeningAnswers, setScreeningAnswers] = useState({});
+
+  React.useEffect(() => {
+    if (jobId) {
+      api.get(`/external-jobs/${jobId}`)
+        .then((res) => {
+          if (res.data?.success && res.data?.data) {
+            setJob((prev) => ({ ...prev, ...res.data.data }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [jobId]);
 
   const uploadCv = async (asset) => {
     if (!asset?.uri) return;
@@ -81,6 +98,8 @@ const ExternalJobApplicationScreen = ({ route, navigation }) => {
         applicantName: name.trim(), applicantEmail: email.trim(), applicantPhone: phone.trim(),
         coverLetter: coverLetter.trim(), cvUrl: selectedCv?.url || null, cvName: selectedCv?.name || null, screeningAnswers,
       });
+      if (job?.id) markJobApplied?.(job.id);
+      if (route.params?.onApplied && job?.id) route.params.onApplied(job.id);
       Alert.alert(t('common.success'), t('jobs.externalApplicationSent', 'Your application was sent successfully.'), [
         { text: t('common.done', 'Done'), onPress: () => navigation.goBack() }
       ]);

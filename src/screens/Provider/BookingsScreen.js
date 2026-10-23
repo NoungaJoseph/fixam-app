@@ -172,7 +172,7 @@ const BookingsScreen = ({ navigation }) => {
               fontWeight: '900',
               textTransform: 'uppercase'
             }}>
-              {t('bookings.highPriority', 'High Priority')}
+              {t('booking.highPriority', 'High Priority')}
             </Text>
           </View>
         )}

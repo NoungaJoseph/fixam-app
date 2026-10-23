@@ -311,8 +311,8 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   mainContainer: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, justifyContent: 'center' },
-  brandHeader: { alignItems: 'center', marginBottom: 30 },
-  logoImage: { width: 128, height: 70, marginBottom: 20 },
+  brandHeader: { alignItems: 'center', marginBottom: 24 },
+  logoImage: { width: 140, height: 140, marginBottom: 16 },
   welcomeTo: { fontSize: 30, fontWeight: '900', textAlign: 'center', letterSpacing: -0.6 },
   headerSub: { fontSize: 14, fontWeight: '600', marginTop: 8, textAlign: 'center', lineHeight: 20 },
   formArea: { paddingHorizontal: 0 },

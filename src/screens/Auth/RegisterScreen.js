@@ -22,6 +22,8 @@ const RegisterScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { role } = route.params || { role: 'client' };
 
+  const [currentStep, setCurrentStep] = useState(1);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -100,9 +102,8 @@ const RegisterScreen = ({ navigation, route }) => {
   };
   const strengthWidth = ['0%', '33%', '66%', '100%'][metCount];
 
-  const validateForm = () => {
+  const validateStep1 = () => {
     const newErrors = {};
-
     if (!formData.firstName.trim()) {
       newErrors.firstName = t('validation.firstNameRequired', isFr ? 'Le prénom est requis' : 'First name is required');
     }
@@ -119,12 +120,24 @@ const RegisterScreen = ({ navigation, route }) => {
     } else if (!isValidPhone(phoneDigits)) {
       newErrors.phone = t('validation.phoneRequired', isFr ? 'Un numéro de téléphone valide est requis' : 'A valid phone number is required');
     }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {};
     if (!formData.region.trim()) {
       newErrors.region = t('validation.regionRequired', isFr ? 'La région est requise' : 'Region is required');
     }
     if (!formData.city.trim()) {
       newErrors.city = t('validation.cityRequired', isFr ? 'La ville est requise' : 'City is required');
     }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep3 = () => {
+    const newErrors = {};
     if (!formData.password) {
       newErrors.password = t('validation.passwordRequired', isFr ? 'Le mot de passe est requis' : 'Password is required');
     } else if (formData.password.length < 6) {
@@ -148,13 +161,33 @@ const RegisterScreen = ({ navigation, route }) => {
     if (!agree) {
       newErrors.agree = t('register.termsRequired', isFr ? 'Veuillez accepter les Conditions générales' : 'Please accept the Terms & Conditions and Privacy Policy');
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleNextStep = () => {
+    if (currentStep === 1) {
+      if (validateStep1()) {
+        setCurrentStep(2);
+      }
+    } else if (currentStep === 2) {
+      if (validateStep2()) {
+        setCurrentStep(3);
+      }
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep > 1) {
+      setErrors({});
+      setCurrentStep(currentStep - 1);
+    } else {
+      navigation.goBack();
+    }
+  };
+
   const handleRegister = async () => {
-    if (!validateForm()) {
+    if (!validateStep3()) {
       return;
     }
     const normalizedPhone = phoneDigits;
@@ -191,6 +224,12 @@ const RegisterScreen = ({ navigation, route }) => {
   const inputStyle = authInputStyle;
   const showRequirements = passwordFocused || formData.password.length > 0;
 
+  const stepTitles = {
+    1: isFr ? 'Étape 1 sur 3 : Informations personnelles' : 'Step 1 of 3: Personal Information',
+    2: isFr ? 'Étape 2 sur 3 : Localisation' : 'Step 2 of 3: Location Details',
+    3: isFr ? 'Étape 3 sur 3 : Sécurité & Conditions' : 'Step 3 of 3: Security & Agreement',
+  };
+
   return (
     <LinearGradient
       colors={isDarkMode ? ['#07111F', '#0F2734', '#102A43'] : ['#0D9488', '#14B8A6', '#2563EB']}
@@ -212,288 +251,397 @@ const RegisterScreen = ({ navigation, route }) => {
         >
           {/* Header */}
           <View style={styles.header}>
-            <View>
+            <TouchableOpacity 
+              style={[styles.backBtn, { borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.1)' }]} 
+              onPress={handlePrevStep}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
               <Text style={styles.title}>
                 {role === 'client' ? t('register.clientTitle') : t('register.providerTitle')}
               </Text>
-              <Text style={styles.subtitle}>{t('register.subtitle')}</Text>
+              <Text style={styles.subtitle}>{stepTitles[currentStep]}</Text>
+            </View>
+          </View>
+
+          {/* Stepper Progress Bar */}
+          <View style={styles.stepperContainer}>
+            <View style={styles.stepperRow}>
+              {/* Step 1 */}
+              <View style={[styles.stepCircle, currentStep >= 1 && styles.stepCircleActive]}>
+                {currentStep > 1 ? (
+                  <MaterialCommunityIcons name="check" size={14} color="#FFF" />
+                ) : (
+                  <Text style={styles.stepCircleText}>1</Text>
+                )}
+              </View>
+              <View style={[styles.stepLine, currentStep >= 2 && styles.stepLineActive]} />
+
+              {/* Step 2 */}
+              <View style={[styles.stepCircle, currentStep >= 2 && styles.stepCircleActive]}>
+                {currentStep > 2 ? (
+                  <MaterialCommunityIcons name="check" size={14} color="#FFF" />
+                ) : (
+                  <Text style={styles.stepCircleText}>2</Text>
+                )}
+              </View>
+              <View style={[styles.stepLine, currentStep >= 3 && styles.stepLineActive]} />
+
+              {/* Step 3 */}
+              <View style={[styles.stepCircle, currentStep >= 3 && styles.stepCircleActive]}>
+                <Text style={styles.stepCircleText}>3</Text>
+              </View>
+            </View>
+
+            <View style={styles.stepperLabelsRow}>
+              <Text style={[styles.stepperLabelText, currentStep === 1 && styles.stepperLabelTextActive]}>
+                {isFr ? 'Personnel' : 'Personal'}
+              </Text>
+              <Text style={[styles.stepperLabelText, currentStep === 2 && styles.stepperLabelTextActive]}>
+                {isFr ? 'Localisation' : 'Location'}
+              </Text>
+              <Text style={[styles.stepperLabelText, currentStep === 3 && styles.stepperLabelTextActive]}>
+                {isFr ? 'Sécurité' : 'Security'}
+              </Text>
             </View>
           </View>
 
           <View style={styles.formArea}>
-            {/* First / Last name */}
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={styles.label}>
-                  {t('register.firstName')}
-                  <Text style={styles.requiredStar}> *</Text>
-                </Text>
-                <TextInput
-                  style={[styles.input, inputStyle, errors.firstName && styles.inputError]}
-                  placeholder={t('register.firstName')}
-                  placeholderTextColor="rgba(255,255,255,0.66)"
-                  value={formData.firstName}
-                  onChangeText={(v) => setField('firstName', v)}
-                  selectionColor="#FFF"
-                  autoComplete="given-name"
-                  textContentType="givenName"
-                  importantForAutofill="yes"
-                />
-                {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
-              </View>
-              <View style={styles.half}>
-                <Text style={styles.label}>
-                  {t('register.lastName')}
-                  <Text style={styles.requiredStar}> *</Text>
-                </Text>
-                <TextInput
-                  style={[styles.input, inputStyle, errors.lastName && styles.inputError]}
-                  placeholder={t('register.lastName')}
-                  placeholderTextColor="rgba(255,255,255,0.66)"
-                  value={formData.lastName}
-                  onChangeText={(v) => setField('lastName', v)}
-                  selectionColor="#FFF"
-                  autoComplete="family-name"
-                  textContentType="familyName"
-                  importantForAutofill="yes"
-                />
-                {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
-              </View>
-            </View>
-
-            {/* Email */}
-            <Text style={styles.label}>
-              {t('register.email')}
-              <Text style={styles.requiredStar}> *</Text>
-            </Text>
-            <TextInput
-              style={[styles.input, inputStyle, errors.email && styles.inputError]}
-              placeholder={t('register.emailPlaceholder')}
-              placeholderTextColor="rgba(255,255,255,0.66)"
-              keyboardType="email-address"
-              value={formData.email}
-              onChangeText={(v) => setField('email', v)}
-              selectionColor="#FFF"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              textContentType="emailAddress"
-              importantForAutofill="yes"
-            />
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
-            <Text style={styles.label}>
-              {t('register.country', isFr ? 'Pays de résidence' : 'Country of residence')}
-              <Text style={styles.requiredStar}> *</Text>
-            </Text>
-            <TouchableOpacity style={[styles.input, inputStyle, styles.countrySelector]} onPress={() => setShowCountryPicker(true)}>
-              <Text style={styles.countrySelectorText}>{selectedCountry.flag}  {selectedCountry.displayName || selectedCountry.name}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-
-            {/* Phone */}
-            <Text style={styles.label}>
-              {t('register.phone')}
-              <Text style={styles.requiredStar}> *</Text>
-            </Text>
-            <View style={[styles.phoneInputWrapper, inputStyle, errors.phone && styles.inputError]}>
-              <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
-                <Text style={styles.flagText}>{selectedCountry.flag}</Text>
-                <Text style={styles.prefixText}>{selectedCountry.dialCode}</Text>
-                <MaterialCommunityIcons name="menu-down" size={18} color="#FFF" style={{ marginLeft: 2 }} />
-              </TouchableOpacity>
-              <TextInput
-                style={styles.flexInput}
-                placeholder={selectedCountry.placeholder}
-                placeholderTextColor="rgba(255,255,255,0.66)"
-                keyboardType="phone-pad"
-                value={phoneDigits}
-                onChangeText={setPhoneField}
-                maxLength={selectedCountry.phoneLength}
-                selectionColor="#FFF"
-                autoComplete="tel"
-                textContentType="telephoneNumber"
-                importantForAutofill="yes"
-              />
-            </View>
-            {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
-
-            {/* Referral */}
-            <Text style={styles.label}>
-              {t('register.referral')}
-              <Text style={styles.optionalBadge}> ({isFr ? 'Optionnel' : 'Optional'})</Text>
-            </Text>
-            <TextInput
-              style={[styles.input, inputStyle]}
-              placeholder={isFr ? 'Entrez le code de parrainage' : 'Enter referral code'}
-              placeholderTextColor="rgba(255,255,255,0.66)"
-              value={formData.referral}
-              onChangeText={(v) => setField('referral', v)}
-              selectionColor="#FFF"
-            />
-
-            {/* Location */}
-            <Text style={styles.label}>
-              {t('register.location')}
-              <Text style={styles.requiredStar}> *</Text>
-            </Text>
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <TouchableOpacity 
-                  style={[styles.input, inputStyle, { justifyContent: 'center' }, errors.region && styles.inputError]} 
-                  onPress={() => setShowRegionPicker(true)}
-                >
-                  <Text style={{ color: formData.region ? '#FFF' : 'rgba(255,255,255,0.66)', fontSize: 15, fontWeight: '600' }}>
-                    {formData.region || t('register.selectRegion')}
-                  </Text>
-                </TouchableOpacity>
-                {errors.region && <Text style={styles.errorText}>{errors.region}</Text>}
-              </View>
-              <View style={styles.half}>
-                <TouchableOpacity 
-                  style={[styles.input, inputStyle, { justifyContent: 'center' }, !formData.region && { opacity: 0.5 }, errors.city && styles.inputError]} 
-                  onPress={() => formData.region && setShowCityPicker(true)}
-                  disabled={!formData.region}
-                >
-                  <Text style={{ color: formData.city ? '#FFF' : 'rgba(255,255,255,0.66)', fontSize: 15, fontWeight: '600' }}>
-                    {formData.city || t('register.selectCity')}
-                  </Text>
-                </TouchableOpacity>
-                {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
-              </View>
-            </View>
-            {/* Password */}
-            <Text style={styles.label}>
-              {t('register.password')}
-              <Text style={styles.requiredStar}> *</Text>
-            </Text>
-            <View style={[styles.inputWrapper, inputStyle, errors.password && styles.inputError]}>
-              <TextInput
-                style={styles.flexInput}
-                placeholder={t('login.password')}
-                placeholderTextColor="rgba(255,255,255,0.66)"
-                secureTextEntry={!showPassword}
-                value={formData.password}
-                onChangeText={(v) => setField('password', v)}
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                selectionColor="#FFF"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="new-password"
-                textContentType="newPassword"
-                importantForAutofill="yes"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <MaterialCommunityIcons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  color="rgba(255,255,255,0.74)"
-                />
-              </TouchableOpacity>
-            </View>
-            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-
-            {/* Password strength + requirements */}
-            {showRequirements && (
-              <View style={styles.requirementsBox}>
-                {/* Strength bar */}
-                <View style={styles.strengthRow}>
-                  <View style={styles.strengthTrack}>
-                    <View style={[
-                      styles.strengthFill,
-                      {
-                        backgroundColor: strengthColor[strength],
-                        width: strengthWidth,
-                      }
-                    ]} />
+            {/* ═══════════════ STEP 1: USER INFO ═══════════════ */}
+            {currentStep === 1 && (
+              <View>
+                {/* First / Last name */}
+                <View style={styles.row}>
+                  <View style={styles.half}>
+                    <Text style={styles.label}>
+                      {t('register.firstName')}
+                      <Text style={styles.requiredStar}> *</Text>
+                    </Text>
+                    <TextInput
+                      style={[styles.input, inputStyle, errors.firstName && styles.inputError]}
+                      placeholder={t('register.firstName')}
+                      placeholderTextColor="rgba(255,255,255,0.66)"
+                      value={formData.firstName}
+                      onChangeText={(v) => setField('firstName', v)}
+                      selectionColor="#FFF"
+                      autoComplete="given-name"
+                      textContentType="givenName"
+                      importantForAutofill="yes"
+                    />
+                    {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
                   </View>
-                  <Text style={[styles.strengthLabel, { color: strengthColor[strength] }]}>
-                    {formData.password.length > 0 ? strengthLabel[strength] : ''}
-                  </Text>
+                  <View style={styles.half}>
+                    <Text style={styles.label}>
+                      {t('register.lastName')}
+                      <Text style={styles.requiredStar}> *</Text>
+                    </Text>
+                    <TextInput
+                      style={[styles.input, inputStyle, errors.lastName && styles.inputError]}
+                      placeholder={t('register.lastName')}
+                      placeholderTextColor="rgba(255,255,255,0.66)"
+                      value={formData.lastName}
+                      onChangeText={(v) => setField('lastName', v)}
+                      selectionColor="#FFF"
+                      autoComplete="family-name"
+                      textContentType="familyName"
+                      importantForAutofill="yes"
+                    />
+                    {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
+                  </View>
                 </View>
 
-                {/* Per-requirement rows */}
-                {requirements.map((req, idx) => (
-                  <View key={idx} style={styles.reqRow}>
-                    <View style={[styles.reqDot, { backgroundColor: req.met ? '#22C55E' : 'rgba(255,255,255,0.25)' }]}>
-                      {req.met && <Text style={styles.reqCheck}>✓</Text>}
-                    </View>
-                    <Text style={[styles.reqText, { color: req.met ? '#22C55E' : 'rgba(255,255,255,0.72)' }]}>
-                      {req.label}
-                    </Text>
-                  </View>
-                ))}
+                {/* Email */}
+                <Text style={styles.label}>
+                  {t('register.email')}
+                  <Text style={styles.requiredStar}> *</Text>
+                </Text>
+                <TextInput
+                  style={[styles.input, inputStyle, errors.email && styles.inputError]}
+                  placeholder={t('register.emailPlaceholder')}
+                  placeholderTextColor="rgba(255,255,255,0.66)"
+                  keyboardType="email-address"
+                  value={formData.email}
+                  onChangeText={(v) => setField('email', v)}
+                  selectionColor="#FFF"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  importantForAutofill="yes"
+                />
+                {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
+                {/* Phone */}
+                <Text style={styles.label}>
+                  {t('register.phone')}
+                  <Text style={styles.requiredStar}> *</Text>
+                </Text>
+                <View style={[styles.phoneInputWrapper, inputStyle, errors.phone && styles.inputError]}>
+                  <TouchableOpacity style={styles.countryPrefix} onPress={() => setShowCountryPicker(true)}>
+                    <Text style={styles.flagText}>{selectedCountry.flag}</Text>
+                    <Text style={styles.prefixText}>{selectedCountry.dialCode}</Text>
+                    <MaterialCommunityIcons name="menu-down" size={18} color="#FFF" style={{ marginLeft: 2 }} />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={styles.flexInput}
+                    placeholder={selectedCountry.placeholder}
+                    placeholderTextColor="rgba(255,255,255,0.66)"
+                    keyboardType="phone-pad"
+                    value={phoneDigits}
+                    onChangeText={setPhoneField}
+                    maxLength={selectedCountry.phoneLength}
+                    selectionColor="#FFF"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
+                    importantForAutofill="yes"
+                  />
+                </View>
+                {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+
+                {/* Referral */}
+                <Text style={styles.label}>
+                  {t('register.referral')}
+                  <Text style={styles.optionalBadge}> ({isFr ? 'Optionnel' : 'Optional'})</Text>
+                </Text>
+                <TextInput
+                  style={[styles.input, inputStyle]}
+                  placeholder={isFr ? 'Entrez le code de parrainage' : 'Enter referral code'}
+                  placeholderTextColor="rgba(255,255,255,0.66)"
+                  value={formData.referral}
+                  onChangeText={(v) => setField('referral', v)}
+                  selectionColor="#FFF"
+                />
+
+                {/* Continue to Step 2 Button */}
+                <TouchableOpacity
+                  style={styles.registerBtn}
+                  onPress={handleNextStep}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.registerBtnText}>
+                    {isFr ? 'Continuer vers la localisation' : 'Continue to Location'}
+                  </Text>
+                  <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" style={styles.buttonArrow} />
+                </TouchableOpacity>
               </View>
             )}
 
-            {/* Repeat password */}
-            <Text style={styles.label}>
-              {t('register.repeatPassword')}
-              <Text style={styles.requiredStar}> *</Text>
-            </Text>
-            <View style={[styles.inputWrapper, inputStyle, errors.repeatPassword && styles.inputError]}>
-              <TextInput
-                style={styles.flexInput}
-                placeholder={t('login.repeatPassword')}
-                placeholderTextColor="rgba(255,255,255,0.66)"
-                secureTextEntry={!showPassword}
-                value={formData.repeatPassword}
-                onChangeText={(v) => setField('repeatPassword', v)}
-                selectionColor="#FFF"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="new-password"
-                textContentType="newPassword"
-                importantForAutofill="yes"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <MaterialCommunityIcons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  color="rgba(255,255,255,0.74)"
-                />
-              </TouchableOpacity>
-            </View>
-            {errors.repeatPassword && <Text style={styles.errorText}>{errors.repeatPassword}</Text>}
-
-            {/* Terms */}
-            <TouchableOpacity 
-              style={[styles.termsRow, errors.agree && { padding: 6, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.18)' }]} 
-              onPress={() => {
-                setAgree(!agree);
-                setErrors(prev => (prev.agree ? { ...prev, agree: null } : prev));
-              }}
-            >
-              <MaterialCommunityIcons
-                name={agree ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                size={22}
-                color={errors.agree ? '#FCA5A5' : '#FFF'}
-              />
-              <Text style={styles.termsText}>
-                {t('register.agreePrefix')}{' '}
-                <Text style={styles.linkText} onPress={() => navigation.navigate('TermsPolicy', { type: 'terms' })}>
-                  {t('register.terms')}
+            {/* ═══════════════ STEP 2: LOCATION ═══════════════ */}
+            {currentStep === 2 && (
+              <View>
+                {/* Country of Residence */}
+                <Text style={styles.label}>
+                  {t('register.country', isFr ? 'Pays de résidence' : 'Country of residence')}
+                  <Text style={styles.requiredStar}> *</Text>
                 </Text>
-                {' '}{t('register.and')}{' '}
-                <Text style={styles.linkText} onPress={() => navigation.navigate('TermsPolicy', { type: 'privacy' })}>
-                  {t('register.privacy')}
-                </Text>
-              </Text>
-            </TouchableOpacity>
-            {errors.agree && <Text style={styles.errorText}>{errors.agree}</Text>}
+                <TouchableOpacity style={[styles.input, inputStyle, styles.countrySelector]} onPress={() => setShowCountryPicker(true)}>
+                  <Text style={styles.countrySelectorText}>{selectedCountry.flag}  {selectedCountry.displayName || selectedCountry.name}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
 
-            {/* Register button */}
-            <TouchableOpacity
-              style={[styles.registerBtn, { opacity: submitting ? 0.7 : 1 }]}
-              onPress={handleRegister}
-              activeOpacity={0.85}
-              disabled={submitting}
-            >
-              <Text style={styles.registerBtnText}>
-                {submitting ? t('register.creating') : t('register.submit')}
-              </Text>
-            </TouchableOpacity>
+                {/* Location: Region & City */}
+                <Text style={styles.label}>
+                  {t('register.location')}
+                  <Text style={styles.requiredStar}> *</Text>
+                </Text>
+                <View style={styles.row}>
+                  <View style={styles.half}>
+                    <TouchableOpacity 
+                      style={[styles.input, inputStyle, { justifyContent: 'center' }, errors.region && styles.inputError]} 
+                      onPress={() => setShowRegionPicker(true)}
+                    >
+                      <Text style={{ color: formData.region ? '#FFF' : 'rgba(255,255,255,0.66)', fontSize: 15, fontWeight: '600' }}>
+                        {formData.region || t('register.selectRegion')}
+                      </Text>
+                    </TouchableOpacity>
+                    {errors.region && <Text style={styles.errorText}>{errors.region}</Text>}
+                  </View>
+                  <View style={styles.half}>
+                    <TouchableOpacity 
+                      style={[styles.input, inputStyle, { justifyContent: 'center' }, !formData.region && { opacity: 0.5 }, errors.city && styles.inputError]} 
+                      onPress={() => formData.region && setShowCityPicker(true)}
+                      disabled={!formData.region}
+                    >
+                      <Text style={{ color: formData.city ? '#FFF' : 'rgba(255,255,255,0.66)', fontSize: 15, fontWeight: '600' }}>
+                        {formData.city || t('register.selectCity')}
+                      </Text>
+                    </TouchableOpacity>
+                    {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
+                  </View>
+                </View>
+
+                {/* Navigation Buttons Row */}
+                <View style={[styles.row, { marginTop: 24 }]}>
+                  <TouchableOpacity
+                    style={[styles.half, styles.secondaryNavBtn]}
+                    onPress={handlePrevStep}
+                    activeOpacity={0.85}
+                  >
+                    <MaterialCommunityIcons name="arrow-left" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.secondaryNavBtnText}>{isFr ? 'Retour' : 'Back'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.half, styles.primaryNavBtn]}
+                    onPress={handleNextStep}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.registerBtnText}>{isFr ? 'Continuer' : 'Continue'}</Text>
+                    <MaterialCommunityIcons name="arrow-right" size={18} color="#FFF" style={{ marginLeft: 6 }} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* ═══════════════ STEP 3: SECURITY & TERMS ═══════════════ */}
+            {currentStep === 3 && (
+              <View>
+                {/* Password */}
+                <Text style={styles.label}>
+                  {t('register.password')}
+                  <Text style={styles.requiredStar}> *</Text>
+                </Text>
+                <View style={[styles.inputWrapper, inputStyle, errors.password && styles.inputError]}>
+                  <TextInput
+                    style={styles.flexInput}
+                    placeholder={t('login.password')}
+                    placeholderTextColor="rgba(255,255,255,0.66)"
+                    secureTextEntry={!showPassword}
+                    value={formData.password}
+                    onChangeText={(v) => setField('password', v)}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    selectionColor="#FFF"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                    importantForAutofill="yes"
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <MaterialCommunityIcons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="rgba(255,255,255,0.74)"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
+                {/* Password strength + requirements */}
+                {showRequirements && (
+                  <View style={styles.requirementsBox}>
+                    {/* Strength bar */}
+                    <View style={styles.strengthRow}>
+                      <View style={styles.strengthTrack}>
+                        <View style={[
+                          styles.strengthFill,
+                          {
+                            backgroundColor: strengthColor[strength],
+                            width: strengthWidth,
+                          }
+                        ]} />
+                      </View>
+                      <Text style={[styles.strengthLabel, { color: strengthColor[strength] }]}>
+                        {formData.password.length > 0 ? strengthLabel[strength] : ''}
+                      </Text>
+                    </View>
+
+                    {/* Per-requirement rows */}
+                    {requirements.map((req, idx) => (
+                      <View key={idx} style={styles.reqRow}>
+                        <View style={[styles.reqDot, { backgroundColor: req.met ? '#22C55E' : 'rgba(255,255,255,0.25)' }]}>
+                          {req.met && <Text style={styles.reqCheck}>✓</Text>}
+                        </View>
+                        <Text style={[styles.reqText, { color: req.met ? '#22C55E' : 'rgba(255,255,255,0.72)' }]}>
+                          {req.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Repeat password */}
+                <Text style={styles.label}>
+                  {t('register.repeatPassword')}
+                  <Text style={styles.requiredStar}> *</Text>
+                </Text>
+                <View style={[styles.inputWrapper, inputStyle, errors.repeatPassword && styles.inputError]}>
+                  <TextInput
+                    style={styles.flexInput}
+                    placeholder={t('login.repeatPassword')}
+                    placeholderTextColor="rgba(255,255,255,0.66)"
+                    secureTextEntry={!showPassword}
+                    value={formData.repeatPassword}
+                    onChangeText={(v) => setField('repeatPassword', v)}
+                    selectionColor="#FFF"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                    importantForAutofill="yes"
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <MaterialCommunityIcons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="rgba(255,255,255,0.74)"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {errors.repeatPassword && <Text style={styles.errorText}>{errors.repeatPassword}</Text>}
+
+                {/* Terms */}
+                <TouchableOpacity 
+                  style={[styles.termsRow, errors.agree && { padding: 6, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.18)' }]} 
+                  onPress={() => {
+                    setAgree(!agree);
+                    setErrors(prev => (prev.agree ? { ...prev, agree: null } : prev));
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name={agree ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                    size={22}
+                    color={errors.agree ? '#FCA5A5' : '#FFF'}
+                  />
+                  <Text style={styles.termsText}>
+                    {t('register.agreePrefix')}{' '}
+                    <Text style={styles.linkText} onPress={() => navigation.navigate('TermsPolicy', { type: 'terms' })}>
+                      {t('register.terms')}
+                    </Text>
+                    {' '}{t('register.and')}{' '}
+                    <Text style={styles.linkText} onPress={() => navigation.navigate('TermsPolicy', { type: 'privacy' })}>
+                      {t('register.privacy')}
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+                {errors.agree && <Text style={styles.errorText}>{errors.agree}</Text>}
+
+                {/* Navigation Buttons Row */}
+                <View style={[styles.row, { marginTop: 24 }]}>
+                  <TouchableOpacity
+                    style={[styles.half, styles.secondaryNavBtn]}
+                    onPress={handlePrevStep}
+                    activeOpacity={0.85}
+                  >
+                    <MaterialCommunityIcons name="arrow-left" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.secondaryNavBtnText}>{isFr ? 'Retour' : 'Back'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.half, styles.primaryNavBtn, { opacity: submitting ? 0.7 : 1 }]}
+                    onPress={handleRegister}
+                    activeOpacity={0.85}
+                    disabled={submitting}
+                  >
+                    <Text style={styles.registerBtnText}>
+                      {submitting ? t('register.creating') : t('register.submit')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {/* Bottom spacer to guarantee the button can scroll fully above navigation area */}
             <View style={{ height: 120 }} />
@@ -581,11 +729,71 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 14,
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 16,
   },
   backBtn: { width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   title: { color: '#FFF', fontSize: 24, fontWeight: '900' },
-  subtitle: { color: 'rgba(255,255,255,0.86)', fontSize: 14, marginTop: 5 },
+  subtitle: { color: 'rgba(255,255,255,0.86)', fontSize: 13, marginTop: 4, fontWeight: '600' },
+
+  // Stepper Styles
+  stepperContainer: {
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  stepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  stepCircleActive: {
+    backgroundColor: '#0D9488',
+    borderColor: '#99F6E4',
+  },
+  stepCircleText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  stepLine: {
+    flex: 1,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 8,
+    borderRadius: 2,
+  },
+  stepLineActive: {
+    backgroundColor: '#0D9488',
+  },
+  stepperLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  stepperLabelText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  stepperLabelTextActive: {
+    color: '#FFF',
+    fontWeight: '900',
+  },
+
   formArea: { paddingTop: 4 },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
@@ -630,6 +838,9 @@ const styles = StyleSheet.create({
   registerBtn: { width: '100%', height: 56, borderRadius: 10, marginTop: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D9488', position: 'relative' },
   registerBtnText: { color: '#FFF', fontSize: 17, fontWeight: '900', textAlign: 'center' },
   buttonArrow: { position: 'absolute', right: 20 },
+  primaryNavBtn: { height: 56, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D9488' },
+  secondaryNavBtn: { height: 56, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.32)' },
+  secondaryNavBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
   passwordHint: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 4, marginLeft: 4 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { width: '100%', backgroundColor: '#FFF', borderRadius: 16, padding: 20, maxHeight: '80%' },

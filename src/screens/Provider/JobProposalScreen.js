@@ -33,11 +33,12 @@ const JobProposalScreen = ({ route, navigation }) => {
   const { user, uploadFile } = useAuth();
   const { walletBalance, markJobApplied } = useAppContext();
 
-  const { task = {} } = route.params || {};
-  const taskId = task.id || route.params?.taskId || route.params?.jobId;
+  const initialTask = route.params?.task || {};
+  const [taskData, setTaskData] = useState(initialTask);
+  const taskId = initialTask.id || route.params?.taskId || route.params?.jobId;
   const isBoostOnly = Boolean(route.params?.isBoostOnly);
 
-  const defaultBudget = String(task.budgetMax || task.budget || task.budgetMin || '');
+  const defaultBudget = String(initialTask.budgetMax || initialTask.budget || initialTask.budgetMin || '');
   const [proposedBudget, setProposedBudget] = useState(defaultBudget);
   const [coverLetter, setCoverLetter] = useState('');
   const [boostCoins, setBoostCoins] = useState(isBoostOnly ? '1' : '');
@@ -49,7 +50,22 @@ const JobProposalScreen = ({ route, navigation }) => {
   const [showUploadPicker, setShowUploadPicker] = useState(false);
   const [screeningAnswers, setScreeningAnswers] = useState({});
 
-  const currencyStr = getCurrencyForUser(task.country || user?.country || 'Cameroon');
+  React.useEffect(() => {
+    if (taskId) {
+      api.get(`/jobs/${taskId}`)
+        .then((res) => {
+          if (res.data?.success && res.data?.data) {
+            setTaskData((prev) => ({ ...prev, ...res.data.data }));
+            if (!proposedBudget && (res.data.data.budgetMax || res.data.data.budget)) {
+              setProposedBudget(String(res.data.data.budgetMax || res.data.data.budget));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [taskId]);
+
+  const currencyStr = getCurrencyForUser(taskData.country || user?.country || 'Cameroon');
   const boostAmount = Math.max(0, parseInt(boostCoins, 10) || 0);
 
   // Upload file helper (both PDF and images)
@@ -189,7 +205,7 @@ const JobProposalScreen = ({ route, navigation }) => {
       Alert.alert(t('common.error'), t('jobs.notFound', 'Task not found. Please go back and try again.'));
       return;
     }
-    const missingQuestion = missingRequiredAnswer(task.applicationQuestions || [], screeningAnswers);
+    const missingQuestion = missingRequiredAnswer(taskData.applicationQuestions || [], screeningAnswers);
     if (missingQuestion) {
       Alert.alert(t('jobs.answerRequired', 'Answer required'), missingQuestion.prompt);
       return;
@@ -384,7 +400,7 @@ const JobProposalScreen = ({ route, navigation }) => {
           )}
         </View>
 
-        <ScreeningQuestionFields questions={task.applicationQuestions || []} answers={screeningAnswers} onChange={setScreeningAnswers} />
+        <ScreeningQuestionFields questions={taskData.applicationQuestions || []} answers={screeningAnswers} onChange={setScreeningAnswers} />
 
         {/* 4. Optional Proposal Boost */}
         <View style={[styles.boostBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>

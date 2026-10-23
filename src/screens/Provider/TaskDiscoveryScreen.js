@@ -73,20 +73,7 @@ const TaskDiscoveryScreen = ({ navigation }) => {
   };
 
   const handleTaskPress = (task) => {
-    if (task.isExternal) {
-      setSelectedExternalJob(task);
-      setIsPriorityExternal(false);
-      setExtApplicantName(user?.fullName || '');
-      setExtApplicantEmail(user?.email || '');
-      setExtApplicantPhone(user?.phone || '');
-      setExtCoverLetter(
-        isFr
-          ? `Madame, Monsieur l'équipe de recrutement chez ${task.companyName || "l'organisation"},\n\nJe vous adresse ma candidature pour le poste de ${task.title}.\n\nFort de mes compétences dans le domaine de ${task.category || 'cette spécialité'}, je suis convaincu de pouvoir réaliser une mission de haute qualité.\n\nVous trouverez ci-joint mes coordonnées et mon CV pour examen de mon profil.\n\nJe vous remercie pour votre attention.\n\nCordialement,\n${user?.fullName || ''}`
-          : `Dear Hiring Team at ${task.companyName || 'the Organization'},\n\nI am writing to express my interest in the ${task.title} position.\n\nWith my background in ${task.category || 'this domain'}, I am confident in delivering quality results.\n\nPlease find my contact details and attached CV for your consideration.\n\nThank you,\n${user?.fullName || ''}`
-      );
-      return;
-    }
-    navigation.navigate('TaskDetails', { task });
+    navigation.navigate('TaskDetails', { task, taskId: task.id });
   };
 
   const handleSendExternalApplication = async () => {

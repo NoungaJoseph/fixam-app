@@ -22,6 +22,7 @@ import MaterialsListDisplay from '../../components/MaterialsListDisplay';
 import MaterialsListEditor from '../../components/MaterialsListEditor';
 import DisputeDetailsCard from '../../components/DisputeDetailsCard';
 import ServiceAgreementCard from '../../components/ServiceAgreementCard';
+import { parseQuestionsList } from '../../components/ScreeningQuestionFields';
 
 const formatDate = (value, locale = 'en') => {
   if (!value) return null;
@@ -127,7 +128,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         ? `${new Date(taskBookingDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}${taskBookingTime ? ` @ ${taskBookingTime}` : ''}`
         : (displayTask.scheduledTime ? formatDate(displayTask.scheduledTime, locale) : null))
     : (displayTask.scheduledTime ? formatDate(displayTask.scheduledTime, locale) : null);
-  const hasApplied = applied || appliedJobIds?.includes(currentTaskId) || displayTask.assignments?.some((assignment) => (
+  const hasApplied = applied || appliedJobIds?.includes(currentTaskId) || Boolean(displayTask.hasApplied || task.hasApplied) || displayTask.assignments?.some((assignment) => (
     assignment.providerId === user?.providerProfile?.id ||
     assignment.provider?.userId === user?.id ||
     assignment.provider?.user?.id === user?.id
@@ -175,17 +176,19 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   React.useEffect(() => {
     let active = true;
     const fetchDetails = async () => {
-      if (!currentTaskId || isExternalJob) {
+      if (!currentTaskId) {
         setFetching(false);
         return;
       }
       try {
         setFetching(true);
-        const endpoint = isBooking ? `/bookings/${currentTaskId}` : `/jobs/${currentTaskId}`;
+        const endpoint = isExternalJob
+          ? `/external-jobs/${currentTaskId}`
+          : (isBooking ? `/bookings/${currentTaskId}` : `/jobs/${currentTaskId}`);
         const res = await api.get(endpoint);
-        if (res.data?.success && active) {
+        if (res.data?.success && active && res.data.data) {
           setJobDetails(res.data.data);
-          if (!isBooking) {
+          if (!isBooking && !isExternalJob) {
             setApplicationCount(res.data.data.applicationCount ?? res.data.data._count?.assignments ?? res.data.data.assignments?.length ?? 0);
           }
         }
@@ -235,7 +238,14 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
   const handleAccept = () => {
     if (isExternalJob) {
-      navigation.navigate('ExternalJobApplication', { job: displayTask });
+      if (hasApplied) {
+        Alert.alert(t('jobs.alreadyApplied', 'Already Applied'), t('jobs.alreadyAppliedBody', 'You have already applied for this job.'));
+        return;
+      }
+      navigation.navigate('ExternalJobApplication', {
+        job: displayTask,
+        onApplied: () => setApplied(true)
+      });
       return;
     }
 
@@ -621,6 +631,35 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             {budget > 0 ? <DetailLine label={t('jobs.budget')} value={budgetLabel} colors={colors} /> : null}
             {taskMaterialsProvider ? <DetailLine label={t('jobs.materials')} value={taskMaterialsProvider === 'client' ? t('jobs.clientWillProvide') : t('jobs.professionalWillProvide')} colors={colors} /> : null}
           </View>
+
+          {/* Recruiter / Screening Questions Box */}
+          {(() => {
+            const questionsList = parseQuestionsList(displayTask.applicationQuestions);
+            if (!questionsList.length) return null;
+            return (
+              <View style={[styles.questionsBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F0FDFA', borderColor: isDarkMode ? '#0F766E' : '#99F6E4' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <MaterialCommunityIcons name="clipboard-check-outline" size={20} color="#0D9488" />
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text }}>
+                    {t('jobs.screeningQuestionsRequired', 'Screening Questions Required')} ({questionsList.length})
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 8 }}>
+                  {t('jobs.screeningQuestionsHint', 'The employer asks candidates to answer specific questions when submitting an application.')}
+                </Text>
+                <View style={{ gap: 6 }}>
+                  {questionsList.map((q, idx) => (
+                    <View key={q.id || idx} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                      <Text style={{ color: '#0D9488', fontWeight: '900', fontSize: 13 }}>•</Text>
+                      <Text style={{ fontSize: 13, color: colors.text, fontWeight: '600', flex: 1 }}>
+                        {q.prompt} {q.required ? <Text style={{ color: '#EF4444', fontWeight: '800' }}>*</Text> : null}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })()}
         </View>
       </ScrollView>
 
@@ -874,6 +913,13 @@ const styles = StyleSheet.create({
   viewLocationText: { fontSize: 15, fontWeight: '900' },
   shareJobBtn: { minHeight: 50, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8 },
   shareJobText: { fontSize: 15, fontWeight: '800' },
+  questionsBox: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+    padding: 16,
+    marginTop: 10,
+    marginBottom: 20,
+  },
   prefRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   prefChip: { backgroundColor: '#F8FAFC', borderRadius: 8, paddingHorizontal: 12, height: 42, flexDirection: 'row', alignItems: 'center', gap: 7 },
   prefText: { color: '#334155', fontSize: 12, fontWeight: '900' },

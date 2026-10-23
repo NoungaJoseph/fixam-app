@@ -180,7 +180,7 @@ const HomeScreen = ({ navigation }) => {
     const timer = setInterval(() => {
       setBillboardIndex(current => {
         const next = (current + 1) % clientBillboards.length;
-        billboardScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
+        billboardScrollRef.current?.scrollTo({ x: next * (width - 12), animated: true });
         return next;
       });
     }, 5200);
@@ -382,7 +382,7 @@ const HomeScreen = ({ navigation }) => {
 
         <View style={styles.billboardSection}>
           <ScrollView ref={billboardScrollRef} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(event) => setBillboardIndex(Math.round(event.nativeEvent.contentOffset.x / (width - 32)))}>
+            onMomentumScrollEnd={(event) => setBillboardIndex(Math.round(event.nativeEvent.contentOffset.x / (width - 12)))}>
             {clientBillboards.map((slide) => <Image key={slide.id} source={slide.image} style={styles.billboardImage} resizeMode="cover" />)}
           </ScrollView>
           <LinearGradient colors={['rgba(3,20,47,0.08)', 'rgba(3,20,47,0.22)', 'rgba(3,20,47,0.94)']} locations={[0, 0.4, 1]} style={styles.billboardOverlay} pointerEvents="none" />
@@ -831,11 +831,11 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: 110 },
 
   headerTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 11, backgroundColor: 'transparent' },
-  brandHeaderCenter: { flex: 1, alignItems: 'center', paddingHorizontal: 10 },
-  brandHeaderLogo: { width: 88, height: 31 },
-  brandHeaderPhrase: { marginTop: 2, minHeight: 16, fontSize: 11, fontWeight: '700', textAlign: 'center' },
-  billboardSection: { height: 270, marginHorizontal: 16, marginTop: 14, marginBottom: 14, borderRadius: 22, overflow: 'hidden', backgroundColor: '#06213E' },
-  billboardImage: { width: width - 32, height: 270 },
+  brandHeaderCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: 10, gap: 7 },
+  brandHeaderLogo: { width: 30, height: 30, borderRadius: 8 },
+  brandHeaderPhrase: { fontSize: 12, fontWeight: '800', letterSpacing: -0.1, maxWidth: 176 },
+  billboardSection: { height: 235, marginHorizontal: 6, marginTop: 14, marginBottom: 14, borderRadius: 22, overflow: 'hidden', backgroundColor: '#06213E' },
+  billboardImage: { width: width - 12, height: 235 },
   billboardOverlay: { ...StyleSheet.absoluteFillObject },
   billboardContent: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 20 },
   billboardEyebrow: { color: '#99F6E4', fontSize: 10, fontWeight: '900', letterSpacing: 1.3, marginBottom: 5 },

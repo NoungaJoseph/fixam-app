@@ -90,7 +90,7 @@ const CLIENT_HIDDEN_FAQS = [
   },
   {
     q: 'How do I contact Fixam support?',
-    a: 'You can reach us via Live Chat (fastest), email at support@fixam.net, or call +237 682 803 006. Our team is available Monday–Saturday, 8am–8pm.',
+    a: 'You can reach us via Live Chat (fastest), email at supportfixam@gmail.com, or call +237 682 803 006. Our team is available Monday–Saturday, 8am–8pm.',
     tags: ['contact', 'support', 'help', 'reach', 'email', 'call', 'phone'],
   },
 ];
@@ -177,7 +177,7 @@ const PROVIDER_HIDDEN_FAQS = [
   },
   {
     q: 'How do I contact Fixam support?',
-    a: 'You can reach us via Live Chat (fastest), email at support@fixam.net, or call +237 682 803 006. Our team is available Monday–Saturday, 8am–8pm.',
+    a: 'You can reach us via Live Chat (fastest), email at supportfixam@gmail.com, or call +237 682 803 006. Our team is available Monday–Saturday, 8am–8pm.',
     tags: ['contact', 'support', 'help', 'reach', 'email', 'call', 'phone'],
   },
 ];
@@ -192,7 +192,7 @@ const HelpCenterScreen = ({ navigation }) => {
 
   const contactOptions = [
     { icon: 'chat-processing-outline', label: t('help.liveChat'), sub: t('help.liveChatSub'), color: '#22C55E', type: 'chat' },
-    { icon: 'email-outline', label: t('help.emailSupport'), sub: 'support@fixam.net', color: '#2563EB' },
+    { icon: 'email-outline', label: t('help.emailSupport'), sub: 'supportfixam@gmail.com', color: '#2563EB' },
     { icon: 'phone-outline', label: t('help.callUs'), sub: '+237 682 803 006', color: '#F97316' },
   ];
 
@@ -206,10 +206,10 @@ const HelpCenterScreen = ({ navigation }) => {
   // When no query, only show visible ones
   const displayedFaqs = q
     ? [...visibleFaqs, ...hiddenFaqs].filter(f =>
-        f.q.toLowerCase().includes(q) ||
-        f.a.toLowerCase().includes(q) ||
-        f.tags?.some(tag => tag.includes(q))
-      )
+      f.q.toLowerCase().includes(q) ||
+      f.a.toLowerCase().includes(q) ||
+      f.tags?.some(tag => tag.includes(q))
+    )
     : visibleFaqs;
 
   const openLiveChat = async () => {
@@ -239,7 +239,7 @@ const HelpCenterScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.background, { backgroundColor: colors.background }]}>
-      
+
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>

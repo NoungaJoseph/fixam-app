@@ -383,7 +383,7 @@ const DashboardScreen = ({ navigation }) => {
       { key: 'verification', completed: user.providerProfile?.verification === 'VERIFIED', label: t('profileDetail.verifyId', 'Verify ID'), action: () => navigation.navigate('Verification') },
     ];
     const completedStepsCount = setupSteps.filter(s => s.completed).length;
-    const setupProgress = Math.round((completedStepsCount / setupSteps.length) * 100);
+    const setupProgress = Math.round(20 + (completedStepsCount / setupSteps.length) * 80); // 20% baseline: account created
     const showSetupWidget = !user.providerProfile?.setupBonusClaimed || setupProgress < 100;
 
     return (
@@ -456,25 +456,31 @@ const DashboardScreen = ({ navigation }) => {
 
           {/* Setup Progress Widget */}
           {showSetupWidget && (
-            <View style={[styles.setupWidget, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
-              <Text style={[styles.setupTitle, { color: colors.text }]}>{t('profile.completeSetup', 'Complete Setup (Bonus 1 Coin)')}</Text>
-              
+            <View style={styles.setupWidget}>
+              <View style={styles.setupHeaderRow}>
+                <Text style={[styles.setupTitle, { color: colors.text }]}>{t('profile.completeSetup', 'Complete Setup (Bonus 1 Coin)')}</Text>
+                <Text style={[styles.progressText, { color: colors.accent }]}>{setupProgress}%</Text>
+              </View>
               <View style={styles.progressBarContainer}>
                 <View style={[styles.progressBarFill, { backgroundColor: colors.accent, width: `${setupProgress}%` }]} />
               </View>
-              <Text style={[styles.progressText, { color: colors.textSecondary }]}>{setupProgress}% {t('common.completed', 'Completed')}</Text>
-
               <View style={styles.setupStepsContainer}>
-                {setupSteps.map((step, idx) => (
-                  <TouchableOpacity key={idx} style={styles.setupStepRow} onPress={step.action} disabled={step.completed}>
-                    <MaterialCommunityIcons name={step.completed ? "check-circle" : "checkbox-blank-circle-outline"} size={20} color={step.completed ? "#10B981" : colors.textSecondary} />
+                <View style={[styles.setupStepRow, { borderBottomColor: colors.border }]}>
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />
+                  <Text style={[styles.setupStepLabel, { color: colors.textSecondary, textDecorationLine: 'line-through' }]}>
+                    {t('profileDetail.accountCreated', 'Create Account')}
+                  </Text>
+                </View>
+                {setupSteps.map((step) => (
+                  <TouchableOpacity key={step.key} style={[styles.setupStepRow, { borderBottomColor: colors.border }]} onPress={step.action} disabled={step.completed} activeOpacity={0.7}>
+                    <MaterialCommunityIcons name={step.completed ? 'check-circle' : 'checkbox-blank-circle-outline'} size={20} color={step.completed ? '#10B981' : colors.textSecondary} />
                     <Text style={[styles.setupStepLabel, { color: step.completed ? colors.textSecondary : colors.text, textDecorationLine: step.completed ? 'line-through' : 'none' }]}>
                       {step.label}
                     </Text>
+                    {!step.completed && <MaterialCommunityIcons name="chevron-right" size={22} color={colors.accent} />}
                   </TouchableOpacity>
                 ))}
               </View>
-
               {setupProgress === 100 && (
                 <TouchableOpacity style={[styles.claimBonusBtn, { backgroundColor: colors.accent }]} onPress={claimSetupBonus} disabled={loading}>
                   {loading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.claimBonusText}>{t('profile.claimBonus', 'Claim 1 Coin Bonus')}</Text>}
@@ -1359,14 +1365,17 @@ const styles = StyleSheet.create({
   setupWidget: {
     marginHorizontal: 20,
     marginTop: 12,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
+  },
+  setupHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   setupTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontWeight: '800',
+    flex: 1,
   },
   progressBarContainer: {
     height: 8,
@@ -1381,20 +1390,22 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    marginBottom: 16,
-    textAlign: 'right',
+    fontWeight: '800',
   },
   setupStepsContainer: {
-    marginBottom: 12,
+    marginBottom: 4,
   },
   setupStepRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   setupStepLabel: {
+    flex: 1,
     fontSize: 14,
-    marginLeft: 8,
+    fontWeight: '600',
+    marginLeft: 12,
   },
   claimBonusBtn: {
     paddingVertical: 12,

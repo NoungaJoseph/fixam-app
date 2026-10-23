@@ -112,7 +112,6 @@ const ProviderHomeScreen = ({ navigation }) => {
   const [showTour, setShowTour] = useState(false);
 
   // Refs for tour highlights
-  const topUpRef = useRef(null);
   const viewAllJobsRef = useRef(null);
   const onlineToggleRef = useRef(null);
   const findJobsRef = useRef(null);
@@ -130,12 +129,6 @@ const ProviderHomeScreen = ({ navigation }) => {
   const [myJobs, setMyJobs] = useState([]);
 
   const tourSteps = useMemo(() => [
-    {
-      ref: topUpRef,
-      icon: 'wallet-plus-outline',
-      title: t('tour.providerTopUpTitle'),
-      text: t('tour.providerTopUpText'),
-    },
     {
       ref: onlineToggleRef,
       icon: 'circle-slice-8',
@@ -195,7 +188,7 @@ const ProviderHomeScreen = ({ navigation }) => {
     const timer = setInterval(() => {
       setBillboardIndex((current) => {
         const next = (current + 1) % providerBillboards.length;
-        billboardScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
+        billboardScrollRef.current?.scrollTo({ x: next * (width - 12), animated: true });
         return next;
       });
     }, 5500);
@@ -321,7 +314,7 @@ const ProviderHomeScreen = ({ navigation }) => {
     Boolean(user?.providerProfile?.portfolio?.length),
     user?.providerProfile?.verification === 'VERIFIED',
   ];
-  const setupProgress = Math.round((setupChecks.filter(Boolean).length / setupChecks.length) * 100);
+  const setupProgress = Math.round(20 + (setupChecks.filter(Boolean).length / setupChecks.length) * 80); // 20% baseline: account created
   const showSetupWidget = !user?.providerProfile?.setupBonusClaimed || setupProgress < 100;
 
   const handleScroll = (event) => {
@@ -399,7 +392,7 @@ const ProviderHomeScreen = ({ navigation }) => {
             <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.textSecondary} />
             <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{job.location || '4.1070, 9.7619'}</Text>
           </View>
-          <TouchableOpacity style={styles.applyBtn} onPress={() => navigation.navigate('TaskDetails', { taskId: job.id })}>
+          <TouchableOpacity style={styles.applyBtn} onPress={() => navigation.navigate('TaskDetails', { task: job, taskId: job.id })}>
             <Text style={styles.applyBtnText}>{t('home.apply')}</Text>
           </TouchableOpacity>
         </View>
@@ -477,7 +470,7 @@ const ProviderHomeScreen = ({ navigation }) => {
 
         <View style={styles.billboardSection}>
           <ScrollView ref={billboardScrollRef} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(event) => setBillboardIndex(Math.round(event.nativeEvent.contentOffset.x / (width - 32)))}>
+            onMomentumScrollEnd={(event) => setBillboardIndex(Math.round(event.nativeEvent.contentOffset.x / (width - 12)))}>
             {providerBillboards.map((slide) => <Image key={slide.id} source={slide.image} style={styles.billboardImage} resizeMode="cover" />)}
           </ScrollView>
           <LinearGradient colors={['rgba(3, 20, 47, 0.84)', 'rgba(3, 20, 47, 0.14)', 'rgba(3, 20, 47, 0.76)']} locations={[0, 0.5, 1]} style={styles.billboardOverlay} pointerEvents="none" />
@@ -492,16 +485,6 @@ const ProviderHomeScreen = ({ navigation }) => {
           </View>
         </View>
 
-        <TouchableOpacity activeOpacity={0.9} onPress={() => handleSafeNavigate('PostProject')} style={styles.showWorkFeature}>
-          <ImageBackground source={require('../../../assets/provider-billboard/find-work.jpg')} style={styles.showWorkImage} imageStyle={styles.showWorkImageRadius}>
-            <LinearGradient colors={['rgba(3,20,47,0.94)', 'rgba(3,20,47,0.38)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.showWorkOverlay}>
-              <View style={styles.showWorkBadge}><MaterialCommunityIcons name="image-multiple-outline" size={15} color="#06213E" /><Text style={styles.showWorkBadgeText}>{t('home.showWorkFeature.badge')}</Text></View>
-              <Text style={styles.showWorkTitle}>{t('home.showWorkFeature.title')}</Text>
-              <Text style={styles.showWorkBody}>{t('home.showWorkFeature.body')}</Text>
-              <View style={styles.showWorkAction}><Text style={styles.showWorkActionText}>{t('home.showWorkFeature.action')}</Text><MaterialCommunityIcons name="arrow-right" size={19} color="#06213E" /></View>
-            </LinearGradient>
-          </ImageBackground>
-        </TouchableOpacity>
 
         <ScrollView
           horizontal
@@ -510,7 +493,7 @@ const ProviderHomeScreen = ({ navigation }) => {
           style={{ flexGrow: 0, marginBottom: 16 }}
         >
           <TouchableOpacity style={[styles.subPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.subPillText, { color: colors.text }]}>📍 {user?.location || t('home.locationDefault') || 'Douala, Cameroon'}</Text>
+            <Text style={[styles.subPillText, { color: colors.text }]}>{user?.location || t('home.locationDefault') || 'Douala, Cameroon'}</Text>
             <MaterialCommunityIcons name="chevron-down" size={14} color={colors.textSecondary} />
           </TouchableOpacity>
 
@@ -540,60 +523,21 @@ const ProviderHomeScreen = ({ navigation }) => {
           <NewsTicker />
         </View>}
 
-        {/* ÔöÇÔöÇ 3. PREMIUM BALANCE STATS CARD ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
-        <LinearGradient
-          ref={topUpRef}
-          colors={['#1D4ED8', '#0D9488']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.statsCard}
-        >
-          {/* Column 1: Coins Balance */}
-          <View style={styles.cardCol}>
-            <Text style={styles.cardLabel}>{t('home.yourBalance')}</Text>
-            <Text style={styles.cardValue}>{walletBalance} {t('payments.coins')}</Text>
-            <TouchableOpacity
-              style={styles.topUpBtn}
-              onPress={() => navigation.getParent()?.getParent()?.navigate('Wallet', { screen: 'CoinSystem' })}
-            >
-              <Text style={styles.topUpText}>{t('home.topUp')}</Text>
-              <MaterialCommunityIcons name="plus" size={14} color="#0D9488" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.colDivider} />
-
-          {/* Column 2: Jobs Completed */}
-          <View style={[styles.cardCol, styles.jobsCompletedCol]}>
-            <Text style={styles.cardLabel}>{t('home.jobsCompleted')}</Text>
-            <Text style={styles.cardValue}>{completedJobsCount} {t('home.total')}</Text>
-
-            {/* Vertical mini bars */}
-            <View style={styles.miniBarRow}>
-              {[18, 28, 16, 38, 26, 44, 32].map((height, index) => (
-                <View key={index} style={[styles.miniBar, { height, backgroundColor: index === 5 ? '#FFF' : 'rgba(255, 255, 255, 0.45)' }]} />
-              ))}
-            </View>
-          </View>
-        </LinearGradient>
-
         {/* ── COMPLETE PROFILE / SETUP PROGRESS WIDGET ── */}
         {showSetupWidget && (
-          <TouchableOpacity activeOpacity={0.8} onPress={() => handleSafeNavigate('UserProfile')} style={[styles.setupWidget, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', borderColor: colors.border }]}>
-            <View style={styles.setupHeaderRow}>
-              <MaterialCommunityIcons name="shield-account-outline" size={22} color="#0D9488" />
-              <Text style={[styles.setupTitle, { color: colors.text }]}>
-                {t('profile.completeSetup', 'Complete Profile (Bonus 1 Coin)')}
-              </Text>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => handleSafeNavigate('UserProfile')} style={[styles.setupWidget, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.setupBody}>
+              <View style={styles.setupHeaderRow}>
+                <Text style={[styles.setupTitle, { color: colors.text }]} numberOfLines={1}>
+                  {t('profile.completeSetup', 'Complete Profile (Bonus 1 Coin)')}
+                </Text>
+                <Text style={[styles.progressText, { color: '#0D9488' }]}>{setupProgress}%</Text>
+              </View>
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBarFill, { backgroundColor: '#0D9488', width: `${setupProgress}%` }]} />
+              </View>
             </View>
-
-            <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBarFill, { backgroundColor: '#0D9488', width: `${setupProgress}%` }]} />
-            </View>
-            <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-              {setupProgress}% {t('common.completed', 'Completed')}
-            </Text>
-
-            <Text style={[styles.setupOpenHint, { color: '#0D9488' }]}>{t('profile.viewCompletionTasks', 'View what is left')} →</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
 
@@ -740,53 +684,12 @@ const ProviderHomeScreen = ({ navigation }) => {
           ))}
         </View>
 
-        {/* ÔöÇÔöÇ 6. SEARCH BAR & CATEGORIES ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
-        <View style={styles.searchRow}>
-          <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="magnify" size={22} color={colors.placeholder} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder={t('home.searchJobs')}
-              placeholderTextColor={colors.placeholder}
-              value={search}
-              onChangeText={setSearch}
-              autoFocus={false}
-              blurOnSubmit={true}
-              returnKeyType="search"
-            />
-          </View>
-          <TouchableOpacity style={[styles.filterBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="tune-variant" size={20} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Categories Horizontal scrolling pills */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScroll}>
-          {CATEGORIES.map(cat => {
-            const active = activeCategory === cat.id;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                style={[styles.catChip, {
-                  backgroundColor: active ? '#0D9488' : colors.card,
-                  borderColor: active ? '#0D9488' : colors.border,
-                }]}
-                onPress={() => setActiveCategory(cat.id)}
-              >
-                <MaterialCommunityIcons name={cat.icon} size={16} color={active ? '#FFF' : colors.textSecondary} />
-                <Text style={[styles.catText, { color: active ? '#FFF' : colors.text }]}>
-                  {cat.id === 'all' ? t('notifications.all') : translateService(cat.label)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
 
         {/* ÔöÇÔöÇ 7. "LIVE JOBS NEAR YOU" SECTION ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
             <View style={[styles.liveDot, { backgroundColor: '#22C55E' }]} />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.liveJobsNearYou')}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.recommendedJobs', 'Recommended Jobs')}</Text>
             <Text style={styles.liveCountText}>• {t('home.jobsAvailable', { count: filteredJobs.length })}</Text>
           </View>
           <TouchableOpacity ref={viewAllJobsRef} onPress={() => navigation.navigate('Find Jobs')}>
@@ -899,8 +802,8 @@ const styles = StyleSheet.create({
   brandHeaderLogo: { width: 30, height: 30, borderRadius: 8 },
   brandHeaderPhrase: { fontSize: 12, fontWeight: '800', letterSpacing: -0.1, maxWidth: 176 },
   providerNewsTicker: { marginBottom: 12, marginTop: -3 },
-  billboardSection: { height: 270, marginHorizontal: 16, marginBottom: 22, borderRadius: 22, overflow: 'hidden', backgroundColor: '#06213E' },
-  billboardImage: { width: width - 32, height: 270 },
+  billboardSection: { height: 235, marginHorizontal: 6, marginBottom: 22, borderRadius: 22, overflow: 'hidden', backgroundColor: '#06213E' },
+  billboardImage: { width: width - 12, height: 235 },
   billboardOverlay: { ...StyleSheet.absoluteFillObject },
   billboardContent: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 20 },
   billboardEyebrow: { color: '#99F6E4', fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginBottom: 8 },
@@ -1264,10 +1167,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 12,
   },
-  showWorkSection: { marginHorizontal: 16, marginTop: 20, marginBottom: 24, borderWidth: 1, borderRadius: 18, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 13 },
-  showWorkIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: '#E6F7F4', alignItems: 'center', justifyContent: 'center' },
-  showWorkTitle: { fontSize: 16, fontWeight: '900' },
-  showWorkBody: { fontSize: 12, lineHeight: 17, marginTop: 4 },
+  showWorkSection: { marginHorizontal: 0, marginTop: 0, marginBottom: 24, borderWidth: 1, borderRadius: 0, paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 13, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 4 },
+  showWorkIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#E6F7F4', alignItems: 'center', justifyContent: 'center' },
+  showWorkTitle: { fontSize: 15, fontWeight: '900' },
+  showWorkBody: { fontSize: 11, lineHeight: 16, fontWeight: '600', marginTop: 3 },
   inviteSection: { marginHorizontal: 16, marginTop: 26, borderRadius: 20, padding: 20, backgroundColor: '#06213E', flexDirection: 'row', alignItems: 'center', gap: 14 },
   inviteEyebrow: { color: '#99F6E4', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
   inviteTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', marginTop: 6 },
@@ -1578,56 +1481,57 @@ const styles = StyleSheet.create({
   },
 
   // Setup / Complete Profile Widget
-  showWorkFeature: { marginHorizontal: 16, marginBottom: 18, height: 210, borderRadius: 22, overflow: 'hidden', elevation: 7, shadowColor: '#06213E', shadowOpacity: 0.24, shadowRadius: 14, shadowOffset: { width: 0, height: 7 } },
-  showWorkImage: { flex: 1 },
-  showWorkImageRadius: { borderRadius: 22 },
-  showWorkOverlay: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'flex-start' },
-  showWorkBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#5EEAD4', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginBottom: 10 },
-  showWorkBadgeText: { color: '#06213E', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
-  showWorkTitle: { color: '#FFF', fontSize: 27, lineHeight: 31, fontWeight: '900', maxWidth: '78%' },
-  showWorkBody: { color: '#E2E8F0', fontSize: 13, lineHeight: 19, maxWidth: '75%', marginTop: 6 },
-  showWorkAction: { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22 },
-  showWorkActionText: { color: '#06213E', fontSize: 13, fontWeight: '900' },
   setupWidget: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 16,
+    borderRadius: 0,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 4,
   },
+  setupIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(13,148,136,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  setupBody: { flex: 1 },
   setupHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   setupTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '800',
     flex: 1,
-    marginLeft: 8,
   },
   progressBarContainer: {
-    height: 8,
+    height: 5,
     backgroundColor: '#E2E8F0',
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 6,
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   progressText: {
     fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 14,
-    textAlign: 'right',
-  },
-  setupOpenHint: {
-    fontSize: 13,
     fontWeight: '800',
-    textAlign: 'right',
+    marginLeft: 8,
   },
   setupStepsContainer: {
     marginBottom: 4,

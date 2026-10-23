@@ -379,7 +379,16 @@ const TaskDetailsScreen = ({ route, navigation }) => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroCard}>
           <View style={styles.heroTop}>
-            {task.category ? <View style={styles.badge}><Text style={styles.badgeText}>{translateService(task.category)}</Text></View> : <View />}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+              {task.category ? <View style={styles.badge}><Text style={styles.badgeText}>{translateService(task.category)}</Text></View> : null}
+              {providersNeeded > 1 && (
+                <View style={[styles.badge, { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', borderColor: '#C7D2FE', borderWidth: 1 }]}>
+                  <Text style={[styles.badgeText, { color: isDarkMode ? '#C7D2FE' : '#4F46E5', fontWeight: '800' }]}>
+                    👥 {providersNeeded} {t('jobs.providerNeed', 'Providers Needed')}
+                  </Text>
+                </View>
+              )}
+            </View>
             {postedOn ? (
               <View style={styles.postedBadge}>
                 <MaterialCommunityIcons name="clock-outline" size={16} color="#0D9488" />
@@ -431,8 +440,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             ) : null}
           </View>
 
-          {/* Top Bids Leaderboard - Only for Open Jobs, never for Direct Bookings */}
-          {!isBooking && (
+          {/* Top Bids Leaderboard - Only for Open Jobs, never for Direct Bookings or External Partner Jobs */}
+          {!isBooking && !isExternalJob && (
             <>
               <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24, marginBottom: 12 }]}>
                 {t('jobs.topBids', 'Top Application Bids')}

@@ -114,7 +114,13 @@ const ExternalJobApplicationScreen = ({ route, navigation }) => {
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.back, { backgroundColor: colors.card }]}><MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} /></TouchableOpacity>
-        <View style={{ flex: 1 }}><Text style={[styles.title, { color: colors.text }]}>{t('jobs.submitApplication', 'Submit Application')}</Text><Text style={{ color: colors.textSecondary }} numberOfLines={1}>{job.title}</Text></View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: colors.text }]}>{t('jobs.submitApplication', 'Submit Application')}</Text>
+          <Text style={{ color: colors.textSecondary }} numberOfLines={1}>
+            {job.title}
+            {Number(job.providersNeeded) > 1 ? ` · 👥 ${job.providersNeeded} ${t('jobs.providerNeed', 'Providers Needed')}` : ''}
+          </Text>
+        </View>
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={[styles.label, { color: colors.text }]}>{t('jobs.fullName', 'Full name')}</Text><TextInput value={name} onChangeText={setName} style={[styles.input, { color: colors.text, borderColor: colors.border }]} />

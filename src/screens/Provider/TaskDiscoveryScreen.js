@@ -165,6 +165,13 @@ const TaskDiscoveryScreen = ({ navigation }) => {
                 </Text>
               </View>
             )}
+            {Number(task.providersNeeded) > 1 && (
+              <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', borderColor: '#C7D2FE' }]}>
+                <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#C7D2FE' : '#4F46E5', fontWeight: '800' }]}>
+                  👥 {task.providersNeeded} {isFr ? 'prestataires demandés' : 'providers needed'}
+                </Text>
+              </View>
+            )}
           </View>
           <Text style={[styles.taskTitle, { color: colors.text }]}>{task.title}</Text>
           <Text style={[styles.taskCategory, { color: colors.textSecondary }]}>

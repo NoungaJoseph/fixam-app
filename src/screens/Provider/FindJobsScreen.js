@@ -457,6 +457,13 @@ const FindJobsScreen = ({ navigation }) => {
                       </Text>
                     </View>
                   )}
+                    {Number(job.providersNeeded) > 1 && (
+                    <View style={[styles.externalBadge, { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', borderColor: '#C7D2FE', marginBottom: 0 }]}>
+                      <Text style={[styles.externalBadgeText, { color: isDarkMode ? '#C7D2FE' : '#4F46E5', fontWeight: '800' }]}>
+                        👥 {job.providersNeeded} {isFr ? 'prestataires demandés' : 'providers needed'}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 {/* Title Row with Actions */}

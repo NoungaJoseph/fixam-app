@@ -790,7 +790,7 @@ const PostTaskScreen = ({ route, navigation }) => {
             <Text style={[styles.secondaryActionText, { color: colors.text }]}>{t('jobs.details')}</Text>
           </TouchableOpacity>
           
-          {assignedProvider && (
+          {assignedProvider && ['ACCEPTED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(normalizedStatus) && (
             <TouchableOpacity
               style={[styles.secondaryActionBtn, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}
               onPress={() => openChatWithProvider(assignedProvider, job)}

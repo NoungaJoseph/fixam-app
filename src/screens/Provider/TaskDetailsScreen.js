@@ -148,6 +148,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   const isMultiProvider = (Number(displayTask.providersNeeded || task.providersNeeded) || 1) > 1;
   const canMessageClient = isMultiProvider || (isBooking && ['ACCEPTED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase())) || (assignmentStatus === 'ACCEPTED' && ['ASSIGNED', 'IN_PROGRESS'].includes(String(displayTask.status || task.status || '').toUpperCase()));
   const bookingStatus = String(displayTask.status || task.status || '').toUpperCase();
+  const isAcceptedJobOrBooking = isBooking
+    ? ['ACCEPTED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(bookingStatus)
+    : (assignmentStatus === 'ACCEPTED' || ['ACCEPTED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(String(displayTask.status || task.status || '').toUpperCase()));
   const canReviseBookingOffer = isBooking && bookingStatus === 'PENDING' && !hasApplied;
   const isBookingRevisionPending = isBooking && ['COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(bookingStatus);
   const [activeDispute, setActiveDispute] = useState(task.disputes?.[0] || null);
@@ -622,7 +625,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             />
           )}
 
-          {isSelectedProvider && (
+          {isSelectedProvider && isAcceptedJobOrBooking && (
             <ServiceAgreementCard
               agreement={(jobDetails || task)?.serviceAgreement || (jobDetails || task)?.serviceAgreements?.[0] || (jobDetails || task)?.agreements?.[0]}
               booking={jobDetails || task}
@@ -879,21 +882,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                       )}
                     </>
                   ) : isBookingRevisionPending ? (
-                    <>
-                      <TouchableOpacity
-                        style={[styles.bookingSecondaryBtn, { borderColor: colors.border }]}
-                        onPress={openClientChat}
-                      >
-                        <MaterialCommunityIcons name="message-text-outline" size={18} color={colors.accent} />
-                        <Text style={[styles.bookingSecondaryText, { color: colors.accent }]}>{t('tabs.messages')}</Text>
-                      </TouchableOpacity>
-
-                      <View style={[styles.proposalBtn, styles.proposalBtnDisabled, { flex: 1.5 }]}>
-                        <Text style={[styles.proposalTitle, { fontSize: 13 }]}>
-                          {t('jobs.waitingForClientResponse', 'Waiting for client')}
-                        </Text>
-                      </View>
-                    </>
+                    <View style={[styles.proposalBtn, styles.proposalBtnDisabled, { flex: 1 }]}>
+                      <Text style={[styles.proposalTitle, { fontSize: 13 }]}>
+                        {t('jobs.waitingForClientResponse', 'Waiting for client')}
+                      </Text>
+                    </View>
                   ) : (
                     <View style={[styles.proposalBtn, styles.proposalBtnDisabled, { flex: 1 }]}>
                       <Text style={styles.proposalTitle}>

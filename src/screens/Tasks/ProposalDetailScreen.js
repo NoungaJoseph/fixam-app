@@ -295,27 +295,29 @@ const ProposalDetailScreen = ({ route, navigation }) => {
                 <Text style={[styles.actionBtnText, { color: colors.text }]}>{t('profile.viewProfile', 'View Profile')}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.actionBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.12)' : '#F0FDFA' }]}
-                onPress={() => {
-                  const jobId = job?.id || assignment?.jobId || route.params?.jobId;
-                  const assignmentId = assignment?.id || route.params?.assignmentId;
-                  if (jobId && assignmentId) {
-                    api.post(`/jobs/${jobId}/applications/${assignmentId}/interview`).catch(() => {});
-                  }
-                  navigation.navigate('Chat', {
-                    receiverId: providerUser?.id,
-                    userName: providerUser?.fullName || t('common.provider'),
-                    avatar: providerUser?.avatar,
-                    phone: providerUser?.phone || providerUser?.phoneNumber || '',
-                    task: job
-                  });
-                }}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons name="chat-outline" size={20} color={colors.accent} />
-                <Text style={[styles.actionBtnText, { color: colors.accent }]}>{t('chat.message', 'Message')}</Text>
-              </TouchableOpacity>
+              {assignment?.status === 'ACCEPTED' && (
+                <TouchableOpacity
+                  style={[styles.actionBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.12)' : '#F0FDFA' }]}
+                  onPress={() => {
+                    const jobId = job?.id || assignment?.jobId || route.params?.jobId;
+                    const assignmentId = assignment?.id || route.params?.assignmentId;
+                    if (jobId && assignmentId) {
+                      api.post(`/jobs/${jobId}/applications/${assignmentId}/interview`).catch(() => {});
+                    }
+                    navigation.navigate('Chat', {
+                      receiverId: providerUser?.id,
+                      userName: providerUser?.fullName || t('common.provider'),
+                      avatar: providerUser?.avatar,
+                      phone: providerUser?.phone || providerUser?.phoneNumber || '',
+                      task: job
+                    });
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="chat-outline" size={20} color={colors.accent} />
+                  <Text style={[styles.actionBtnText, { color: colors.accent }]}>{t('chat.message', 'Message')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <TouchableOpacity

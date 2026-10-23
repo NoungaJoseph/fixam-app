@@ -231,7 +231,7 @@ const BookingsScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={[styles.actions, { borderTopColor: colors.border, flexDirection: status === 'PENDING' ? 'column' : 'row' }]}>
-          {['ACCEPTED', 'IN_PROGRESS', 'COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(status) ? (
+          {['ACCEPTED', 'IN_PROGRESS'].includes(status) ? (
             <TouchableOpacity
               style={[styles.secondaryBtn, { borderColor: colors.border }]}
               onPress={() => navigation.navigate('Chat', {

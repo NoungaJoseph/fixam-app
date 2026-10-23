@@ -431,7 +431,7 @@ const JobStatusScreen = ({ route, navigation }) => {
                 <Text style={[styles.flatDetailLabel, { color: colors.textSecondary }]}>{t('jobs.assignedProfessional')}</Text>
                 <Text style={[styles.flatDetailValue, { color: colors.text }]}>{assignedProvider?.name || t('jobs.searchingProviders')}</Text>
               </View>
-              {assignedProvider && (
+              {assignedProvider && ['ACCEPTED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(normalizedStatus) && (
                 <TouchableOpacity
                   style={[styles.chatBtn, { backgroundColor: colors.accent }]}
                   onPress={() => navigation.navigate('Chat', { receiverId: assignedProvider.id, userName: assignedProvider.name, avatar: assignedProvider.avatar, phone: assignedProviderUser?.phone || assignedProviderUser?.phoneNumber || '', task: job })}
@@ -581,7 +581,7 @@ const JobStatusScreen = ({ route, navigation }) => {
               </View>
             )}
 
-            {(Boolean(job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0]) || (job.agreements && job.agreements[0])) || ['ACCEPTED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(normalizedStatus)) && (
+            {Boolean(job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0]) || (job.agreements && job.agreements[0])) && ['ACCEPTED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(normalizedStatus) && (
               <ServiceAgreementCard
                 agreement={job.serviceAgreement || (job.serviceAgreements && job.serviceAgreements[0]) || (job.agreements && job.agreements[0])}
                 booking={job}

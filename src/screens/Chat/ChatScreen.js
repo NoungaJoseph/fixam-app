@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   FlatList, KeyboardAvoidingView, Platform, Image, StatusBar, ActivityIndicator, Alert, Keyboard, Modal, Linking
@@ -173,6 +173,26 @@ const ChatScreen = ({ route, navigation }) => {
   const recordingRef = useRef(null);
   const flatListRef = useRef();
   const activeConvIdRef = useRef(conversationId);
+  const typingTimeoutRef = useRef(null);
+  const isCurrentlyTypingRef = useRef(false);
+
+  const reversedMessages = useMemo(() => [...messages].reverse(), [messages]);
+
+  const handleInputChange = (text) => {
+    setInput(text);
+    const hasText = text.trim().length > 0;
+    if (hasText && !isCurrentlyTypingRef.current) {
+      isCurrentlyTypingRef.current = true;
+      emit('typing', { conversationId: activeConvIdRef.current, isTyping: true });
+    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isCurrentlyTypingRef.current) {
+        isCurrentlyTypingRef.current = false;
+        emit('typing', { conversationId: activeConvIdRef.current, isTyping: false });
+      }
+    }, 2000);
+  };
   console.log('[ChatScreen] Initial loading state:', !!conversationId);
 
   useEffect(() => {
@@ -190,6 +210,9 @@ const ChatScreen = ({ route, navigation }) => {
     }
 
     return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
       if (recordTimerRef.current) {
         clearInterval(recordTimerRef.current);
       }
@@ -233,7 +256,7 @@ const ChatScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     });
     return () => showSub.remove();
   }, []);
@@ -383,7 +406,7 @@ const ChatScreen = ({ route, navigation }) => {
       console.log('[ChatScreen] Received message:new event:', msg.id, 'for conv:', msg.conversationId, 'expected:', activeConvId);
       if (msg.conversationId === activeConvId) {
         setMessages(prev => mergeMessage(prev, msg));
-        setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }), 100);
+        setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: false }), 50);
         if (msg.senderId !== user?.id) {
           api.put(`/chat/${activeConvId}/read`, {}, { timeout: 8000 }).then(() => {
             fetchConversations();
@@ -626,6 +649,8 @@ const ChatScreen = ({ route, navigation }) => {
         emit('join:conversation', newMessage.conversationId);
       }
 
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      isCurrentlyTypingRef.current = false;
       emit('typing', { conversationId: activeConvIdRef.current || newMessage.conversationId, isTyping: false });
     } catch (error) {
       console.log('Detailed Send error:', {
@@ -1124,44 +1149,55 @@ const ChatScreen = ({ route, navigation }) => {
 
       {/* ── Chat header ─────────────────────────────────────────────────────── */}
       <View style={[styles.header, { backgroundColor: isDarkMode ? 'transparent' : '#FFF', borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]}><MaterialCommunityIcons name="chevron-left" size={28} color={colors.primary} /></TouchableOpacity>
-        <UserAvatar uri={avatarUri} name={userName} size={40} radius={12} style={styles.headerAvatar} />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.headerName, { color: colors.text }]}>{userName}</Text>
-          <Text style={styles.headerStatus}>{!canMessage ? '' : isTyping ? t('messages.typing') : t('messages.online')}</Text>
-        </View>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.card }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <MaterialCommunityIcons name="chevron-left" size={28} color={colors.primary} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.headerProfileArea} 
+          activeOpacity={0.7}
+          onPress={() => {
+            Alert.alert(
+              userName,
+              `${otherParticipant?.phone || participantPhone ? `📞 ${otherParticipant?.phone || participantPhone}\n` : ''}${task?.title ? `📋 ${task.title}` : ''}`,
+              [{ text: t('common.close', 'Close') }]
+            );
+          }}
+        >
+          <UserAvatar uri={avatarUri} name={userName} size={38} radius={12} style={styles.headerAvatar} />
+          <View style={styles.headerTextWrap}>
+            <Text style={[styles.headerName, { color: colors.text }]} numberOfLines={1} ellipsizeMode="tail">
+              {userName}
+            </Text>
+            <Text style={styles.headerStatus} numberOfLines={1}>
+              {!canMessage ? '' : isTyping ? t('messages.typing') : t('messages.online')}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
         {!isSupportConversation && (
           <View style={styles.headerActions}>
             <TouchableOpacity
-              style={[styles.callHeaderBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.12)' : '#F0FDFA' }]}
+              style={[styles.actionHeaderIconBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#F0FDFA' }]}
               onPress={handleCarrierCall}
               accessibilityRole="button"
               accessibilityLabel={t('jobs.callContact', 'Call')}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="phone" size={15} color={colors.accent} />
-              <Text style={[styles.callHeaderBtnText, { color: colors.accent }]}>
-                {t('jobs.callContact', 'Call')}
-              </Text>
+              <MaterialCommunityIcons name="phone" size={17} color={colors.accent} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.trackHeaderBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.12)' : '#F0FDFA' }]}
+              style={[styles.actionHeaderIconBtn, { borderColor: colors.accent, backgroundColor: isDarkMode ? 'rgba(13,148,136,0.15)' : '#F0FDFA' }]}
               onPress={openTaskTracker}
               accessibilityRole="button"
               accessibilityLabel={user?.role === 'PROVIDER' ? 'Track client on map' : 'Track provider on map'}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="crosshairs-gps" size={15} color={colors.accent} />
-              <Text style={[styles.trackHeaderBtnText, { color: colors.accent }]}>
-                {t('jobs.track', 'Track')}
-              </Text>
+              <MaterialCommunityIcons name="crosshairs-gps" size={17} color={colors.accent} />
             </TouchableOpacity>
           </View>
         )}
-        <TouchableOpacity style={[styles.moreHeaderBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={showConversationMenu} accessibilityLabel={t('messages.conversationOptions')}>
-          <MaterialCommunityIcons name="dots-vertical" size={21} color={colors.text} />
-        </TouchableOpacity>
       </View>
 
       {/* ── Feature 1: Chat Disclosure Notice ───────────────────────────────
@@ -1177,28 +1213,31 @@ const ChatScreen = ({ route, navigation }) => {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top + 60, 90) : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top + 60, 90) : 0}
       >
         {loading ? <ActivityIndicator size="large" color={colors.accent} style={{ flex: 1 }} /> : (
-          <FlatList ref={flatListRef} data={[...messages].reverse()} keyExtractor={item => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} inverted={true} />
+          <FlatList
+            ref={flatListRef}
+            data={reversedMessages}
+            keyExtractor={item => item.id || item.clientMessageId}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.messageList}
+            showsVerticalScrollIndicator={false}
+            inverted={true}
+          />
         )}
 
         {!canMessage && (
-          <View style={[styles.closedConversationCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.closedConversationCopy}>
-              <View style={styles.closedIcon}><MaterialCommunityIcons name="check-circle-outline" size={21} color="#0D9488" /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.closedTitle, { color: colors.text }]}>{t('messages.conversationCompleteTitle')}</Text>
-                <Text style={[styles.closedBody, { color: colors.textSecondary }]}>{t('messages.conversationCompleteBody')}</Text>
-              </View>
-            </View>
+          <View style={[styles.bookingBanner, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+            <Text style={[styles.bookingBannerText, { color: colors.textSecondary }]}>
+              {t('profile.chatClosedBanner')}
+            </Text>
             {user?.role === 'CLIENT' && otherParticipant?.role === 'PROVIDER' && (
               <TouchableOpacity
-                style={[styles.closedAction, { backgroundColor: colors.accent }]}
+                style={[styles.bannerBookBtn, { backgroundColor: colors.accent }]}
                 onPress={handleBookAgain}
               >
-                <Text style={styles.bannerBookBtnText}>{t('messages.bookAgain')}</Text>
-                <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" />
+                <Text style={styles.bannerBookBtnText}>{t('profile.bookAgain')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1227,7 +1266,7 @@ const ChatScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {canMessage && (isRecording ? (
+        {isRecording ? (
           <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
             <TouchableOpacity style={styles.cancelRecordBtn} onPress={cancelRecording}>
               <MaterialCommunityIcons name="delete" size={24} color="#EF4444" />
@@ -1247,7 +1286,15 @@ const ChatScreen = ({ route, navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background }]} onPress={!canMessage ? showCannotMessageAlert : undefined} activeOpacity={canMessage ? 1 : 0.7} disabled={!canMessage}>
               <View pointerEvents={canMessage ? 'auto' : 'none'} style={{ flex: 1 }}>
-                <TextInput style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]} placeholder={canMessage ? t('messages.type') : t('profile.chatClosedBanner')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline editable={canMessage} />
+                <TextInput
+                  style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]}
+                  placeholder={canMessage ? t('messages.type') : t('profile.chatClosedBanner')}
+                  placeholderTextColor={colors.placeholder}
+                  value={input}
+                  onChangeText={handleInputChange}
+                  multiline
+                  editable={canMessage}
+                />
               </View>
             </TouchableOpacity>
             {(input.trim() || selectedImages.length > 0) ? (
@@ -1260,7 +1307,7 @@ const ChatScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
           </View>
-        ))}
+        )}
       </KeyboardAvoidingView>
     </View>
 
@@ -1356,9 +1403,17 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingTop: 10, paddingHorizontal: 16, paddingBottom: 15, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1 },
   backBtn: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  headerAvatar: { width: 40, height: 40, borderRadius: 12, marginHorizontal: 12 },
-  headerName: { fontSize: 16, fontWeight: '700' },
-  headerStatus: { fontSize: 12, color: '#10B981', fontWeight: '600' },
+  headerProfileArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 0,
+    marginRight: 6,
+  },
+  headerAvatar: { width: 38, height: 38, borderRadius: 12, marginLeft: 8, marginRight: 10 },
+  headerTextWrap: { flex: 1, minWidth: 0, justifyContent: 'center' },
+  headerName: { fontSize: 15, fontWeight: '800' },
+  headerStatus: { fontSize: 11, color: '#10B981', fontWeight: '600', marginTop: 1 },
   // ── Disclosure banner (Feature 1) ────────────────────────────────────────
   disclosureBanner: {
     flexDirection: 'row',
@@ -1378,35 +1433,15 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginLeft: 6,
+    gap: 8,
   },
-  moreHeaderBtn: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginLeft: 6 },
-  callHeaderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+  actionHeaderIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 1.2,
-    borderRadius: 20,
-  },
-  callHeaderBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  trackHeaderBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderWidth: 1.2,
-    borderRadius: 20,
-  },
-  trackHeaderBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
+    justifyContent: 'center',
   },
   bookCompact: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 8, paddingHorizontal: 10, height: 36, marginLeft: 6 },
   bookCompactText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
@@ -1424,8 +1459,8 @@ const styles = StyleSheet.create({
   msgTime: { fontSize: 10, color: '#9CA3AF' },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', padding: 15, borderTopWidth: 1 },
   attachBtn: { marginRight: 10 },
-  inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 25, paddingHorizontal: 15, marginRight: 10 },
-  textInput: { flex: 1, minHeight: 45, fontSize: 15, paddingTop: 10, paddingBottom: 10 },
+  inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 25, paddingHorizontal: 15, marginRight: 10, minHeight: 45 },
+  textInput: { flex: 1, minHeight: 40, maxHeight: 120, fontSize: 15, paddingTop: Platform.OS === 'ios' ? 10 : 8, paddingBottom: Platform.OS === 'ios' ? 10 : 8 },
   sendButton: { width: 45, height: 45, borderRadius: 22.5, justifyContent: 'center', alignItems: 'center' },
   bookingBanner: {
     padding: 20,
@@ -1450,12 +1485,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  closedConversationCard: { marginHorizontal: 16, marginVertical: 12, padding: 16, borderWidth: 1, borderRadius: 12 },
-  closedConversationCopy: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  closedIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(13,148,136,0.12)', alignItems: 'center', justifyContent: 'center' },
-  closedTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
-  closedBody: { fontSize: 12.5, lineHeight: 18 },
-  closedAction: { height: 44, borderRadius: 9, marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   previewContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.95)',

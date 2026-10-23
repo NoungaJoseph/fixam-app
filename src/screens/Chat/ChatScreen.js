@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   FlatList, KeyboardAvoidingView, Platform, Image, StatusBar, ActivityIndicator, Alert, Keyboard, Modal, Linking
@@ -173,6 +173,26 @@ const ChatScreen = ({ route, navigation }) => {
   const recordingRef = useRef(null);
   const flatListRef = useRef();
   const activeConvIdRef = useRef(conversationId);
+  const typingTimeoutRef = useRef(null);
+  const isCurrentlyTypingRef = useRef(false);
+
+  const reversedMessages = useMemo(() => [...messages].reverse(), [messages]);
+
+  const handleInputChange = (text) => {
+    setInput(text);
+    const hasText = text.trim().length > 0;
+    if (hasText && !isCurrentlyTypingRef.current) {
+      isCurrentlyTypingRef.current = true;
+      emit('typing', { conversationId: activeConvIdRef.current, isTyping: true });
+    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isCurrentlyTypingRef.current) {
+        isCurrentlyTypingRef.current = false;
+        emit('typing', { conversationId: activeConvIdRef.current, isTyping: false });
+      }
+    }, 2000);
+  };
   console.log('[ChatScreen] Initial loading state:', !!conversationId);
 
   useEffect(() => {
@@ -190,6 +210,9 @@ const ChatScreen = ({ route, navigation }) => {
     }
 
     return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
       if (recordTimerRef.current) {
         clearInterval(recordTimerRef.current);
       }
@@ -233,7 +256,7 @@ const ChatScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     });
     return () => showSub.remove();
   }, []);
@@ -626,6 +649,8 @@ const ChatScreen = ({ route, navigation }) => {
         emit('join:conversation', newMessage.conversationId);
       }
 
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      isCurrentlyTypingRef.current = false;
       emit('typing', { conversationId: activeConvIdRef.current || newMessage.conversationId, isTyping: false });
     } catch (error) {
       console.log('Detailed Send error:', {
@@ -1187,11 +1212,19 @@ const ChatScreen = ({ route, navigation }) => {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top + 60, 90) : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top + 60, 90) : 0}
       >
         {loading ? <ActivityIndicator size="large" color={colors.accent} style={{ flex: 1 }} /> : (
-          <FlatList ref={flatListRef} data={[...messages].reverse()} keyExtractor={item => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} inverted={true} />
+          <FlatList
+            ref={flatListRef}
+            data={reversedMessages}
+            keyExtractor={item => item.id}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.messageList}
+            showsVerticalScrollIndicator={false}
+            inverted={true}
+          />
         )}
 
         {!canMessage && (
@@ -1253,7 +1286,15 @@ const ChatScreen = ({ route, navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background }]} onPress={!canMessage ? showCannotMessageAlert : undefined} activeOpacity={canMessage ? 1 : 0.7} disabled={!canMessage}>
               <View pointerEvents={canMessage ? 'auto' : 'none'} style={{ flex: 1 }}>
-                <TextInput style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]} placeholder={canMessage ? t('messages.type') : t('profile.chatClosedBanner')} placeholderTextColor={colors.placeholder} value={input} onChangeText={(t) => { setInput(t); emit('typing', { conversationId: activeConvId, isTyping: t.length > 0 }); }} multiline editable={canMessage} />
+                <TextInput
+                  style={[styles.textInput, { color: canMessage ? colors.text : colors.placeholder }]}
+                  placeholder={canMessage ? t('messages.type') : t('profile.chatClosedBanner')}
+                  placeholderTextColor={colors.placeholder}
+                  value={input}
+                  onChangeText={handleInputChange}
+                  multiline
+                  editable={canMessage}
+                />
               </View>
             </TouchableOpacity>
             {(input.trim() || selectedImages.length > 0) ? (
@@ -1418,8 +1459,8 @@ const styles = StyleSheet.create({
   msgTime: { fontSize: 10, color: '#9CA3AF' },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', padding: 15, borderTopWidth: 1 },
   attachBtn: { marginRight: 10 },
-  inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 25, paddingHorizontal: 15, marginRight: 10 },
-  textInput: { flex: 1, minHeight: 45, fontSize: 15, paddingTop: 10, paddingBottom: 10 },
+  inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 25, paddingHorizontal: 15, marginRight: 10, minHeight: 45 },
+  textInput: { flex: 1, minHeight: 40, maxHeight: 120, fontSize: 15, paddingTop: Platform.OS === 'ios' ? 10 : 8, paddingBottom: Platform.OS === 'ios' ? 10 : 8 },
   sendButton: { width: 45, height: 45, borderRadius: 22.5, justifyContent: 'center', alignItems: 'center' },
   bookingBanner: {
     padding: 20,

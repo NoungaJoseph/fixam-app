@@ -230,7 +230,7 @@ const BookingsScreen = ({ navigation }) => {
           )}
         </TouchableOpacity>
 
-        <View style={[styles.actions, { borderTopColor: colors.border }]}>
+        <View style={[styles.actions, { borderTopColor: colors.border, flexDirection: status === 'PENDING' ? 'column' : 'row' }]}>
           {['ACCEPTED', 'IN_PROGRESS', 'COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(status) ? (
             <TouchableOpacity
               style={[styles.secondaryBtn, { borderColor: colors.border }]}
@@ -247,31 +247,109 @@ const BookingsScreen = ({ navigation }) => {
           ) : null}
 
           {status === 'PENDING' ? (
-            <>
+            <View style={{ width: '100%', gap: 9 }}>
+              {/* Row 1: Large & Long Accept Button */}
               <TouchableOpacity
-                style={[styles.secondaryBtn, { borderColor: '#EF4444', flex: 1, marginRight: 2 }]}
-                disabled={isUpdating}
-                onPress={() => confirmStatus(item, 'REJECTED', t('jobs.reject'), t('jobs.rejectConfirm', 'Are you sure you want to decline this booking request?'))}
-              >
-                <Text style={[styles.secondaryText, { color: '#EF4444' }]}>{t('jobs.reject')}</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.secondaryBtn, { borderColor: '#8B5CF6', flex: 1, marginRight: 2 }]}
-                disabled={isUpdating}
-                onPress={() => handleOpenCounterModal(item)}
-              >
-                <Text style={[styles.secondaryText, { color: '#8B5CF6' }]}>{t('booking.bookings.counter', 'Counter')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
+                style={[
+                  styles.primaryBtn,
+                  {
+                    backgroundColor: colors.accent,
+                    width: '100%',
+                    minHeight: 46,
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    paddingHorizontal: 12,
+                  },
+                ]}
                 disabled={isUpdating}
                 onPress={() => confirmStatus(item, 'ACCEPTED', t('jobs.acceptBookingTitle', 'Accept Booking'), t('jobs.acceptBookingCoinNotice', 'Accepting this booking will deduct 1 coin from your wallet. Do you want to proceed?'))}
+                activeOpacity={0.85}
               >
-                {isUpdating ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryText}>{t('jobs.accept')}</Text>}
+                {isUpdating ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="check-circle-outline" size={18} color="#FFF" />
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.85}
+                      style={[styles.primaryText, { fontSize: 14, fontWeight: '800' }]}
+                    >
+                      {t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')}
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
-            </>
+
+              {/* Row 2: Reject & Counter (each covering half the length below it) */}
+              <View style={{ flexDirection: 'row', gap: 9, width: '100%' }}>
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryBtn,
+                    {
+                      borderColor: '#EF4444',
+                      flex: 1,
+                      minHeight: 40,
+                      borderRadius: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      paddingHorizontal: 8,
+                      backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.08)' : '#FEF2F2',
+                    },
+                  ]}
+                  disabled={isUpdating}
+                  onPress={() => confirmStatus(item, 'REJECTED', t('jobs.reject'), t('jobs.rejectConfirm', 'Are you sure you want to decline this booking request?'))}
+                  activeOpacity={0.85}
+                >
+                  <MaterialCommunityIcons name="close-circle-outline" size={16} color="#EF4444" />
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                    style={[styles.secondaryText, { color: '#EF4444', fontSize: 13, fontWeight: '800' }]}
+                  >
+                    {t('jobs.reject')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryBtn,
+                    {
+                      borderColor: '#8B5CF6',
+                      flex: 1,
+                      minHeight: 40,
+                      borderRadius: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      paddingHorizontal: 8,
+                      backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF',
+                    },
+                  ]}
+                  disabled={isUpdating}
+                  onPress={() => handleOpenCounterModal(item)}
+                  activeOpacity={0.85}
+                >
+                  <MaterialCommunityIcons name="file-document-edit-outline" size={16} color="#8B5CF6" />
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                    style={[styles.secondaryText, { color: '#8B5CF6', fontSize: 13, fontWeight: '800' }]}
+                  >
+                    {t('booking.bookings.counter', 'Counter Offer')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           ) : null}
 
           {status === 'ACCEPTED' ? (

@@ -36,7 +36,9 @@
     "recent": "Recent",
     "notAvailable": "N/A",
     "contactSupport": "Contact Support",
-    "close": "Close"
+    "close": "Close",
+    "seeAll": "See All",
+    "all": "All"
   },
   "tabs": {
     "home": "Home",

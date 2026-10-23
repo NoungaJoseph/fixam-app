@@ -33,6 +33,8 @@
     "standardPackage": "Forfait Standard",
     "premiumPackage": "Forfait Premium",
     "noReviewsYet": "Aucun avis pour le moment",
+    "browseProjects": "Projets & Livrables",
+    "browseProjectsTitle": "Parcourir les projets",
     "myProjects": "Mes projets publiés",
     "editProject": "Modifier le projet",
     "createNew": "Créer un nouveau projet",
@@ -69,7 +71,11 @@
     "selectCategory": "Sélectionner une catégorie",
     "draftAutoSaved": "Brouillon en cours enregistré automatiquement",
     "clearDraftTitle": "Effacer le brouillon ?",
-    "clearDraftBody": "Voulez-vous vraiment effacer votre brouillon de projet en cours ?"
+    "clearDraftBody": "Voulez-vous vraiment effacer votre brouillon de projet en cours ?",
+    "uploadingMedia": "Téléversement des médias ({{current}}/{{total}})...",
+    "finalizingProject": "Enregistrement des détails du projet...",
+    "pleaseWait": "Veuillez ne pas fermer l'application.",
+    "allCategories": "Toutes"
   },
   "sendProposal": "Envoyer une proposition",
   "buyExactProject": "Acheter / Demander ce projet exact",
@@ -102,6 +108,8 @@
   "standardPackage": "Forfait Standard",
   "premiumPackage": "Forfait Premium",
   "noReviewsYet": "Aucun avis pour le moment",
+  "browseProjects": "Projets & Livrables",
+  "browseProjectsTitle": "Parcourir les projets",
   "myProjects": "Mes projets publiés",
   "editProject": "Modifier le projet",
   "createNew": "Créer un nouveau projet",
@@ -139,5 +147,9 @@
   "draftAutoSaved": "Brouillon en cours enregistré automatiquement",
   "clearDraftTitle": "Effacer le brouillon ?",
   "clearDraftBody": "Voulez-vous vraiment effacer votre brouillon de projet en cours ?",
-  "videoSizeLimit": "Chaque vidéo doit avoir une taille maximale de 100 Mo."
+  "videoSizeLimit": "Chaque vidéo doit avoir une taille maximale de 100 Mo.",
+  "uploadingMedia": "Téléversement des médias ({{current}}/{{total}})...",
+  "finalizingProject": "Enregistrement des détails du projet...",
+  "pleaseWait": "Veuillez ne pas fermer l'application.",
+  "allCategories": "Toutes"
 }

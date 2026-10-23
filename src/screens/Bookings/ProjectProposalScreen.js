@@ -92,28 +92,48 @@ const ProjectProposalScreen = ({ route, navigation }) => {
       });
 
       // 2. Fetch or create conversation
-      const convRes = await api.post('/chat/conversations', { participantId: providerUserId });
-      const conversation = convRes.data.data;
+      let conversation = null;
+      try {
+        const convRes = await api.post('/chat/conversations', { participantId: providerUserId });
+        conversation = convRes.data?.data;
+      } catch (convErr) {
+        console.warn('[ProjectProposal] Warning fetching conversation:', convErr?.message);
+      }
 
-      // 3. Send proposal message into conversation
-      const priceText = budgetType === 'REQUEST_QUOTE' ? 'Quote requested' : `${currencyStr} ${budget}`;
-      const proposalText = `PROJECT PROPOSAL: ${project.title || 'Custom Service'}\nType: ${proposalType === 'EXACT' ? 'Buy Exact Project' : 'Similar Custom Service'}\nPackage: ${project.selectedTier?.name || 'STANDARD'}\nBudget: ${priceText}\nTimeline: ${days} Days\nPayment: ${paymentPreference}\n\nRequirements:\n${description.trim()}`;
-      await api.post(`/chat/conversations/${conversation.id}/messages`, { content: proposalText, type: 'TEXT' });
+      // 3. Send proposal message into conversation (nested so chat failure does not mask booking creation)
+      if (conversation?.id) {
+        try {
+          const priceText = budgetType === 'REQUEST_QUOTE' ? 'Quote requested' : `${currencyStr} ${budget}`;
+          const proposalText = `PROJECT PROPOSAL: ${project.title || 'Custom Service'}\nType: ${proposalType === 'EXACT' ? 'Buy Exact Project' : 'Similar Custom Service'}\nPackage: ${project.selectedTier?.name || 'STANDARD'}\nBudget: ${priceText}\nTimeline: ${days} Days\nPayment: ${paymentPreference}\n\nRequirements:\n${description.trim()}`;
+          await api.post('/chat/send', {
+            conversationId: conversation.id,
+            content: proposalText,
+            type: 'TEXT',
+            receiverId: providerUserId,
+          });
+        } catch (chatErr) {
+          console.warn('[ProjectProposal] Warning sending initial proposal chat message:', chatErr?.message);
+        }
+      }
 
       Alert.alert(
         t('common.success'),
         t('project.proposalSentSuccess', 'Your proposal has been sent to the provider!'),
         [
           {
-            text: t('common.openChat', 'Open Chat'),
+            text: conversation?.id ? t('common.openChat', 'Open Chat') : t('common.ok', 'OK'),
             onPress: () => {
-              navigation.replace('Chat', {
-                conversationId: conversation.id,
-                receiverId: providerUserId,
-                userName: provider.user?.fullName || 'Provider',
-                avatar: getMediaUrl(provider.user?.avatar),
-                otherParticipant: conversation.participants?.[0] || { id: providerUserId, role: 'PROVIDER' },
-              });
+              if (conversation?.id) {
+                navigation.replace('Chat', {
+                  conversationId: conversation.id,
+                  receiverId: providerUserId,
+                  userName: provider.user?.fullName || 'Provider',
+                  avatar: getMediaUrl(provider.user?.avatar),
+                  otherParticipant: conversation.participants?.[0] || { id: providerUserId, role: 'PROVIDER' },
+                });
+              } else {
+                navigation.goBack();
+              }
             }
           }
         ]

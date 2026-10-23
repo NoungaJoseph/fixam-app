@@ -153,7 +153,7 @@ const ProjectListScreen = ({ navigation }) => {
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {t('project.browseProjects', 'Projects & Deliverables')}
+          {t('project.browseProjectsTitle', 'Browse Projects')}
         </Text>
         {user?.role?.toUpperCase() === 'PROVIDER' ? (
           <TouchableOpacity

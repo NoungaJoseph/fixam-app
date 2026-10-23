@@ -139,8 +139,8 @@ const ProjectDetailScreen = ({ route, navigation }) => {
         deliveryDays: Number(pkg.deliveryDays || 1),
         revisions: Number(pkg.revisions || 0),
         expressDeliveryEnabled: pkg.expressDeliveryEnabled !== undefined ? Boolean(pkg.expressDeliveryEnabled) : true,
-        expressDeliveryDays: pkg.expressDeliveryDays ? Number(pkg.expressDeliveryDays) : 4,
-        expressDeliveryPrice: pkg.expressDeliveryPrice ? Number(pkg.expressDeliveryPrice) : Math.round(Number(pkg.price || 0) * 0.3),
+        expressDeliveryDays: (pkg.expressDeliveryDays !== undefined && pkg.expressDeliveryDays !== null && pkg.expressDeliveryDays !== '') ? Number(pkg.expressDeliveryDays) : 1,
+        expressDeliveryPrice: (pkg.expressDeliveryPrice !== undefined && pkg.expressDeliveryPrice !== null && pkg.expressDeliveryPrice !== '') ? Number(pkg.expressDeliveryPrice) : 0,
         features: Array.isArray(pkg.features) ? pkg.features.filter(f => f && typeof f === 'string' && f.trim()) : []
       }));
       return mapped.sort((a, b) => getTierOrder(a) - getTierOrder(b));
@@ -161,8 +161,8 @@ const ProjectDetailScreen = ({ route, navigation }) => {
         deliveryDays: Number(pkg.deliveryDays || 1),
         revisions: Number(pkg.revisions || 0),
         expressDeliveryEnabled: pkg.expressDeliveryEnabled !== undefined ? Boolean(pkg.expressDeliveryEnabled) : true,
-        expressDeliveryDays: pkg.expressDeliveryDays ? Number(pkg.expressDeliveryDays) : 4,
-        expressDeliveryPrice: pkg.expressDeliveryPrice ? Number(pkg.expressDeliveryPrice) : Math.round(Number(pkg.price || 0) * 0.3),
+        expressDeliveryDays: (pkg.expressDeliveryDays !== undefined && pkg.expressDeliveryDays !== null && pkg.expressDeliveryDays !== '') ? Number(pkg.expressDeliveryDays) : 1,
+        expressDeliveryPrice: (pkg.expressDeliveryPrice !== undefined && pkg.expressDeliveryPrice !== null && pkg.expressDeliveryPrice !== '') ? Number(pkg.expressDeliveryPrice) : 0,
         features: Array.isArray(pkg.features) ? pkg.features.filter(f => f && typeof f === 'string' && f.trim()) : []
       }));
       return mapped.sort((a, b) => getTierOrder(a) - getTierOrder(b));
@@ -181,8 +181,8 @@ const ProjectDetailScreen = ({ route, navigation }) => {
             deliveryDays: Number(pkg.deliveryDays || 1),
             revisions: Number(pkg.revisions || 0),
             expressDeliveryEnabled: pkg.expressDeliveryEnabled !== undefined ? Boolean(pkg.expressDeliveryEnabled) : true,
-            expressDeliveryDays: pkg.expressDeliveryDays ? Number(pkg.expressDeliveryDays) : 4,
-            expressDeliveryPrice: pkg.expressDeliveryPrice ? Number(pkg.expressDeliveryPrice) : Math.round(Number(pkg.price || 0) * 0.3),
+            expressDeliveryDays: (pkg.expressDeliveryDays !== undefined && pkg.expressDeliveryDays !== null && pkg.expressDeliveryDays !== '') ? Number(pkg.expressDeliveryDays) : 1,
+            expressDeliveryPrice: (pkg.expressDeliveryPrice !== undefined && pkg.expressDeliveryPrice !== null && pkg.expressDeliveryPrice !== '') ? Number(pkg.expressDeliveryPrice) : 0,
             features: Array.isArray(pkg.features) ? pkg.features.filter(f => f && typeof f === 'string' && f.trim()) : []
           });
         }
@@ -201,8 +201,8 @@ const ProjectDetailScreen = ({ route, navigation }) => {
         deliveryDays: 3,
         revisions: 1,
         expressDeliveryEnabled: true,
-        expressDeliveryDays: 4,
-        expressDeliveryPrice: Math.round(baseRate * 0.3),
+        expressDeliveryDays: 1,
+        expressDeliveryPrice: 0,
         features: []
       }
     ];
@@ -210,8 +210,8 @@ const ProjectDetailScreen = ({ route, navigation }) => {
 
   const tiers = resolveTiers();
   const activeTier = tiers[selectedTierIndex] || tiers[0];
-  const expressAddonPrice = Number(activeTier.expressDeliveryPrice || Math.round(activeTier.price * 0.3));
-  const expressDays = Number(activeTier.expressDeliveryDays || 4);
+  const expressAddonPrice = Number(activeTier.expressDeliveryPrice !== undefined && activeTier.expressDeliveryPrice !== null && activeTier.expressDeliveryPrice !== '' ? activeTier.expressDeliveryPrice : 0);
+  const expressDays = Number(activeTier.expressDeliveryDays !== undefined && activeTier.expressDeliveryDays !== null && activeTier.expressDeliveryDays !== '' ? activeTier.expressDeliveryDays : 1);
   const finalPrice = activeTier.price + (expressAddon ? expressAddonPrice : 0);
 
   const getTranslatedTierName = (tier) => {

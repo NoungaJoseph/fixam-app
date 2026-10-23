@@ -464,8 +464,8 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.actionShowcase}>
             <View style={styles.sectionHeader}>
               <View>
-                <Text style={styles.eyebrow}>REAL WORK FROM FIXAM PROFESSIONALS</Text>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>See experts in action</Text>
+                <Text style={styles.eyebrow}>{t('home.realWorkFromPros', 'REAL WORK FROM FIXAM PROFESSIONALS')}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.seeExpertsInAction', 'See experts in action')}</Text>
               </View>
               <TouchableOpacity onPress={() => navigation.navigate('ProjectList')}>
                 <Text style={styles.viewAll}>{t('common.seeAll', 'See All')}</Text>
@@ -480,7 +480,7 @@ const HomeScreen = ({ navigation }) => {
                   <View style={styles.actionProjectBody}>
                     <Text style={[styles.actionProjectTitle, { color: colors.text }]} numberOfLines={1}>{item.title || t('profileDetail.project', 'Project')}</Text>
                     <Text style={[styles.actionProjectMeta, { color: colors.textSecondary }]} numberOfLines={1}>{item.category || provider.skills?.[0] || t('home.expert', 'Professional service')} · {provider.user?.fullName || t('common.provider', 'Provider')}</Text>
-                    <View style={styles.actionProjectFooter}><Text style={styles.actionProjectLink}>View work</Text><MaterialCommunityIcons name="arrow-right" size={16} color="#D95E57" /></View>
+                    <View style={styles.actionProjectFooter}><Text style={styles.actionProjectLink}>{t('home.viewWork', 'View work')}</Text><MaterialCommunityIcons name="arrow-right" size={16} color="#D95E57" /></View>
                   </View>
                 </TouchableOpacity>;
               })}

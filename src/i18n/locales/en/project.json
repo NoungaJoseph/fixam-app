@@ -33,6 +33,8 @@
     "standardPackage": "Standard Package",
     "premiumPackage": "Premium Package",
     "noReviewsYet": "No reviews yet",
+    "browseProjects": "Projects & Deliverables",
+    "browseProjectsTitle": "Browse Projects",
     "myProjects": "My Published Projects",
     "editProject": "Edit Project",
     "createNew": "Create New Project",
@@ -69,7 +71,11 @@
     "selectCategory": "Select Category",
     "draftAutoSaved": "In-progress draft auto-saved",
     "clearDraftTitle": "Discard Draft?",
-    "clearDraftBody": "Are you sure you want to clear your in-progress project draft?"
+    "clearDraftBody": "Are you sure you want to clear your in-progress project draft?",
+    "uploadingMedia": "Uploading media ({{current}}/{{total}})...",
+    "finalizingProject": "Saving project details...",
+    "pleaseWait": "Please do not close the app.",
+    "allCategories": "All"
   },
   "sendProposal": "Send Proposal",
   "buyExactProject": "Buy / Request this exact project",
@@ -102,6 +108,8 @@
   "standardPackage": "Standard Package",
   "premiumPackage": "Premium Package",
   "noReviewsYet": "No reviews yet",
+  "browseProjects": "Projects & Deliverables",
+  "browseProjectsTitle": "Browse Projects",
   "myProjects": "My Published Projects",
   "editProject": "Edit Project",
   "createNew": "Create New Project",
@@ -139,5 +147,9 @@
   "draftAutoSaved": "In-progress draft auto-saved",
   "clearDraftTitle": "Discard Draft?",
   "clearDraftBody": "Are you sure you want to clear your in-progress project draft?",
-  "videoSizeLimit": "Each video must be 100 MB or smaller."
+  "videoSizeLimit": "Each video must be 100 MB or smaller.",
+  "uploadingMedia": "Uploading media ({{current}}/{{total}})...",
+  "finalizingProject": "Saving project details...",
+  "pleaseWait": "Please do not close the app.",
+  "allCategories": "All"
 }

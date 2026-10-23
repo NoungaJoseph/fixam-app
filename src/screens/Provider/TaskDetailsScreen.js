@@ -286,11 +286,42 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     navigation.navigate('JobProposal', { task: displayTask, taskId: currentTaskId });
   };
 
+  const updateBookingStatus = (newStatus, title, body) => {
+    Alert.alert(title, body, [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.confirm', 'Confirm'),
+        onPress: async () => {
+          try {
+            setSubmitting(true);
+            const res = await api.patch(`/bookings/${task.id || currentTaskId}/status`, { status: newStatus });
+            if (res.data?.data) {
+              setJobDetails(res.data.data);
+            } else {
+              setJobDetails(prev => ({ ...prev, status: newStatus }));
+            }
+            if (newStatus === 'ACCEPTED') setApplied(true);
+            Alert.alert(t('common.success'), t('jobs.statusUpdated', 'Booking status updated successfully.'));
+          } catch (error) {
+            Alert.alert(t('common.error'), translateApiError(error, t, 'jobs.updateFailed'));
+          } finally {
+            setSubmitting(false);
+          }
+        }
+      }
+    ]);
+  };
+
   const confirmAcceptBooking = async () => {
     try {
       setSubmitting(true);
-      await api.patch(`/bookings/${task.id}/status`, { status: 'ACCEPTED' });
+      const res = await api.patch(`/bookings/${task.id || currentTaskId}/status`, { status: 'ACCEPTED' });
       setApplied(true);
+      if (res.data?.data) {
+        setJobDetails(res.data.data);
+      } else {
+        setJobDetails(prev => ({ ...prev, status: 'ACCEPTED' }));
+      }
       Alert.alert(t('common.success', 'Success'), t('jobs.bookingAccepted', 'You have successfully accepted this booking. 1 coin was deducted.'), [
         { text: t('common.close') }
       ]);
@@ -682,40 +713,148 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         </View>
       )}
 
-      <View style={[styles.footer, { bottom: Math.max(insets.bottom, 12) + 25 }]}>
-        {canReviseBookingOffer && (
-          <TouchableOpacity
-            style={[styles.reviseOfferBtn, { borderColor: '#8B5CF6', backgroundColor: colors.card }]}
-            onPress={() => navigation.navigate('RevisedQuote', { booking: displayTask, mode: 'provider' })}
-            disabled={submitting}
-          >
-            <MaterialCommunityIcons name="file-document-edit-outline" size={20} color="#8B5CF6" />
-            <Text style={styles.reviseOfferText}>{t('jobs.reviseOffer', 'Revise Offer')}</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity 
-          style={[styles.proposalBtn, (submitting || hasApplied || isBookingRevisionPending) && styles.proposalBtnDisabled]}
-          onPress={handleAccept} 
-          disabled={submitting || hasApplied || isBookingRevisionPending}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
+      {isBooking ? (
+        <View style={[styles.footer, { bottom: Math.max(insets.bottom, 12) + 25 }]}>
+          {bookingStatus === 'PENDING' ? (
+            <>
+              <TouchableOpacity
+                style={[styles.bookingSecondaryBtn, { borderColor: '#EF4444' }]}
+                disabled={submitting}
+                onPress={() => updateBookingStatus('REJECTED', t('jobs.reject'), t('jobs.rejectConfirm', 'Are you sure you want to decline this booking request?'))}
+              >
+                <Text style={[styles.bookingSecondaryText, { color: '#EF4444' }]}>{t('jobs.reject')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.bookingSecondaryBtn, { borderColor: '#8B5CF6' }]}
+                disabled={submitting}
+                onPress={() => navigation.navigate('RevisedQuote', { booking: displayTask, mode: 'provider' })}
+              >
+                <Text style={[styles.bookingSecondaryText, { color: '#8B5CF6' }]}>{t('booking.bookings.counter', 'Counter')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.proposalBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
+                disabled={submitting}
+                onPress={handleAccept}
+              >
+                {submitting ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.proposalTitle}>{t('jobs.acceptBookingCoins', 'Accept (1 Coin)')}</Text>}
+              </TouchableOpacity>
+            </>
+          ) : bookingStatus === 'ACCEPTED' ? (
+            <>
+              <TouchableOpacity
+                style={[styles.bookingSecondaryBtn, { borderColor: colors.border }]}
+                onPress={openClientChat}
+              >
+                <MaterialCommunityIcons name="message-text-outline" size={18} color={colors.accent} />
+                <Text style={[styles.bookingSecondaryText, { color: colors.accent }]}>{t('tabs.messages')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.proposalBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
+                disabled={submitting}
+                onPress={() => updateBookingStatus('IN_PROGRESS', t('jobs.startJob'), t('jobs.startJobBody', 'Are you ready to start this job?'))}
+              >
+                {submitting ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.proposalTitle}>{t('jobs.startJob')}</Text>}
+              </TouchableOpacity>
+            </>
+          ) : bookingStatus === 'IN_PROGRESS' ? (
+            <>
+              <TouchableOpacity
+                style={[styles.bookingSecondaryBtn, { borderColor: colors.border }]}
+                onPress={openClientChat}
+              >
+                <MaterialCommunityIcons name="message-text-outline" size={18} color={colors.accent} />
+                <Text style={[styles.bookingSecondaryText, { color: colors.accent }]}>{t('tabs.messages')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.proposalBtn, { backgroundColor: '#22C55E', flex: 1.5 }]}
+                disabled={submitting}
+                onPress={() => updateBookingStatus('COMPLETED', t('jobs.markComplete'), t('jobs.markCompleteBody', 'Have you completed all the work for this job?'))}
+              >
+                {submitting ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.proposalTitle}>{t('jobs.markCompleted')}</Text>}
+              </TouchableOpacity>
+            </>
+          ) : bookingStatus === 'COMPLETED' ? (
+            <>
+              <TouchableOpacity
+                style={[styles.bookingSecondaryBtn, { borderColor: colors.border }]}
+                onPress={openClientChat}
+              >
+                <MaterialCommunityIcons name="message-text-outline" size={18} color={colors.accent} />
+                <Text style={[styles.bookingSecondaryText, { color: colors.accent }]}>{t('tabs.messages')}</Text>
+              </TouchableOpacity>
+
+              {!((displayTask.reviews || []).some((r) => r.reviewerId === user?.id) || (task.reviews || []).some((r) => r.reviewerId === user?.id)) ? (
+                <TouchableOpacity
+                  style={[styles.proposalBtn, { backgroundColor: colors.accent, flex: 1.5 }]}
+                  onPress={() => navigation.navigate('ReviewTask', {
+                    task: displayTask,
+                    provider: { id: displayTask.clientId, fullName: clientName },
+                  })}
+                >
+                  <MaterialCommunityIcons name="star-outline" size={18} color="#FFF" />
+                  <Text style={styles.proposalTitle}>{t('jobs.rateClient')}</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.bookingReviewedPill, { backgroundColor: isDarkMode ? 'rgba(34,197,94,0.14)' : '#F0FDF4' }]}>
+                  <MaterialCommunityIcons name="star-check" size={18} color="#16A34A" />
+                  <Text style={{ color: '#16A34A', fontSize: 13, fontWeight: '900' }}>{t('jobs.reviewSubmitted', 'Review submitted')}</Text>
+                </View>
+              )}
+            </>
+          ) : isBookingRevisionPending ? (
+            <>
+              <TouchableOpacity
+                style={[styles.bookingSecondaryBtn, { borderColor: colors.border }]}
+                onPress={openClientChat}
+              >
+                <MaterialCommunityIcons name="message-text-outline" size={18} color={colors.accent} />
+                <Text style={[styles.bookingSecondaryText, { color: colors.accent }]}>{t('tabs.messages')}</Text>
+              </TouchableOpacity>
+
+              <View style={[styles.proposalBtn, styles.proposalBtnDisabled, { flex: 1.5 }]}>
+                <Text style={[styles.proposalTitle, { fontSize: 13 }]}>
+                  {t('jobs.waitingForClientResponse', 'Waiting for client')}
+                </Text>
+              </View>
+            </>
           ) : (
-            <Text style={styles.proposalTitle}>
-              {isExternalJob
-                ? (hasApplied ? 'Applied' : 'Apply now')
-                : isBooking 
-                  ? (isBookingRevisionPending
-                    ? t('jobs.waitingForClientResponse', 'Revised offer sent — waiting for client')
-                    : (hasApplied ? t('jobs.bookingAccepted', 'Booking Accepted') : t('jobs.acceptBookingCoins', 'Accept Booking (1 Coin)')))
-                  : (hasApplied ? t('jobs.applied', 'Applied') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
-            </Text>
+            <View style={[styles.proposalBtn, styles.proposalBtnDisabled, { flex: 1 }]}>
+              <Text style={styles.proposalTitle}>
+                {t(`jobs.status_${bookingStatus.toLowerCase()}`, bookingStatus)}
+              </Text>
+            </View>
           )}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
-          <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={25} color={isFavorite ? '#EF4444' : colors.text} />
-        </TouchableOpacity>
-      </View>
+
+          <TouchableOpacity style={styles.footerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
+            <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={25} color={isFavorite ? '#EF4444' : colors.text} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={[styles.footer, { bottom: Math.max(insets.bottom, 12) + 25 }]}>
+          <TouchableOpacity 
+            style={[styles.proposalBtn, (submitting || hasApplied) && styles.proposalBtnDisabled]}
+            onPress={handleAccept} 
+            disabled={submitting || hasApplied}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.proposalTitle}>
+                {isExternalJob
+                  ? (hasApplied ? 'Applied' : 'Apply now')
+                  : (hasApplied ? t('jobs.applied', 'Applied') : t('jobs.sendProposalFree', 'Send Proposal (FREE)'))}
+              </Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.footerIcon} onPress={() => toggleFavoriteJob?.(task.id)}>
+            <MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={25} color={isFavorite ? '#EF4444' : colors.text} />
+          </TouchableOpacity>
+        </View>
+      )}
       <View style={[styles.secureFooter, { bottom: Math.max(insets.bottom, 8) }]}>
         <MaterialCommunityIcons name="lock" size={18} color="#64748B" />
         <Text style={[styles.secureText, { color: colors.textSecondary }]}>{t('jobs.proposalSecure')}</Text>
@@ -940,6 +1079,31 @@ const styles = StyleSheet.create({
   proposalBtnDisabled: { backgroundColor: '#94A3B8' },
   proposalTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
   proposalSub: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', marginTop: 3 },
+  bookingSecondaryBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+  bookingSecondaryText: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  bookingReviewedPill: {
+    flex: 1.5,
+    height: 56,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 10,
+  },
   secureFooter: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   secureText: { color: '#64748B', fontSize: 13, fontWeight: '700' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 30 },

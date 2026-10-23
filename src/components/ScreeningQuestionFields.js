@@ -66,9 +66,17 @@ export default function ScreeningQuestionFields({ questions = [], answers = {}, 
       {list.map((q, index) => {
         const value = answers?.[q.id];
         const textInput = ['SHORT_TEXT', 'LONG_TEXT', 'NUMBER', 'DATE'].includes(q.type);
+        const isLast = index === list.length - 1;
 
         return (
-          <View key={q.id || `q-${index}`} style={[styles.card, { borderColor: colors.border, backgroundColor: cardBg }]}>
+          <View
+            key={q.id || `q-${index}`}
+            style={[
+              styles.questionItem,
+              { borderBottomColor: colors.border },
+              isLast && { borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 }
+            ]}
+          >
             <View style={styles.promptRow}>
               <Text style={[styles.prompt, { color: colors.text }]}>
                 {index + 1}. {q.prompt}
@@ -92,7 +100,7 @@ export default function ScreeningQuestionFields({ questions = [], answers = {}, 
                 style={[
                   styles.input,
                   q.type === 'LONG_TEXT' && styles.area,
-                  { color: colors.text, borderColor: colors.border, backgroundColor: inputBg }
+                  { color: colors.text, borderColor: colors.border, backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }
                 ]}
               />
             ) : null}
@@ -109,7 +117,7 @@ export default function ScreeningQuestionFields({ questions = [], answers = {}, 
                         styles.choice,
                         {
                           borderColor: isSelected ? '#0D9488' : colors.border,
-                          backgroundColor: isSelected ? '#0D948818' : inputBg
+                          backgroundColor: isSelected ? '#0D948818' : (isDarkMode ? '#1E293B' : '#FFFFFF')
                         }
                       ]}
                     >
@@ -153,7 +161,18 @@ export default function ScreeningQuestionFields({ questions = [], answers = {}, 
                           set(q.id, option);
                         }
                       }}
-                      style={[styles.check, { backgroundColor: selected ? '#0D948810' : 'transparent', borderRadius: 8, paddingHorizontal: 8 }]}
+                      style={[
+                        styles.check,
+                        {
+                          backgroundColor: selected ? '#0D948812' : (isDarkMode ? '#1E293B' : '#FFFFFF'),
+                          borderColor: selected ? '#0D9488' : colors.border,
+                          borderWidth: 1,
+                          borderRadius: 10,
+                          paddingHorizontal: 12,
+                          paddingVertical: 10,
+                          marginBottom: 6,
+                        }
+                      ]}
                     >
                       <MaterialCommunityIcons
                         name={selected
@@ -162,7 +181,7 @@ export default function ScreeningQuestionFields({ questions = [], answers = {}, 
                         size={22}
                         color={selected ? '#0D9488' : colors.textSecondary}
                       />
-                      <Text style={{ color: colors.text, flex: 1, fontSize: 14 }}>{option}</Text>
+                      <Text style={{ color: colors.text, flex: 1, fontSize: 14, fontWeight: '600' }}>{option}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -208,15 +227,14 @@ const styles = StyleSheet.create({
   },
   help: {
     marginTop: 2,
-    marginBottom: 12,
+    marginBottom: 16,
     fontSize: 12,
     lineHeight: 18,
   },
-  card: {
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
+  questionItem: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 20,
+    marginBottom: 20,
   },
   promptRow: {
     flexDirection: 'row',
@@ -247,12 +265,12 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 13,
     fontSize: 14,
   },
   area: {
-    minHeight: 96,
-    paddingTop: 10,
+    minHeight: 110,
+    paddingTop: 12,
     textAlignVertical: 'top',
   },
   choices: {
@@ -264,7 +282,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: 10,
   },
   check: {
@@ -274,6 +292,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   optionList: {
-    gap: 4,
+    gap: 6,
   },
 });

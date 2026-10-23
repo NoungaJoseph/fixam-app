@@ -104,7 +104,42 @@ const PostProjectScreen = ({ navigation, route }) => {
         const existingVideo = editProject.video || editProject.videoUrl;
         setVideoUris(Array.isArray(existingVideo) ? existingVideo : [existingVideo]);
       }
-      if (editProject.packages) setTierData(editProject.packages);
+      if (editProject.packages || editProject.tiers) {
+        let pkgs = {};
+        if (typeof editProject.packages === 'string') {
+          try { pkgs = JSON.parse(editProject.packages); } catch (_) {}
+        } else if (typeof editProject.packages === 'object' && editProject.packages) {
+          pkgs = { ...editProject.packages };
+        }
+        let tiersList = editProject.tiers;
+        if (typeof tiersList === 'string') {
+          try { tiersList = JSON.parse(tiersList); } catch (_) {}
+        }
+        if (Array.isArray(tiersList)) {
+          tiersList.forEach(t => {
+            const k = String(t.id || t.name || '').toLowerCase();
+            const matchedKey = k.includes('basic') ? 'basic' : k.includes('premium') ? 'premium' : 'standard';
+            pkgs[matchedKey] = {
+              ...(pkgs[matchedKey] || {}),
+              enabled: true,
+              name: t.name || pkgs[matchedKey]?.name,
+              summary: t.summary || t.label || pkgs[matchedKey]?.summary || '',
+              price: String(t.price ?? pkgs[matchedKey]?.price ?? ''),
+              deliveryDays: String(t.deliveryDays ?? pkgs[matchedKey]?.deliveryDays ?? ''),
+              revisions: String(t.revisions ?? pkgs[matchedKey]?.revisions ?? ''),
+              expressDeliveryEnabled: t.expressDeliveryEnabled !== undefined ? Boolean(t.expressDeliveryEnabled) : Boolean(pkgs[matchedKey]?.expressDeliveryEnabled),
+              expressDeliveryDays: String(t.expressDeliveryDays ?? pkgs[matchedKey]?.expressDeliveryDays ?? '1'),
+              expressDeliveryPrice: String(t.expressDeliveryPrice ?? pkgs[matchedKey]?.expressDeliveryPrice ?? ''),
+              features: Array.isArray(t.features) ? t.features : (pkgs[matchedKey]?.features || [])
+            };
+          });
+        }
+        setTierData(prev => ({
+          basic: { ...prev.basic, ...(pkgs.basic || {}) },
+          standard: { ...prev.standard, ...(pkgs.standard || {}) },
+          premium: { ...prev.premium, ...(pkgs.premium || {}) },
+        }));
+      }
     }
   }, [editProject]);
 
@@ -138,6 +173,7 @@ const PostProjectScreen = ({ navigation, route }) => {
   // Tier Package Config (Basic, Standard, Premium)
   const [activeTierId, setActiveTierId] = useState('standard'); // 'basic' | 'standard' | 'premium'
 
+  const [uploadStatus, setUploadStatus] = useState('');
   const [tierData, setTierData] = useState({
     basic: {
       enabled: false,
@@ -147,7 +183,7 @@ const PostProjectScreen = ({ navigation, route }) => {
       deliveryDays: '',
       revisions: '',
       expressDeliveryEnabled: false,
-      expressDeliveryDays: '4',
+      expressDeliveryDays: '1',
       expressDeliveryPrice: '',
       features: [],
     },
@@ -159,7 +195,7 @@ const PostProjectScreen = ({ navigation, route }) => {
       deliveryDays: '',
       revisions: '',
       expressDeliveryEnabled: false,
-      expressDeliveryDays: '4',
+      expressDeliveryDays: '1',
       expressDeliveryPrice: '',
       features: [],
     },
@@ -171,7 +207,7 @@ const PostProjectScreen = ({ navigation, route }) => {
       deliveryDays: '',
       revisions: '',
       expressDeliveryEnabled: false,
-      expressDeliveryDays: '4',
+      expressDeliveryDays: '1',
       expressDeliveryPrice: '',
       features: [],
     },
@@ -433,6 +469,9 @@ const PostProjectScreen = ({ navigation, route }) => {
           price: Number(item.price || 50),
           deliveryDays: Number(item.deliveryDays || 3),
           revisions: Number(item.revisions || 1),
+          expressDeliveryEnabled: Boolean(item.expressDeliveryEnabled),
+          expressDeliveryDays: item.expressDeliveryDays !== undefined && item.expressDeliveryDays !== '' ? Math.max(1, Number(item.expressDeliveryDays)) : 1,
+          expressDeliveryPrice: item.expressDeliveryPrice !== undefined && item.expressDeliveryPrice !== '' ? Number(item.expressDeliveryPrice) : 0,
           features: item.features.filter(f => f.trim().length > 0),
         };
       });
@@ -443,10 +482,16 @@ const PostProjectScreen = ({ navigation, route }) => {
     }
 
     setLoading(true);
+    setUploadStatus(t('project.uploadingMedia', 'Uploading media ({{current}}/{{total}})...', { current: 1, total: (imageUris.length + videoUris.length) || 1 }));
     try {
+      const totalMedia = imageUris.length + videoUris.length;
+      let uploadedCount = 0;
+
       // 1. Upload local images to backend server storage
       const uploadedImages = [];
       for (const imgUri of imageUris) {
+        uploadedCount += 1;
+        setUploadStatus(t('project.uploadingMedia', 'Uploading media ({{current}}/{{total}})...', { current: uploadedCount, total: totalMedia || 1 }));
         const uploadedUrl = await uploadMediaToBackend(imgUri, 'image');
         if (uploadedUrl) uploadedImages.push(uploadedUrl);
       }
@@ -454,9 +499,13 @@ const PostProjectScreen = ({ navigation, route }) => {
       // 2. Upload local videos to backend server storage
       const uploadedVideos = [];
       for (const vidUri of videoUris) {
+        uploadedCount += 1;
+        setUploadStatus(t('project.uploadingMedia', 'Uploading media ({{current}}/{{total}})...', { current: uploadedCount, total: totalMedia || 1 }));
         const uploadedUrl = await uploadMediaToBackend(vidUri, 'video');
         if (uploadedUrl) uploadedVideos.push(uploadedUrl);
       }
+
+      setUploadStatus(t('project.finalizingProject', 'Saving project details...'));
 
       const finalImages = uploadedImages.length > 0 ? uploadedImages : [user?.avatar].filter(Boolean);
       const finalVideos = uploadedVideos;
@@ -504,6 +553,7 @@ const PostProjectScreen = ({ navigation, route }) => {
       Alert.alert(t('common.error'), err.message || t('common.tryAgain'));
     } finally {
       setLoading(false);
+      setUploadStatus('');
     }
   };
 
@@ -910,10 +960,10 @@ const PostProjectScreen = ({ navigation, route }) => {
                         </Text>
                         <TextInput
                           style={[styles.input, { backgroundColor: 'transparent', color: colors.text, borderColor: colors.border }]}
-                          placeholder="4"
+                          placeholder="1"
                           placeholderTextColor={colors.placeholder}
                           keyboardType="numeric"
-                          value={String(tierData[activeTierId].expressDeliveryDays || '4')}
+                          value={tierData[activeTierId].expressDeliveryDays !== undefined && tierData[activeTierId].expressDeliveryDays !== null ? String(tierData[activeTierId].expressDeliveryDays) : ''}
                           onChangeText={(val) => handleUpdateTierField(activeTierId, 'expressDeliveryDays', val)}
                         />
                       </View>
@@ -926,7 +976,7 @@ const PostProjectScreen = ({ navigation, route }) => {
                           placeholder="20"
                           placeholderTextColor={colors.placeholder}
                           keyboardType="numeric"
-                          value={String(tierData[activeTierId].expressDeliveryPrice || '')}
+                          value={tierData[activeTierId].expressDeliveryPrice !== undefined && tierData[activeTierId].expressDeliveryPrice !== null ? String(tierData[activeTierId].expressDeliveryPrice) : ''}
                           onChangeText={(val) => handleUpdateTierField(activeTierId, 'expressDeliveryPrice', val)}
                         />
                       </View>
@@ -1109,6 +1159,21 @@ const PostProjectScreen = ({ navigation, route }) => {
             <ActivityIndicator size="large" color={colors.accent} />
             <Text style={[styles.loadingOverlayText, { color: colors.text }]}>
               {t('project.processingMedia', 'Processing media file...')}
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Uploading / Saving Project Modal */}
+      <Modal visible={loading} transparent animationType="fade">
+        <View style={styles.loadingOverlayContainer}>
+          <View style={[styles.loadingOverlayBox, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF', width: 280, padding: 24, borderRadius: 16, alignItems: 'center' }]}>
+            <ActivityIndicator size="large" color={colors.accent} />
+            <Text style={[styles.loadingOverlayText, { color: colors.text, fontSize: 15, fontWeight: '800', textAlign: 'center', marginTop: 12 }]}>
+              {uploadStatus || t('project.finalizingProject', 'Saving project details...')}
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 4 }}>
+              {t('project.pleaseWait', 'Please do not close the app.')}
             </Text>
           </View>
         </View>

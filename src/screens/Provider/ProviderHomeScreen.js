@@ -632,8 +632,8 @@ const ProviderHomeScreen = ({ navigation }) => {
         <TouchableOpacity style={[styles.showWorkSection, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handleSafeNavigate('PostProject')}>
           <View style={styles.showWorkIcon}><MaterialCommunityIcons name="folder-plus-outline" size={23} color="#0D9488" /></View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.showWorkTitle, { color: colors.text }]}>Show your work</Text>
-            <Text style={[styles.showWorkBody, { color: colors.textSecondary }]}>Share a completed job and help clients choose you.</Text>
+            <Text style={[styles.showWorkTitle, { color: colors.text }]}>{t('home.showYourWork', 'Show your work')}</Text>
+            <Text style={[styles.showWorkBody, { color: colors.textSecondary }]}>{t('home.showYourWorkSub', 'Share a completed job and help clients choose you.')}</Text>
           </View>
           <MaterialCommunityIcons name="arrow-right" size={22} color="#0D9488" />
         </TouchableOpacity>

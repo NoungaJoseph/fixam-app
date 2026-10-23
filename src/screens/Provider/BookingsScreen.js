@@ -134,6 +134,15 @@ const BookingsScreen = ({ navigation }) => {
     ]);
   };
 
+  const handleOpenBookingDetails = (booking) => {
+    navigation.navigate('TaskDetails', {
+      task: booking,
+      taskId: booking.id,
+      isBooking: true,
+      booking,
+    });
+  };
+
   const renderBooking = useCallback(({ item }) => {
     const status = String(item.status || 'PENDING').toUpperCase();
     const meta = statusMeta[status] || statusMeta.PENDING;
@@ -148,76 +157,78 @@ const BookingsScreen = ({ navigation }) => {
     const budgetLabel = `${Number(item.budget || 0).toLocaleString()} ${getCurrencyForUser(item.country || user?.country || 'Cameroon')}`;
 
     return (
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: highlightBorderColor, borderWidth: highlightBorderWidth }]}>
-        {isHighPriority && (
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            alignSelf: 'flex-start',
-            paddingHorizontal: 8,
-            paddingVertical: 3,
-            borderRadius: 4,
-            backgroundColor: '#F59E0B',
-            marginBottom: 10,
-            gap: 4
-          }}>
-            <MaterialCommunityIcons
-              name="flash"
-              size={14}
-              color="#FFFFFF"
-            />
-            <Text style={{
-              color: '#FFFFFF',
-              fontSize: 11,
-              fontWeight: '900',
-              textTransform: 'uppercase'
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: highlightBorderColor, borderTopWidth: highlightBorderWidth, borderBottomWidth: highlightBorderWidth }]}>
+        <TouchableOpacity activeOpacity={0.85} onPress={() => handleOpenBookingDetails(item)}>
+          {isHighPriority && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 4,
+              backgroundColor: '#F59E0B',
+              marginBottom: 10,
+              gap: 4
             }}>
-              {t('booking.highPriority', 'High Priority')}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.cardTop}>
-          <View style={[styles.iconWrap, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.16)' : '#E6FDF3' }]}>
-            <MaterialCommunityIcons name="calendar-clock" size={24} color={colors.accent} />
-          </View>
-          <View style={styles.cardTitleWrap}>
-            <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
-              {item.notes || t('jobs.scheduledServiceBooking')}
-            </Text>
-            <Text style={[styles.client, { color: colors.textSecondary }]} numberOfLines={1}>
-              {item.client?.fullName || t('common.client')}
-            </Text>
-          </View>
-          <View style={[styles.statusPill, { backgroundColor: `${meta.color}18` }]}>
-            <MaterialCommunityIcons name={meta.icon} size={13} color={meta.color} />
-            <Text style={[styles.statusText, { color: meta.color }]}>{t(`jobs.status_${status.toLowerCase()}`, meta.label || status)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.detailGrid}>
-          <Detail icon="calendar" label={date} colors={colors} />
-          <Detail icon="clock-outline" label={item.bookingTime || t('jobs.asap')} colors={colors} />
-          <Detail icon="map-marker-outline" label={item.location || t('jobs.onSite')} colors={colors} />
-          <Detail icon="cash" label={budgetLabel} colors={colors} />
-        </View>
-
-        {['COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(status) && (
-          <View style={[styles.counterDetails, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF', borderColor: colors.border, borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 12 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <MaterialCommunityIcons name="cash-multiple" size={16} color="#8B5CF6" />
-              <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent }}>{status === 'REVISED_QUOTE_PENDING' ? t('booking.bookings.revisedQuote', 'Revised quote') : t('booking.bookings.yourProposedCounter', 'Your Proposed Counter:')}</Text>
-            </View>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, marginTop: 4 }}>
-              {Number(item.counterBudget || 0).toLocaleString()} {getCurrencyForUser(item.country || user?.country || 'Cameroon')}
-            </Text>
-            {item.counterNotes ? (
-              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginTop: 4, fontStyle: 'italic' }}>
-                "{item.counterNotes}"
+              <MaterialCommunityIcons
+                name="flash"
+                size={14}
+                color="#FFFFFF"
+              />
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 11,
+                fontWeight: '900',
+                textTransform: 'uppercase'
+              }}>
+                {t('booking.highPriority', 'High Priority')}
               </Text>
-            ) : null}
+            </View>
+          )}
+
+          <View style={styles.cardTop}>
+            <View style={[styles.iconWrap, { backgroundColor: isDarkMode ? 'rgba(13,148,136,0.16)' : '#E6FDF3' }]}>
+              <MaterialCommunityIcons name="calendar-clock" size={24} color={colors.accent} />
+            </View>
+            <View style={styles.cardTitleWrap}>
+              <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
+                {item.notes || t('jobs.scheduledServiceBooking')}
+              </Text>
+              <Text style={[styles.client, { color: colors.textSecondary }]} numberOfLines={1}>
+                {item.client?.fullName || t('common.client')}
+              </Text>
+            </View>
+            <View style={[styles.statusPill, { backgroundColor: `${meta.color}18` }]}>
+              <MaterialCommunityIcons name={meta.icon} size={13} color={meta.color} />
+              <Text style={[styles.statusText, { color: meta.color }]}>{t(`jobs.status_${status.toLowerCase()}`, meta.label || status)}</Text>
+            </View>
           </View>
-        )}
+
+          <View style={styles.detailGrid}>
+            <Detail icon="calendar" label={date} colors={colors} />
+            <Detail icon="clock-outline" label={item.bookingTime || t('jobs.asap')} colors={colors} />
+            <Detail icon="map-marker-outline" label={item.location || t('jobs.onSite')} colors={colors} />
+            <Detail icon="cash" label={budgetLabel} colors={colors} />
+          </View>
+
+          {['COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(status) && (
+            <View style={[styles.counterDetails, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.08)' : '#F5F3FF', borderColor: colors.border, borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 12 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <MaterialCommunityIcons name="cash-multiple" size={16} color="#8B5CF6" />
+                <Text style={{ fontSize: 13, fontWeight: '800', color: colors.accent }}>{status === 'REVISED_QUOTE_PENDING' ? t('booking.bookings.revisedQuote', 'Revised quote') : t('booking.bookings.yourProposedCounter', 'Your Proposed Counter:')}</Text>
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, marginTop: 4 }}>
+                {Number(item.counterBudget || 0).toLocaleString()} {getCurrencyForUser(item.country || user?.country || 'Cameroon')}
+              </Text>
+              {item.counterNotes ? (
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginTop: 4, fontStyle: 'italic' }}>
+                  "{item.counterNotes}"
+                </Text>
+              ) : null}
+            </View>
+          )}
+        </TouchableOpacity>
 
         <View style={[styles.actions, { borderTopColor: colors.border }]}>
           {['ACCEPTED', 'IN_PROGRESS', 'COUNTER_PROPOSED', 'REVISED_QUOTE_PENDING'].includes(status) ? (
@@ -416,8 +427,17 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   headerTitle: { fontSize: 24, fontWeight: '900' },
   headerSub: { fontSize: 13, fontWeight: '700', marginTop: 2 },
-  list: { padding: 18, paddingBottom: 110 },
-  card: { borderWidth: 1, borderRadius: 8, padding: 14, marginBottom: 12 },
+  list: { paddingHorizontal: 0, paddingTop: 12, paddingBottom: 110 },
+  card: {
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderRadius: 0,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 14,
+  },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconWrap: { width: 44, height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   cardTitleWrap: { flex: 1 },
